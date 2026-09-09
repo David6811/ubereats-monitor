@@ -35,7 +35,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.weixu.ueatsmonitor.App
+import android.app.Activity
+import android.content.Context
+import android.media.projection.MediaProjectionManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.Chime
+import com.weixu.ueatsmonitor.action.RecordingStore
+import com.weixu.ueatsmonitor.action.ScreenRecorderService
 import com.weixu.ueatsmonitor.action.LoggedEvent
 import com.weixu.ueatsmonitor.action.OfferLog
 import com.weixu.ueatsmonitor.action.OverlayController
@@ -137,6 +144,8 @@ private fun MonitorScreen(store: SettingsStore) {
             )
         }
 
+        item { RecordingCard(recording = current.recordScreenEnabled, store = store) }
+
         item {
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -176,6 +185,70 @@ private fun MonitorScreen(store: SettingsStore) {
         items(events) { event -> EventRow(event) }
     }
 }
+
+/** Screen recording: a switch, what it is costing, and a way to throw it away. */
+@Composable
+private fun RecordingCard(recording: Boolean, store: SettingsStore) {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val recordings = remember { RecordingStore(context) }
+    var reloads by remember { mutableStateOf(0) }
+    val usage = remember(reloads, recording) {
+        val files = recordings.segments()
+        files.size to files.sumOf { it.length() }
+    }
+
+    val consent = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK && data != null) {
+            ScreenRecorderService.start(context, result.resultCode, data)
+            scope.launch { store.setRecordScreenEnabled(true) }
+        } else {
+            scope.launch { store.setRecordScreenEnabled(false) }
+        }
+        reloads++
+    }
+
+    Card {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ToggleRow("跑单时录屏", recording) { wanted ->
+                if (wanted) {
+                    val manager = context.getSystemService(MediaProjectionManager::class.java)
+                    consent.launch(manager.createScreenCaptureIntent())
+                } else {
+                    ScreenRecorderService.stop(context)
+                    scope.launch { store.setRecordScreenEnabled(false) }
+                    reloads++
+                }
+            }
+            Text(
+                text = "720×1600 · 8 帧 · 每小时约 360 MB。超过 3 GB 自动删最老的一段。",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                text = "现在占用 " + megabytes(usage.second) + "，共 " + usage.first + " 段",
+                fontWeight = FontWeight.Bold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { reloads++ }) { Text("刷新") }
+                TextButton(onClick = { recordings.deleteAll(); reloads++ }) { Text("删除全部录屏") }
+            }
+            Text(
+                text = recordings.folder,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+private fun megabytes(bytes: Long): String =
+    if (bytes >= 1024L * 1024 * 1024) {
+        String.format("%.2f GB", bytes / 1024.0 / 1024.0 / 1024.0)
+    } else {
+        String.format("%.0f MB", bytes / 1024.0 / 1024.0)
+    }
 
 @Composable
 private fun PermissionCard(title: String, granted: Boolean, hint: String, onFix: () -> Unit) {
