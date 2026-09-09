@@ -7,7 +7,12 @@ import android.hardware.HardwareBuffer
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import com.weixu.ueatsmonitor.domain.AreaCall
+import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.OfferParser
+import com.weixu.ueatsmonitor.domain.ServiceArea
+import com.weixu.ueatsmonitor.domain.Suburb
+import com.weixu.ueatsmonitor.domain.SuburbIndex
 import java.util.concurrent.Executors
 
 /**
@@ -21,10 +26,14 @@ class UberScreenService : AccessibilityService() {
 
     private val store: CaptureStore by lazy { CaptureStore(this) }
     private val position: CurrentPosition by lazy { CurrentPosition(this) }
+    private val chime: Chime by lazy { Chime() }
+    private val gazetteer: List<Suburb> by lazy { Gazetteer.suburbs(this) }
     private val executor = Executors.newSingleThreadExecutor()
 
     private var lastText: String = ""
     private var lastCaptureAtMillis: Long = 0L
+    private var lastRungSignature: String = ""
+    private var lastRungAtMillis: Long = 0L
 
     override fun onServiceConnected() {
         Log.i(TAG, "accessibility service connected")
@@ -51,6 +60,7 @@ class UberScreenService : AccessibilityService() {
 
         lastText = text
         lastCaptureAtMillis = now
+        ring(text, now)
         Log.i(TAG, "screen changed in $packageName, ${lines.size} lines")
 
         // Where the car was when the offer appeared. Reading it later would answer
@@ -69,6 +79,27 @@ class UberScreenService : AccessibilityService() {
             append("---\n")
         }
         capture(now) { screen -> store.write(now, screen, header + text) }
+    }
+
+    /**
+     * Rings only for a screen that shows money and names a place, and never twice
+     * for the same set of places inside [SAME_CALL_MILLIS] - Uber redraws constantly.
+     */
+    private fun ring(text: String, now: Long) {
+        if (LiveSettings.current?.areaSoundEnabled == false) return
+        if (!CaptureText.hasMoney(text)) return
+
+        val found = SuburbIndex.findAll(text, gazetteer)
+        val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
+        if (call is AreaCall.NoSuburb) return
+
+        val signature = found.map { it.name }.sorted().joinToString(",")
+        if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) return
+        lastRungSignature = signature
+        lastRungAtMillis = now
+
+        Log.i(TAG, "area call for [$signature] -> " + call::class.simpleName)
+        chime.play(call)
     }
 
     override fun onInterrupt() = Unit
@@ -111,5 +142,6 @@ class UberScreenService : AccessibilityService() {
     private companion object {
         const val TAG = "UEatsMonitor"
         const val MIN_GAP_MILLIS = 2_500L
+        const val SAME_CALL_MILLIS = 90_000L
     }
 }

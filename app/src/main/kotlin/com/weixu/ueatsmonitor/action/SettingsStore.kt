@@ -23,6 +23,7 @@ class SettingsStore(private val context: Context) {
         val thresholds: Thresholds,
         val overlayEnabled: Boolean,
         val vibrateEnabled: Boolean,
+        val areaSoundEnabled: Boolean,
         val logEveryNotification: Boolean,
     )
 
@@ -36,6 +37,7 @@ class SettingsStore(private val context: Context) {
             ),
             overlayEnabled = prefs[OVERLAY_ENABLED] ?: false,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
+            areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
         )
     }
@@ -53,6 +55,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
 
+    suspend fun setAreaSoundEnabled(enabled: Boolean) = putBoolean(AREA_SOUND_ENABLED, enabled)
+
     suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
 
     private suspend fun putBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
@@ -66,6 +70,7 @@ class SettingsStore(private val context: Context) {
         val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
         val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
+        val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
     }
 }

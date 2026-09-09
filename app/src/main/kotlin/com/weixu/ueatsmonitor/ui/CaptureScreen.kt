@@ -34,8 +34,11 @@ import com.weixu.ueatsmonitor.action.CaptureStore
 import com.weixu.ueatsmonitor.action.CaptureText
 import com.weixu.ueatsmonitor.action.CurrentPosition
 import com.weixu.ueatsmonitor.action.Gazetteer
+import com.weixu.ueatsmonitor.domain.AreaCall
+import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.Geo
 import com.weixu.ueatsmonitor.domain.GeoPoint
+import com.weixu.ueatsmonitor.domain.ServiceArea
 import com.weixu.ueatsmonitor.domain.Suburb
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import kotlinx.coroutines.Dispatchers
@@ -150,6 +153,15 @@ private fun Directions(capture: CaptureStore.Capture, suburbs: List<Suburb>, her
     val origin = recorded ?: hereNow
 
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = when (val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)) {
+                is AreaCall.AllInside -> "✅ 全在区内"
+                is AreaCall.SomeOutside -> "⚠ 区外：" + call.outside.joinToString("、") { it.name }
+                AreaCall.NoSuburb -> ""
+            },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
         Text(
             text = when {
                 recorded != null -> "从派单时车的位置起算" + staleness(capture.fixAgeMillis)

@@ -35,12 +35,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.weixu.ueatsmonitor.App
+import com.weixu.ueatsmonitor.action.Chime
 import com.weixu.ueatsmonitor.action.LoggedEvent
 import com.weixu.ueatsmonitor.action.OfferLog
 import com.weixu.ueatsmonitor.action.OverlayController
 import com.weixu.ueatsmonitor.action.Permissions
 import com.weixu.ueatsmonitor.action.SettingsStore
+import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.Cents
+import com.weixu.ueatsmonitor.domain.GeoPoint
+import com.weixu.ueatsmonitor.domain.Suburb
 import com.weixu.ueatsmonitor.domain.Miles
 import com.weixu.ueatsmonitor.domain.OfferEvaluator
 import com.weixu.ueatsmonitor.domain.OfferParser
@@ -89,6 +93,7 @@ private fun MonitorScreen(store: SettingsStore) {
     val settings by store.settings.collectAsStateWithLifecycle(initialValue = null)
     val events by OfferLog.events.collectAsStateWithLifecycle()
     val overlay = remember { OverlayController(context) }
+    val chime = remember { Chime() }
 
     val current = settings ?: return
 
@@ -126,6 +131,9 @@ private fun MonitorScreen(store: SettingsStore) {
         item {
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ToggleRow("区域提示音", current.areaSoundEnabled) {
+                        scope.launch { store.setAreaSoundEnabled(it) }
+                    }
                     ToggleRow("弹悬浮窗", current.overlayEnabled) {
                         scope.launch { store.setOverlayEnabled(it) }
                     }
@@ -140,11 +148,17 @@ private fun MonitorScreen(store: SettingsStore) {
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { overlay.show(sampleVerdict(current.thresholds), "McDonald's → Downtown") }) {
-                    Text("试一下悬浮窗")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { chime.play(SAMPLE_INSIDE) }) { Text("试听：区内") }
+                    Button(onClick = { chime.play(SAMPLE_OUTSIDE) }) { Text("试听：区外") }
                 }
-                TextButton(onClick = { OfferLog.clear() }) { Text("清空记录") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { overlay.show(sampleVerdict(current.thresholds), "McDonald's → Downtown") }) {
+                        Text("试一下悬浮窗")
+                    }
+                    TextButton(onClick = { OfferLog.clear() }) { Text("清空记录") }
+                }
             }
         }
 
@@ -266,5 +280,13 @@ private fun sampleVerdict(thresholds: Thresholds): Verdict {
     val parsed = OfferParser.parse(sample) as ParseResult.Parsed
     return OfferEvaluator.evaluate(parsed.offer, thresholds)
 }
+
+private val SAMPLE_INSIDE = AreaCall.AllInside(
+    listOf(Suburb("Keysborough", GeoPoint(-38.0054, 145.1674))),
+)
+private val SAMPLE_OUTSIDE = AreaCall.SomeOutside(
+    outside = listOf(Suburb("Springvale", GeoPoint(-37.9456, 145.158))),
+    inside = emptyList(),
+)
 
 private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.US)
