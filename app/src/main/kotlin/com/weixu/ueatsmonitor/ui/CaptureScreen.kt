@@ -32,6 +32,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.CaptureStore
 import com.weixu.ueatsmonitor.action.CaptureText
+import com.weixu.ueatsmonitor.action.CurrentPosition
+import com.weixu.ueatsmonitor.action.Gazetteer
+import com.weixu.ueatsmonitor.domain.Geo
+import com.weixu.ueatsmonitor.domain.GeoPoint
+import com.weixu.ueatsmonitor.domain.Suburb
+import com.weixu.ueatsmonitor.domain.SuburbIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -46,6 +52,9 @@ fun CaptureScreen() {
     var reloads by remember { mutableIntStateOf(0) }
     var moneyOnly by remember { mutableStateOf(false) }
     var openName by remember { mutableStateOf<String?>(null) }
+
+    val suburbs = remember { Gazetteer.suburbs(context) }
+    val here = remember(reloads) { CurrentPosition(context).lastKnown() }
 
     val captures by produceState(initialValue = emptyList<CaptureStore.Capture>(), reloads) {
         value = withContext(Dispatchers.IO) { store.list() }
@@ -95,6 +104,8 @@ fun CaptureScreen() {
             CaptureCard(
                 capture = capture,
                 open = openName == capture.name,
+                suburbs = suburbs,
+                here = here,
                 onToggle = { openName = if (openName == capture.name) null else capture.name },
             )
         }
@@ -102,18 +113,61 @@ fun CaptureScreen() {
 }
 
 @Composable
-private fun CaptureCard(capture: CaptureStore.Capture, open: Boolean, onToggle: () -> Unit) {
+private fun CaptureCard(
+    capture: CaptureStore.Capture,
+    open: Boolean,
+    suburbs: List<Suburb>,
+    here: GeoPoint?,
+    onToggle: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(CLOCK.format(Date(capture.atMillis)), style = MaterialTheme.typography.labelMedium)
             Text(CaptureText.previewOf(capture.body), fontWeight = FontWeight.Bold)
 
             if (open) {
+                Directions(capture.body, suburbs, here)
                 Text(capture.body, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                 capture.imagePath?.let { Screenshot(it) }
             } else {
                 Text("点开看全文和截图", style = MaterialTheme.typography.labelSmall)
             }
+        }
+    }
+}
+
+/** Which way the places named on this screen lie, and how far in a straight line. */
+@Composable
+private fun Directions(body: String, suburbs: List<Suburb>, here: GeoPoint?) {
+    val found = remember(body, suburbs) { SuburbIndex.findAll(body, suburbs) }
+    if (found.isEmpty()) return
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        found.forEach { suburb ->
+            val line = if (here == null) {
+                suburb.name + " —— 还没有定位"
+            } else {
+                val heading = Geo.headingTo(here, suburb.at)
+                "%s  %s %.0f°  直线 %.1f mi".format(
+                    suburb.name,
+                    heading.compass.label,
+                    heading.bearingDegrees,
+                    heading.straightLine.value,
+                )
+            }
+            Text(line, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+
+        if (found.size >= 2) {
+            val first = found[0]
+            val second = found[1]
+            val leg = Geo.headingTo(second.at, first.at)
+            Text(
+                text = "%s → %s  %s %.1f mi".format(
+                    second.name, first.name, leg.compass.label, leg.straightLine.value,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
