@@ -47,6 +47,7 @@ class UberScreenService : AccessibilityService() {
     }
 
     private var lastText: String = ""
+    private var lastWindowSignature: String = ""
     private var lastCaptureAtMillis: Long = 0L
     private var lastRungSignature: String = ""
     private var lastRungAtMillis: Long = 0L
@@ -72,32 +73,54 @@ class UberScreenService : AccessibilityService() {
         super.onDestroy()
     }
 
-    /** An event is a hint that something moved, nothing more. */
+    /**
+     * A window appearing is a reason to capture on its own. If the offer card
+     * draws its text on a canvas, the accessibility tree never changes and a
+     * text-only trigger would record nothing at the one moment that matters.
+     */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        look()
+        val fromUber = OfferParser.isUberPackage(event.packageName?.toString().orEmpty())
+        val appeared = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        look(force = fromUber && appeared)
     }
 
     override fun onInterrupt() = Unit
 
-    private fun look() {
+    private fun look(force: Boolean = false) {
         val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
         val roots = uberRoots()
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
         if (roots.isEmpty()) return
 
+        // A card that appears half a second after the last capture must not be
+        // swallowed by the throttle that exists to stop a moving map spamming files.
         val now = System.currentTimeMillis()
-        if (now - lastCaptureAtMillis < MIN_GAP_MILLIS) return
+        val gap = if (force) FORCED_GAP_MILLIS else MIN_GAP_MILLIS
+        if (now - lastCaptureAtMillis < gap) return
 
         val lines = roots.flatMap { ScreenReader.readAll(it) }
         if (lines.isEmpty()) return
 
         val text = lines.joinToString("\n")
-        if (text == lastText) return
+        val windowSignature = roots.joinToString("+") { node ->
+            (node.packageName?.toString() ?: "?") + ":" + node.childCount
+        }
+        val windowChanged = windowSignature != lastWindowSignature
+        val textChanged = text != lastText
+        if (!textChanged && !windowChanged && !force) return
+
+        val trigger = when {
+            textChanged -> "text"
+            windowChanged -> "window"
+            else -> "event"
+        }
 
         lastText = text
+        lastWindowSignature = windowSignature
         lastCaptureAtMillis = now
-        Log.i(TAG, "uber screen changed, ${lines.size} lines")
+        Log.i(TAG, "capture by $trigger, ${lines.size} lines")
 
         val onScreen = roots.first().packageName?.toString() ?: "unknown"
         val fix = position.lastKnown()
@@ -107,6 +130,7 @@ class UberScreenService : AccessibilityService() {
             append("package=").append(onScreen).append('\n')
             append("windows=").append(roots.size).append('\n')
             append("lines=").append(lines.size).append('\n')
+            append("trigger=").append(trigger).append('\n')
             append("millis=").append(now).append('\n')
             if (fix != null) {
                 append("lat=").append(fix.at.latitude).append('\n')
@@ -225,6 +249,7 @@ class UberScreenService : AccessibilityService() {
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L
         const val MIN_GAP_MILLIS = 1_500L
+        const val FORCED_GAP_MILLIS = 400L
         const val SAME_CALL_MILLIS = 90_000L
         const val HEARTBEAT_MILLIS = 5_000L
     }
