@@ -1,0 +1,1043 @@
+# name,lat,lon,kind,setting,parking_m,parking_type,neighbours_60m
+2 Brothers Brewery,-37.9427,145.0688,pub,STANDALONE,353,surface,0
+3 Sons Cafe,-37.996,145.183,cafe,STANDALONE,464,surface,0
+4 Sista's Cafe,-37.982,145.0646,cafe,STRIP,84,surface,6
+7-Eleven,-37.9736,145.1208,convenience,STANDALONE_PARKING,47,surface,1
+7-Eleven,-37.9653,145.1726,convenience,STANDALONE_PARKING,55,surface,2
+7-Eleven,-38.028,145.13,convenience,STANDALONE,102,surface,0
+7-Eleven,-37.9851,145.2204,convenience,STANDALONE_PARKING,67,surface,0
+7-Eleven,-37.9909,145.1496,convenience,STANDALONE_PARKING,21,surface,0
+7-Eleven,-37.9723,145.1487,convenience,MALL,42,surface,2
+7-Eleven,-37.9467,145.0225,convenience,STANDALONE,85,surface,1
+A Dong,-37.9493,145.1517,butcher,STRIP,24,surface,19
+A day in BKK,-38.0551,145.1169,restaurant,STANDALONE_PARKING,40,surface,3
+A1 Supermarket,-37.9864,145.2116,convenience,STANDALONE_PARKING,27,surface,0
+AB Bakery Dandenong,-37.9891,145.2141,cafe,STANDALONE_PARKING,39,surface,1
+ARZ Lebanese Cusiine,-37.9901,145.2044,restaurant,STANDALONE,217,surface,0
+Abra Kebab,-37.9867,145.2138,restaurant,STANDALONE_PARKING,72,multi-storey,2
+Addictions,-37.9873,145.2129,cafe,STANDALONE_PARKING,14,surface,2
+Adriano's Pizza & Pasta,-37.985,145.0945,restaurant,STANDALONE_PARKING,26,street_side,4
+Afghan Delicious Kebab House,-37.9855,145.2121,restaurant,STRIP,43,surface,9
+Afghan Fish & Chios,-37.985,145.2137,fast_food,STRIP,59,surface,7
+Afghan Kabuli Sheer Yakh,-37.9855,145.2121,restaurant,STRIP,43,surface,9
+Afghan Masala,-37.9872,145.2165,bakery,STANDALONE_PARKING,46,surface,0
+Afghan Masala,-37.9867,145.2123,restaurant,STRIP,25,surface,10
+Afghan Tasty Food,-37.9851,145.2137,restaurant,STRIP,53,surface,7
+African Products,-37.9862,145.2152,supermarket,MALL,84,multi-storey,4
+Ajisen Ramen,-37.9579,145.0533,restaurant,MALL,48,surface,16
+Ajsai Carrum,-38.0754,145.1221,restaurant,STANDALONE_PARKING,43,surface,4
+Albion Hotel,-37.9858,145.2137,pub,STANDALONE_PARKING,33,surface,2
+Aldi,-37.9591,145.0549,supermarket,MALL,119,multi-storey,6
+Aldi,-37.9706,145.0908,supermarket,MALL,70,surface,3
+Aldi,-37.986,145.2167,supermarket,MALL,70,multi-storey,0
+Aldi,-37.9924,145.1461,supermarket,MALL,64,surface,1
+Aldi,-37.9922,145.1731,supermarket,MALL,69,surface,0
+Aldi,-38.0767,145.1236,supermarket,STANDALONE_PARKING,40,surface,0
+Aldi,-37.9834,145.2161,supermarket,STANDALONE_PARKING,73,surface,0
+Aldi,-37.9558,145.0334,supermarket,STANDALONE_PARKING,24,surface,0
+Aldi,-37.9616,145.1431,supermarket,STRIP,40,surface,9
+Aldi,-37.9752,145.0677,supermarket,STANDALONE,88,surface,0
+Amalia Euro Cheese,-37.9826,145.2028,cafe,STANDALONE_PARKING,70,surface,4
+Amcal,-37.9925,145.1717,pharmacy,MALL,46,surface,1
+Amphai Thai Groceries,-37.9484,145.1506,convenience,STRIP,32,surface,7
+Amyan Halal Butcher,-37.987,145.2138,butcher,STANDALONE_PARKING,59,surface,2
+Angkor Reach,-37.9487,145.1513,restaurant,STRIP,36,surface,19
+Anloi Deli & Marinades,-37.9504,145.151,deli,MALL,24,surface,27
+Apna Desh Grocery Shop,-37.9665,145.1748,convenience,STRIP,22,surface,16
+Arco Cafe / Restaurant,-37.9474,145.0804,restaurant,STANDALONE,169,surface,0
+Ariana Bakery,-37.9878,145.2129,bakery,STRIP,31,surface,6
+ArtBar,-37.9445,145.0594,bar,STANDALONE,166,street_side,0
+Asia,-37.9514,145.1515,butcher,MALL,59,street_side,17
+Asian Bar,-37.9858,145.215,restaurant,STANDALONE,91,surface,4
+Aspendale Cafe,-38.027,145.1024,cafe,STRIP,7,surface,6
+Aspendale Gardens Charcoal Chicken,-38.0217,145.1181,fast_food,MALL,56,surface,4
+Aspendale Gardens Fish & Chips,-38.0218,145.118,fast_food,MALL,42,surface,8
+Aspendale Gardens Fruit Centre,-38.0223,145.1178,greengrocer,MALL,36,surface,6
+Aspendale Gardens Noodle Bar,-38.0217,145.118,fast_food,MALL,49,surface,5
+Astanbal Authentic Turkish Grill,-37.9948,145.1742,fast_food,STANDALONE_PARKING,20,surface,5
+Astroluxe,-37.9357,145.0613,cafe,STRIP,8,street_side,9
+BMNC,-37.9888,145.21,cafe,STANDALONE,99,surface,1
+BP Shop,-38.0127,145.2053,convenience,STANDALONE,230,surface,0
+BP Shop,-38.0124,145.1617,convenience,STANDALONE,119,surface,1
+BP Shop,-37.986,145.1086,convenience,STANDALONE,213,surface,0
+BP Shop,-37.9772,145.0666,convenience,STANDALONE_PARKING,66,surface,0
+BP Shop,-37.9777,145.1467,convenience,STANDALONE,133,surface,0
+BP Shop,-37.9449,145.078,convenience,STANDALONE,105,surface,0
+BP Shop,-37.9784,145.2063,convenience,STANDALONE_PARKING,35,street_side,0
+BP Shop,-38.0092,145.1135,convenience,STANDALONE,213,surface,0
+BWR Liquor Supplies,-37.945,145.0768,alcohol,STANDALONE,89,surface,0
+BWS,-37.9835,145.1329,alcohol,STANDALONE_PARKING,60,surface,5
+BWS,-37.9663,145.0554,alcohol,STRIP,47,street_side,16
+BWS,-37.9924,145.162,alcohol,STANDALONE,123,surface,1
+BWS,-37.9627,145.1491,alcohol,STANDALONE_PARKING,17,surface,1
+BWS,-37.9533,145.1518,alcohol,STANDALONE_PARKING,48,surface,1
+BWS,-38.0538,145.116,alcohol,STRIP,69,surface,8
+BWS,-38.0119,145.1607,alcohol,MALL,57,surface,1
+BWS,-37.9588,145.0563,alcohol,MALL,77,multi-storey,2
+BWS,-37.9743,145.205,alcohol,STANDALONE_PARKING,52,surface,1
+BWS,-37.9489,145.0416,alcohol,STANDALONE_PARKING,47,street_side,4
+BWS,-38.068,145.1431,alcohol,MALL,59,surface,6
+Baba Chef Takeaway,-37.9522,145.1521,restaurant,STRIP,59,surface,11
+Babalu's,-37.9579,145.0534,restaurant,MALL,39,surface,16
+Babylon Groceries,-37.9827,145.2029,supermarket,STANDALONE_PARKING,65,surface,4
+Bac 8,-37.9512,145.1518,restaurant,MALL,71,surface,20
+Bad Shepherd Brewing,-37.9567,145.039,pub,STANDALONE,136,surface,0
+Bakaloumas Fresh Fruit & Vegetable Market,-37.9609,145.1028,supermarket,STANDALONE_PARKING,8,surface,0
+Bakers Delight,-37.9834,145.1327,bakery,STANDALONE_PARKING,67,surface,5
+Bakers Delight,-37.9664,145.0557,bakery,STRIP,74,street_side,15
+Bakers Delight,-38.0539,145.1161,bakery,STRIP,82,surface,11
+Bakers Delight,-37.9839,145.0772,bakery,MALL,56,surface,1
+Bakers Delight,-37.949,145.0409,bakery,STANDALONE_PARKING,46,surface,2
+Bakers Delight,-37.9825,145.0642,bakery,STRIP,115,surface,9
+Bakers Delight,-38.068,145.1433,bakery,MALL,42,surface,9
+Balkh Bakery & Charcoal,-37.9865,145.2127,bakery,STRIP,20,surface,12
+Bamyan,-37.9865,145.2123,supermarket,STRIP,19,surface,12
+Banh mi lady,-38.0141,145.2127,fast_food,STANDALONE,182,surface,0
+Bao Chau Quan,-37.9508,145.152,restaurant,MALL,33,surface,23
+Bay Road Milk Bar,-37.9567,145.0441,convenience,STANDALONE_PARKING,20,surface,4
+Bayside Pizza,-38.039,145.1085,restaurant,STANDALONE,221,surface,2
+Beach Bar @ Carrum,-38.0744,145.1217,bar,STANDALONE_PARKING,38,street_side,1
+Beachside Fish & Chips,-38.0364,145.1068,fast_food,STANDALONE_PARKING,21,surface,4
+Beauvorno Milkbar,-37.9913,145.1631,convenience,STANDALONE_PARKING,15,surface,0
+Bee Keen,-37.9586,145.0519,cafe,MALL,59,surface,2
+Ben Thanh Hot Bread & Cakes,-37.9504,145.1505,bakery,MALL,37,surface,14
+Bernard Takeaway,-37.9532,145.0628,fast_food,STANDALONE_PARKING,6,street_side,3
+Best Price Butcher & Seafood,-37.9859,145.2153,butcher,STANDALONE_PARKING,79,surface,4
+Bestway Supermarket,-37.9884,145.2148,supermarket,STANDALONE_PARKING,45,surface,0
+Betty's Burgers,-37.9595,145.0539,fast_food,MALL,91,multi-storey,2
+Binh Minh,-37.9502,145.1511,greengrocer,MALL,15,surface,23
+Binh Minh Fresh,-37.9718,145.1499,greengrocer,MALL,46,surface,7
+Biryani Place,-37.9886,145.2159,restaurant,STANDALONE_PARKING,46,surface,3
+Bistro Bar & Deck,-38.0099,145.0879,restaurant,STANDALONE_PARKING,57,surface,4
+Blahblah Cheltenham,-37.9665,145.0556,pub,STRIP,67,street_side,15
+Blended Cafe,-38.0547,145.1169,cafe,MALL,55,surface,7
+Blitz Bar,-37.9823,145.065,cafe,STRIP,61,surface,10
+Blue Seas Fish & Chips,-38.0516,145.1153,fast_food,STANDALONE_PARKING,57,surface,4
+Bonbons,-37.9512,145.1516,bakery,MALL,61,surface,20
+Bottle Land,-37.9722,145.0508,alcohol,STANDALONE_PARKING,29,street_side,2
+Bottle-o,-37.9904,145.1829,alcohol,STANDALONE,307,surface,4
+Bottlemart,-37.9667,145.1866,alcohol,STANDALONE,346,surface,4
+Bottlemart,-37.9533,145.0635,alcohol,STANDALONE_PARKING,7,street_side,2
+Bottlemart Express - Victoria Cellars,-37.9688,145.0743,alcohol,STANDALONE_PARKING,21,street_side,2
+Braeside Brewing Co,-38.0088,145.0972,pub,STANDALONE_PARKING,53,surface,0
+Bread & Cafe Delight,-37.951,145.1515,bakery,MALL,38,surface,23
+Bread Kingdom,-37.9513,145.1513,bakery,MALL,66,surface,17
+Breadtop,-37.9511,145.1523,bakery,MALL,76,surface,9
+Breadtop,-37.9587,145.0553,bakery,MALL,81,multi-storey,10
+Brewed Tea,-37.9499,145.1512,cafe,STRIP,10,surface,21
+Bridge Bar,-38.01,145.0882,bar,STANDALONE_PARKING,47,surface,3
+Bridge Hotel,-38.0098,145.0881,pub,STANDALONE_PARKING,67,surface,4
+Brioche By Philip,-37.9586,145.0553,bakery,MALL,73,multi-storey,8
+Brown Rice,-38.0374,145.1075,restaurant,STANDALONE,142,surface,3
+Bryons Milk Bar,-37.972,145.1909,convenience,STANDALONE,439,street_side,0
+Bubbly Beans,-38.0529,145.1159,cafe,STANDALONE_PARKING,70,surface,5
+Busy Burgers,-37.9827,145.0647,fast_food,STRIP,111,surface,13
+Bún Bò Huế Hương Giang,-37.9521,145.1516,restaurant,STRIP,21,street_side,20
+Bún Bò Huế Sông Hương,-37.9498,145.1524,restaurant,STRIP,13,surface,6
+Bún Ngon,-37.9517,145.1512,restaurant,MALL,35,street_side,21
+C.J. Spices & Videos,-37.9853,145.2137,supermarket,STRIP,39,surface,7
+CW Cakes,-37.988,145.2172,bakery,STANDALONE_PARKING,42,surface,1
+CWB,-37.9436,145.1412,butcher,STANDALONE,298,surface,0
+Cafe Asmara,-37.9475,145.1527,cafe,STANDALONE_PARKING,15,surface,2
+Cafe Bordeaux,-37.9793,145.0533,cafe,STRIP,45,surface,6
+Cafe Galiano,-37.9586,145.055,cafe,MALL,95,multi-storey,8
+Cafe In D'Imand,-37.9658,145.0558,cafe,STRIP,72,street_side,8
+Cafe Keys,-38.0125,145.1827,cafe,STANDALONE,310,surface,0
+Cafe Leads,-37.9849,145.2122,cafe,STRIP,65,surface,9
+Cafe Opera,-38.0532,145.1161,cafe,STRIP,65,surface,7
+Cafe Phố,-37.9505,145.1517,cafe,STRIP,8,surface,24
+Cafe Providore,-38.0547,145.1165,cafe,MALL,40,surface,9
+Cafe Takeaway,-37.9581,145.164,cafe,STANDALONE,94,surface,0
+Cafe Zero,-37.9827,145.0651,restaurant,STRIP,91,surface,9
+Cafe on Alex,-37.9384,145.0709,fast_food,STANDALONE,268,surface,0
+Cafe twist,-38.005,145.2182,cafe,STANDALONE_PARKING,26,surface,1
+Caffetteria 295,-37.936,145.0612,cafe,STRIP,13,street_side,9
+Café Ruche,-37.955,145.0327,cafe,STANDALONE,123,surface,4
+Calcutta Sweets,-37.99,145.2118,restaurant,STANDALONE_PARKING,47,surface,2
+Canton Court Chinese,-37.9812,145.1656,restaurant,STANDALONE_PARKING,10,surface,3
+Car Wash Cafe,-37.9671,145.0583,cafe,STANDALONE,117,surface,0
+Cardens,-37.9845,145.2144,restaurant,STANDALONE,88,surface,4
+Carl's Jr.,-37.9437,145.1166,fast_food,STANDALONE_PARKING,15,surface,2
+Carnival,-37.9672,145.056,restaurant,STRIP,18,street_side,8
+Casa Lee,-37.955,145.0329,fast_food,STANDALONE,118,surface,4
+Casa Mia,-37.9566,145.0435,cafe,STANDALONE_PARKING,41,surface,3
+Celebrations,-37.9948,145.1743,alcohol,STANDALONE_PARKING,26,surface,5
+Cellarbrations,-37.9486,145.1533,alcohol,STANDALONE_PARKING,12,surface,3
+Cellarbrations,-37.967,145.0567,alcohol,STANDALONE_PARKING,15,street_side,2
+Cellarbrations,-38.0527,145.1168,alcohol,STANDALONE,145,surface,2
+Cellarbrations,-37.9589,145.0559,alcohol,MALL,81,multi-storey,3
+Cellarbrations,-37.9564,145.0576,alcohol,STANDALONE,227,multi-storey,3
+Cellarbrations,-37.9709,145.0916,alcohol,MALL,46,surface,2
+Cellarbrations,-37.9488,145.0433,alcohol,STANDALONE_PARKING,8,street_side,5
+Cellarbrations,-37.9679,145.1763,alcohol,STANDALONE_PARKING,16,street_side,4
+Central Milk Bar,-38.0269,145.1024,convenience,STRIP,18,surface,6
+Cessna Espresso Cafe,-37.9729,145.1087,cafe,STANDALONE_PARKING,27,surface,0
+Chacha,-37.9497,145.1516,cafe,STRIP,19,surface,14
+Chan Kee,-37.9504,145.1531,deli,STANDALONE_PARKING,37,surface,3
+Chandler Fish n Chips,-37.9901,145.1829,fast_food,STANDALONE,332,surface,4
+Chang Kang Chinese Medicine,-37.949,145.1508,chemist,MALL,17,rooftop,28
+Chapel Cellars Four Square Store,-37.945,145.0472,convenience,STANDALONE_PARKING,21,street_side,1
+Charcoal Chicken,-37.9411,145.1038,fast_food,STANDALONE_PARKING,45,surface,3
+Charcoal Chicken,-37.9361,145.0612,fast_food,STRIP,12,street_side,8
+Charcoal Chicken & Souvlaki Bar,-37.9825,145.0648,fast_food,STRIP,89,surface,12
+Charles Bakehouse,-38.0222,145.1178,bakery,MALL,27,surface,7
+Charm'n'Chicken,-37.9658,145.0554,restaurant,STRIP,42,street_side,10
+Charman Bakery,-37.9861,145.2154,bakery,MALL,93,surface,4
+Charman Fish & Chippery,-37.9666,145.0553,fast_food,STRIP,48,street_side,15
+Chatime,-37.9581,145.0536,cafe,MALL,36,surface,14
+Chelbara General Store,-38.0445,145.1219,convenience,STANDALONE_PARKING,14,surface,0
+Chelsea Charcoal Chicken,-38.0545,145.1166,fast_food,STRIP,61,surface,7
+Chelsea Heights Hotel,-38.0276,145.1331,pub,STANDALONE_PARKING,68,surface,0
+Chelsea Longbeach Club,-38.053,145.1136,pub,STANDALONE_PARKING,19,surface,0
+Chelsea Quality Meats,-38.0539,145.1165,butcher,STRIP,111,surface,11
+Cheltenham Bakery,-37.9659,145.0558,bakery,STRIP,77,street_side,11
+Cheltenham Noodle & Sushi Bar,-37.9658,145.0554,restaurant,STRIP,42,street_side,10
+Chesterville Road Bakery,-37.9355,145.0613,cafe,STRIP,27,street_side,6
+Chopstick & Chicken,-37.9522,145.1511,restaurant,STRIP,30,surface,12
+Christie's,-37.9668,145.1745,cafe,STRIP,19,surface,11
+Chubby Buddies,-38.0372,145.1074,cafe,STANDALONE,118,surface,5
+Chute Street Milk Bar,-38.0078,145.0926,convenience,STANDALONE_PARKING,11,street_side,0
+Ciro's Bicuits,-37.9656,145.1767,bakery,STANDALONE_PARKING,61,surface,3
+Ciro's Cakes,-37.9657,145.1767,bakery,STANDALONE_PARKING,60,surface,4
+Clarinda Pizza,-37.9412,145.1038,fast_food,STANDALONE_PARKING,42,surface,3
+Club Noble,-37.9771,145.1689,restaurant,STANDALONE_PARKING,20,surface,1
+Club Noble,-37.9771,145.169,pub,STANDALONE_PARKING,26,surface,1
+CoCo Fresh Tea & Juice,-37.9455,145.0779,cafe,STANDALONE,113,surface,0
+CoCo Fresh Tea & Juice,-37.9505,145.1518,cafe,STRIP,6,surface,22
+Coffee 575A,-37.9718,145.149,cafe,MALL,47,surface,12
+Coffee Chain,-38.0891,145.1284,cafe,STANDALONE_PARKING,19,surface,2
+Coles,-37.9589,145.0512,supermarket,MALL,45,surface,2
+Coles,-37.9829,145.2137,supermarket,STANDALONE_PARKING,48,surface,1
+Coles,-37.9923,145.172,supermarket,MALL,80,surface,1
+Coles,-37.9866,145.2184,supermarket,MALL,105,multi-storey,3
+Coles,-38.0686,145.1449,supermarket,MALL,39,surface,2
+Coles,-37.9654,145.1731,supermarket,STANDALONE_PARKING,28,surface,3
+Coles,-37.9841,145.0644,supermarket,STANDALONE,81,surface,3
+Coles,-37.9453,145.0218,supermarket,STANDALONE_PARKING,46,surface,1
+Coles Express,-37.967,145.1861,convenience,STANDALONE,382,surface,3
+Colombo,-37.9845,145.2123,restaurant,STANDALONE_PARKING,55,surface,3
+Colonial Corporate Cafe,-38.0359,145.1941,cafe,STANDALONE,100,surface,0
+Como Parade Cafe,-37.9822,145.0646,cafe,STRIP,88,surface,9
+Continental Mart,-37.9466,145.1536,convenience,STANDALONE,95,surface,2
+Crust,-38.0057,145.0853,fast_food,STANDALONE_PARKING,23,underground,5
+Crust,-37.9674,145.0554,fast_food,STANDALONE_PARKING,8,street_side,5
+Crusty Pizza,-37.9825,145.2012,fast_food,STANDALONE,134,surface,1
+Crystal Grill Chinese Restaurant,-38.0678,145.1427,restaurant,MALL,91,surface,5
+Cucina Dolce,-38.0538,145.1164,restaurant,STRIP,98,surface,11
+Cultural Commons,-37.9491,145.152,restaurant,STRIP,14,surface,9
+Cô Thư Quán,-37.9512,145.1521,restaurant,MALL,77,surface,12
+Cường Phát,-37.9717,145.149,supermarket,MALL,38,surface,11
+Cố Đô 2,-37.9513,145.1528,restaurant,STANDALONE_PARKING,60,surface,3
+Da Belcibo,-37.946,145.022,fast_food,STANDALONE_PARKING,36,surface,3
+Dan Murphy's,-37.9976,145.0846,alcohol,MALL,62,surface,1
+Dan Murphy's,-38.029,145.1328,alcohol,STANDALONE,90,surface,0
+Dandenong Charcoal Chicken,-37.987,145.2149,fast_food,STANDALONE_PARKING,27,multi-storey,3
+Dandenong IGA Plus Liquor,-37.9825,145.2026,supermarket,STANDALONE_PARKING,76,surface,4
+Dandy,-37.9882,145.216,bakery,STANDALONE_PARKING,32,surface,4
+Dandy Bahar Supermarket,-37.985,145.2122,supermarket,STRIP,58,surface,10
+Dandy Supermarket & Halal Meat,-37.9856,145.2121,supermarket,STRIP,49,surface,7
+Dandy West Fish & Chips,-37.9825,145.2013,fast_food,STANDALONE,127,surface,2
+Daniel's Donuts,-37.9432,145.1165,fast_food,STANDALONE_PARKING,11,surface,2
+Dao Vien 2,-37.9504,145.1424,restaurant,STANDALONE_PARKING,15,surface,1
+Darakat Bakery,-37.9664,145.1744,bakery,STRIP,35,surface,13
+Darokhshan Groceries,-37.9865,145.2123,convenience,STRIP,19,surface,12
+Daton Groceries,-37.948,145.1507,greengrocer,STANDALONE_PARKING,50,surface,5
+Daylight Bakery,-37.9869,145.2124,bakery,STRIP,47,surface,7
+Deep Blue Fish & Chips,-37.9664,145.1769,fast_food,STANDALONE,93,surface,3
+Deep Sea Fish,-37.9563,145.0577,fast_food,STANDALONE,221,street_side,3
+Degani,-37.9701,145.0892,cafe,MALL,17,surface,3
+Delhi Club,-37.9826,145.0718,restaurant,STANDALONE_PARKING,23,surface,0
+Deli Works Cafe,-37.9489,145.0617,cafe,STANDALONE,390,surface,0
+Derrick's Shop,-37.9857,145.2151,convenience,STANDALONE_PARKING,77,surface,4
+Desi Tandoori Dhaba,-37.9683,145.1771,restaurant,STANDALONE_PARKING,27,surface,1
+Desserts By Night,-37.9507,145.153,cafe,STANDALONE_PARKING,33,surface,3
+Dezy's,-37.955,145.0329,fast_food,STANDALONE,118,surface,4
+Dingley Cellars,-37.9833,145.1314,alcohol,STANDALONE_PARKING,9,street_side,3
+Dingley Fish & Chips,-37.9833,145.1325,fast_food,STRIP,69,surface,6
+Dingley International,-37.9791,145.1121,pub,STANDALONE_PARKING,50,surface,0
+Dingley Thai,-37.9832,145.1314,restaurant,STANDALONE_PARKING,10,street_side,2
+Direct Chemist Outlet Clarinda,-37.9409,145.1038,chemist,STANDALONE_PARKING,55,surface,4
+Discount Groceries,-37.983,145.0647,convenience,STRIP,97,surface,9
+Dolan Uyghur,-37.9492,145.1521,restaurant,STRIP,19,surface,9
+Domino's,-37.9886,145.2164,fast_food,STANDALONE_PARKING,45,surface,4
+Domino's,-37.9655,145.0554,fast_food,STRIP,32,street_side,8
+Doms Pizza,-37.9902,145.1829,fast_food,STANDALONE,323,surface,4
+Dosa Plaza,-37.9844,145.2142,restaurant,STANDALONE,81,surface,4
+Double D,-37.9506,145.1541,cafe,STANDALONE_PARKING,50,surface,0
+Double D Plus,-37.9933,145.1738,fast_food,MALL,38,surface,2
+Douglas Hot Bread & Cakes,-37.9673,145.1757,bakery,STANDALONE_PARKING,40,surface,2
+Drip,-37.9562,145.0577,cafe,STANDALONE,214,street_side,3
+Drive through bottleshop,-37.9796,145.1111,alcohol,STANDALONE_PARKING,79,surface,0
+Ducky Espresso Cafe,-37.958,145.0548,cafe,MALL,86,surface,0
+Dumpling Chef,-37.9581,145.053,restaurant,MALL,79,surface,15
+Duncan,-37.9899,145.2115,alcohol,STANDALONE_PARKING,32,surface,1
+Duncan's,-37.9839,145.0647,alcohol,STRIP,87,surface,6
+Duncan's,-37.955,145.0328,alcohol,STANDALONE,123,surface,4
+Duncan's,-37.945,145.0472,alcohol,STANDALONE_PARKING,21,street_side,1
+EG Ampol,-38.0012,145.1058,convenience,STANDALONE_PARKING,18,surface,0
+EG Ampol,-38.0699,145.1405,convenience,STANDALONE,95,street_side,0
+EG Ampol,-37.967,145.1876,convenience,STANDALONE,253,surface,0
+EG Australia,-37.9866,145.146,convenience,STANDALONE_PARKING,73,surface,0
+EG Australia,-37.9408,145.1021,convenience,STANDALONE,86,surface,0
+EJZ Pizza,-37.9741,145.1869,fast_food,STANDALONE_PARKING,24,street_side,2
+Eat On Cafe,-37.9873,145.1005,fast_food,STANDALONE,393,surface,0
+Edithvale Community Greengrocer,-38.037,145.1073,greengrocer,STRIP,94,surface,6
+Edithvale Fish & Chips,-38.0367,145.1072,fast_food,STRIP,60,surface,6
+El Jannah,-37.9837,145.2138,fast_food,STANDALONE_PARKING,57,surface,1
+Emrah Food Mart,-37.9893,145.2165,deli,STANDALONE_PARKING,61,surface,2
+Euro Pizza,-37.9533,145.0636,fast_food,STANDALONE_PARKING,15,street_side,2
+Express & Fresh,-37.9617,145.1436,greengrocer,STANDALONE_PARKING,35,surface,3
+Fab Kebab Cafe,-37.9825,145.1894,fast_food,STANDALONE,529,surface,0
+Fairy Bird Chinese Take Away,-38.0387,145.1084,fast_food,STANDALONE,218,surface,2
+Farm Fresh Free Range,-37.9585,145.0513,butcher,MALL,6,surface,3
+Fat Bob's Bar & Grill,-37.9437,145.0697,bar,STANDALONE,257,surface,0
+Ferguson Plarre Bakehouse,-37.9587,145.0551,bakery,MALL,94,multi-storey,9
+Ferguson Plarre's Bakehouse,-38.0685,145.1444,bakery,MALL,47,surface,3
+Fiji Bula Shop,-37.9898,145.2123,convenience,STANDALONE_PARKING,20,surface,1
+Fine China,-37.9489,145.0427,fast_food,STRIP,5,street_side,9
+Fine Kebabs,-38.007,145.2182,fast_food,STANDALONE,201,surface,0
+First Taste,-37.952,145.1515,restaurant,STRIP,7,street_side,20
+First Taste,-37.9521,145.1515,restaurant,STRIP,18,street_side,19
+Fish to go,-37.9947,145.1739,fast_food,STANDALONE_PARKING,13,surface,5
+Fishy Feast,-37.9834,145.0852,fast_food,STANDALONE_PARKING,21,street_side,3
+Foodary,-37.965,145.0554,convenience,STANDALONE_PARKING,61,surface,1
+Foodary,-38.0429,145.14,convenience,STANDALONE_PARKING,41,surface,0
+Foodary,-37.9543,145.0761,convenience,STANDALONE,134,surface,0
+Foodworks,-37.9706,145.0688,supermarket,STANDALONE_PARKING,15,street_side,0
+Foodworks,-38.0266,145.1022,supermarket,STANDALONE_PARKING,12,surface,4
+Foodworks,-37.9808,145.1658,supermarket,STRIP,24,surface,6
+Foodworks,-37.967,145.0569,supermarket,STANDALONE_PARKING,5,street_side,2
+Foodworks,-37.936,145.0612,supermarket,STRIP,13,street_side,9
+Foodworks Bottle Shop,-37.9808,145.1657,alcohol,STANDALONE_PARKING,16,surface,4
+Foster St Cafe,-37.9896,145.2107,cafe,STANDALONE_PARKING,37,surface,0
+Fourseas Chinese,-38.0517,145.1153,restaurant,STANDALONE_PARKING,49,surface,4
+Frank's,-37.9578,145.0662,cafe,STANDALONE_PARKING,53,street_side,0
+Fresh Noodle,-37.9865,145.2138,restaurant,STANDALONE_PARKING,71,surface,2
+Fresh Poultry Daily,-37.972,145.1496,butcher,MALL,44,surface,9
+Frozen Mart,-37.9503,145.151,supermarket,MALL,21,surface,24
+Fujiya House,-37.9585,145.0514,restaurant,MALL,15,surface,3
+Full Turn Kitchen Bar,-37.9547,145.0259,cafe,STANDALONE,430,surface,1
+G Plus Coffee,-37.9663,145.057,cafe,STANDALONE_PARKING,74,street_side,1
+Gabby’s,-38.0526,145.1168,fast_food,STANDALONE,151,surface,2
+Garden Boulevard Cafe,-37.9831,145.1141,cafe,STANDALONE_PARKING,41,surface,0
+General Public,-37.9742,145.1122,restaurant,STANDALONE_PARKING,9,surface,0
+Ghin Thai,-37.9656,145.1742,restaurant,MALL,38,surface,9
+Gibe African,-37.9903,145.2134,restaurant,STANDALONE_PARKING,56,surface,0
+Gloria Jean's,-37.9932,145.1737,cafe,MALL,49,surface,5
+Gloria Jean's,-37.9504,145.1514,cafe,STRIP,19,surface,32
+Gloria Jean's,-37.9721,145.0887,cafe,MALL,52,surface,0
+Gold Leaf Chinese Restaurant,-37.9506,145.151,restaurant,MALL,16,surface,27
+Goldeluck's Doughnuts,-38.0674,145.1438,fast_food,MALL,31,surface,11
+Golden Age Bread & Cake,-37.9504,145.151,bakery,MALL,24,surface,27
+Golden Chopstix,-37.9515,145.1509,restaurant,STRIP,70,street_side,10
+Golden Lake,-37.9513,145.1515,bakery,MALL,69,surface,19
+Golden Thai,-37.9532,145.0627,restaurant,STANDALONE_PARKING,5,street_side,3
+Gong Cha,-37.9506,145.1515,cafe,STRIP,21,surface,30
+Gotcha,-37.9508,145.1513,cafe,STRIP,11,surface,31
+Gracy's Cafe,-38.0199,145.0993,cafe,STANDALONE_PARKING,20,street_side,2
+Grand Diamond Reception,-37.9622,145.1433,restaurant,STRIP,31,surface,6
+Grand Diamond Restaurant,-37.987,145.2123,restaurant,STANDALONE_PARKING,48,surface,4
+Green Healthy Groceries Tân Hưng Phát,-37.9539,145.1513,convenience,STANDALONE_PARKING,18,surface,4
+Green Thai,-37.9579,145.0531,restaurant,MALL,65,surface,16
+Grill'd,-37.9579,145.0762,fast_food,STANDALONE_PARKING,44,surface,0
+Gulistan Supermarket,-37.9881,145.2125,supermarket,STRIP,55,surface,6
+Gurudwarra Sri Guru Granth Sahib Keysborough Langar Hall,-38.0151,145.1746,fast_food,STANDALONE_PARKING,46,surface,0
+Guzel Istanbul,-37.9811,145.0698,restaurant,STANDALONE,133,surface,3
+Guzman y Gomez,-37.9702,145.0928,fast_food,MALL,82,surface,2
+Guzman y Gomez,-38.0272,145.131,fast_food,STANDALONE_PARKING,61,surface,0
+Góc Phố,-37.9614,145.1427,cafe,STANDALONE_PARKING,79,surface,3
+H&T Poultry,-37.9656,145.1742,butcher,MALL,38,surface,9
+HS Cakes,-37.9514,145.1509,bakery,STRIP,78,street_side,11
+Hammond Cafe,-38.026,145.2038,fast_food,STANDALONE,556,surface,0
+Hampton Fish & Chips,-37.9463,145.0225,fast_food,STANDALONE_PARKING,41,surface,4
+Handy Snacks,-38.0255,145.2031,fast_food,STANDALONE,585,surface,0
+Hangar 4 Cafe,-37.9709,145.0911,cafe,MALL,87,surface,4
+Hawker,-37.9489,145.0424,bar,STRIP,23,street_side,9
+Haysung Korean BBQ,-37.9515,145.1512,restaurant,MALL,54,street_side,15
+Heeretea,-37.9667,145.0553,cafe,STRIP,56,street_side,17
+Hellenic House Project,-37.9488,145.0429,restaurant,STRIP,11,street_side,10
+Hendriks,-37.9996,145.0958,cafe,STANDALONE,184,surface,1
+Hendriks Cafe,-37.9996,145.096,restaurant,STANDALONE,167,surface,1
+Highett Charcoal Chicken,-37.9487,145.0426,fast_food,STRIP,18,street_side,8
+Highett Gelato & Desserts,-37.9487,145.0408,ice_cream,STANDALONE_PARKING,38,street_side,2
+Hoa Hiep Hot Bread,-37.9661,145.1742,bakery,STRIP,49,surface,14
+Hoi An Village,-37.9621,145.1431,restaurant,STRIP,27,surface,8
+Honey Badger Cafe,-37.9791,145.0533,cafe,STANDALONE_PARKING,27,surface,5
+Hot Bread Bakery,-37.9682,145.1758,bakery,STANDALONE_PARKING,22,street_side,4
+Hot Bread Cakes,-37.9657,145.0554,fast_food,STRIP,36,street_side,8
+Hout Heng,-37.9493,145.1517,convenience,STRIP,24,surface,19
+Hoà Trân,-37.9504,145.1521,restaurant,STRIP,33,surface,16
+Hoàng Yến,-37.9499,145.1512,restaurant,STRIP,10,surface,21
+Huff Bagelry,-37.9826,145.0653,cafe,STRIP,75,surface,8
+Hungry Jack's,-37.9853,145.2211,fast_food,STANDALONE_PARKING,23,surface,0
+Hungry Jack's,-37.9833,145.076,fast_food,STANDALONE_PARKING,17,surface,1
+Hungry Jack's,-37.9941,145.1751,fast_food,MALL,92,surface,0
+Hungry Jack's,-37.9503,145.0782,fast_food,STANDALONE_PARKING,16,surface,0
+Hunky Dory,-37.949,145.0418,fast_food,STANDALONE_PARKING,68,street_side,4
+Huong Giang,-37.952,145.1516,restaurant,STRIP,12,street_side,20
+Huy Anh Bakery,-37.9493,145.1506,bakery,MALL,35,rooftop,17
+Hợp Thành,-37.9494,145.1519,butcher,STRIP,11,surface,12
+IGA,-37.9547,145.0256,supermarket,STANDALONE,416,surface,1
+IGA,-37.9922,145.1455,supermarket,MALL,17,surface,1
+IGA Cheltenham,-37.9532,145.0633,supermarket,STANDALONE_PARKING,19,street_side,5
+IGA Friendly Grocer,-38.0366,145.1071,supermarket,STANDALONE_PARKING,46,surface,4
+IGA Liquor,-38.022,145.1178,alcohol,MALL,18,surface,8
+Ice Cream and Juice,-38.0524,145.1152,cafe,STANDALONE_PARKING,52,surface,1
+Ichiban Noodles,-37.9833,145.1324,restaurant,STRIP,61,surface,6
+Inca Gourmet Fine Peruvian Cafe & Restaurant,-38.053,145.116,restaurant,STANDALONE_PARKING,68,surface,5
+Indian City,-37.9491,145.1521,restaurant,STRIP,19,surface,9
+Indian Town,-37.9541,145.1517,convenience,STRIP,26,surface,6
+Itami Japanese Cuisine,-37.958,145.0529,restaurant,MALL,84,surface,13
+J.K. Grocery,-37.9494,145.1509,convenience,STRIP,49,surface,20
+J.T. Butcher & Seafood,-37.9523,145.1511,butcher,STRIP,29,surface,10
+Jade Dynasty,-37.9825,145.2019,restaurant,STANDALONE,90,surface,1
+Jahan's Best Food,-37.9863,145.2128,restaurant,STRIP,26,surface,10
+Jarah's Falafel & Kebabs,-37.9744,145.2035,fast_food,STANDALONE_PARKING,79,surface,0
+Jasbe,-37.9432,145.1166,convenience,STANDALONE_PARKING,9,surface,2
+Jasper's By The Bay,-37.9797,145.0532,restaurant,STANDALONE,90,surface,4
+Jazz's Tandoori  Hot Chillies & North Indian Curries,-37.9947,145.1738,fast_food,STANDALONE_PARKING,22,surface,5
+Jeany In A Cup,-37.9619,145.1426,cafe,STRIP,62,surface,8
+Jebena Cafe,-37.9844,145.212,cafe,STANDALONE,80,surface,2
+Jessie's Pizza,-37.9543,145.1521,fast_food,STANDALONE_PARKING,66,surface,4
+Jimmyz Kebabs,-37.9899,145.2142,fast_food,STANDALONE_PARKING,43,surface,1
+Jnr's pizza,-37.9532,145.0628,fast_food,STANDALONE_PARKING,6,street_side,3
+John's Hamburgers  Chickens  Fish & Chips,-37.9361,145.0609,fast_food,STRIP,38,street_side,7
+Johnny Boy's Pizza,-37.9948,145.174,fast_food,STANDALONE_PARKING,16,surface,5
+Johnny Dante,-37.9668,145.0553,cafe,STRIP,59,surface,17
+Juice Engine,-37.9883,145.2138,cafe,STANDALONE,80,surface,2
+Just Delicious Gelato,-38.0544,145.1166,ice_cream,STRIP,70,surface,8
+Just Paradise,-37.9833,145.1922,fast_food,STANDALONE,590,surface,0
+KFC,-37.9579,145.0535,fast_food,MALL,31,surface,16
+KFC,-37.9871,145.2184,fast_food,MALL,84,multi-storey,3
+KFC,-38.0121,145.1986,fast_food,STANDALONE,120,surface,1
+KFC,-37.9929,145.1731,fast_food,MALL,98,surface,6
+KFC,-37.9479,145.1394,fast_food,STANDALONE_PARKING,28,surface,0
+KFC,-37.9906,145.198,fast_food,STANDALONE_PARKING,19,surface,0
+KFC,-37.983,145.0757,fast_food,STANDALONE_PARKING,24,surface,1
+KFC,-38.0291,145.1311,fast_food,STANDALONE_PARKING,10,surface,4
+KFC,-37.9845,145.2132,fast_food,STANDALONE_PARKING,12,surface,2
+KFC,-37.9464,145.0447,fast_food,STANDALONE_PARKING,18,surface,1
+KFC,-37.9916,145.147,fast_food,MALL,15,surface,0
+KFL Supermarkets,-37.9506,145.1505,supermarket,MALL,15,surface,13
+KM Cafe & Bar,-37.968,145.1767,cafe,STANDALONE_PARKING,17,surface,3
+KV Charcoal Chicken,-37.9718,145.1488,restaurant,MALL,40,surface,9
+Kabul Roundabout Pizza & Takeaway,-37.9863,145.2127,fast_food,STRIP,31,surface,11
+Kampong Cham Grocery,-37.9485,145.1507,greengrocer,STRIP,18,surface,14
+Kao Gaeng Hot Pot & Shabu,-37.9481,145.1508,restaurant,STRIP,39,surface,6
+Kara Deniz Cafe,-37.967,145.1745,cafe,STANDALONE_PARKING,32,surface,5
+Karachi Biryani,-37.974,145.1867,fast_food,STANDALONE_PARKING,9,street_side,3
+Kay & Anne's Bay Cafe,-37.955,145.0328,cafe,STANDALONE,123,surface,4
+Kebab,-37.9916,145.1967,fast_food,STANDALONE,177,surface,0
+Kebab House,-37.981,145.0636,restaurant,STRIP,95,surface,6
+Kebab House,-38.0542,145.1165,fast_food,STRIP,84,surface,11
+Kebab Palace,-37.993,145.1732,fast_food,MALL,83,surface,7
+Kebabs,-37.9473,145.1528,fast_food,STANDALONE_PARKING,27,surface,2
+Keysborough Hotel,-37.9922,145.1622,pub,STANDALONE,134,surface,1
+Khá Phát,-37.9507,145.1516,convenience,MALL,22,surface,29
+Kickin'Inn,-37.946,145.0446,restaurant,STANDALONE_PARKING,30,surface,1
+King Supermarket,-37.9852,145.2126,supermarket,STRIP,40,surface,9
+King Yuen Chinese,-37.9815,145.0633,restaurant,STANDALONE_PARKING,60,surface,3
+King of the Roast,-37.9364,145.0985,fast_food,STANDALONE,123,surface,0
+Kingsclere Bakery,-37.9804,145.1662,bakery,STANDALONE_PARKING,68,surface,3
+Kingsclere Fish & Chips,-37.9805,145.1662,fast_food,STANDALONE_PARKING,63,surface,4
+Kingston Food Hangar,-37.9709,145.0909,greengrocer,MALL,94,surface,3
+Kiosk Cafe,-37.9491,145.153,cafe,STANDALONE_PARKING,50,street_side,2
+Kitchen Table Cafe,-38.0262,145.1011,cafe,STANDALONE_PARKING,50,surface,0
+Kiwi Pie & Fried Chicken,-37.9664,145.1747,restaurant,STRIP,29,surface,17
+Koh's Market Place,-37.9718,145.1498,supermarket,MALL,44,surface,8
+Kompot Sina Grocery,-37.9656,145.1743,convenience,MALL,45,surface,10
+Koochino Cafe,-38.0222,145.1177,cafe,MALL,22,surface,6
+Korner Cafe & Takeaway,-37.9892,145.1044,cafe,STANDALONE,341,surface,0
+Kowloon Asian Grocery,-37.952,145.1511,convenience,STRIP,34,street_side,16
+Krishna,-37.9567,145.0443,restaurant,STANDALONE_PARKING,33,surface,3
+Kung Fu Tea,-37.9505,145.1518,cafe,STRIP,6,surface,22
+LBL Burgers,-37.9405,145.1388,fast_food,STANDALONE_PARKING,29,surface,2
+LH Supermarket,-37.9742,145.2017,supermarket,STANDALONE,122,surface,0
+La Ionica Poultry,-37.9834,145.1325,butcher,STRIP,66,surface,6
+La Maison Patisserie,-37.9668,145.0556,bakery,STRIP,58,street_side,18
+La Penini Cafe,-37.9905,145.1116,cafe,STANDALONE,157,surface,0
+La Porchetta,-37.9832,145.0647,restaurant,STRIP,85,surface,6
+Lahori Delicious Food,-37.9672,145.1759,restaurant,STANDALONE_PARKING,32,street_side,1
+Lakeside Chickens,-38.0677,145.143,butcher,MALL,64,surface,6
+Lakeview Charcoal Chicken,-38.0674,145.1439,fast_food,MALL,39,surface,11
+Lakeview Fish and Chips,-38.0673,145.144,fast_food,MALL,45,surface,10
+Lakeview Meats,-38.0679,145.1428,butcher,MALL,83,surface,6
+Lakhsmi Vilas,-37.9898,145.2157,restaurant,STANDALONE_PARKING,46,surface,1
+Lalumba Restaurant & Cafe,-37.9852,145.212,restaurant,STRIP,32,surface,10
+Lan Sen,-37.9488,145.1511,restaurant,STRIP,21,surface,24
+Laura St Seafood,-38.0198,145.0992,fast_food,STANDALONE_PARKING,30,street_side,2
+Laura Street Milk Bar,-38.0197,145.0992,convenience,STANDALONE_PARKING,41,street_side,2
+Le Hoang Vietnamese Restaurant,-38.0273,145.1016,restaurant,STANDALONE_PARKING,72,surface,1
+Le Roi Cafe,-37.9823,145.0648,cafe,STRIP,76,surface,11
+Lee BBQ House,-37.9658,145.1746,restaurant,MALL,45,surface,13
+Liberty,-37.9696,145.0874,convenience,STANDALONE_PARKING,75,surface,1
+Lien Hung Chinese Grocery,-37.9502,145.1508,greengrocer,MALL,39,surface,16
+Linda’s Bakehouse,-38.0367,145.1072,bakery,STRIP,60,surface,6
+Lion Bakehouse & Food,-37.9843,145.2142,bakery,STANDALONE_PARKING,71,surface,4
+Liquorland,-37.9453,145.022,alcohol,STANDALONE_PARKING,37,surface,1
+Liquorland,-37.9828,145.2134,alcohol,STANDALONE_PARKING,53,surface,1
+Liquorland,-38.0685,145.1445,alcohol,MALL,44,surface,3
+Little Lanka,-37.9682,145.1758,restaurant,STANDALONE_PARKING,22,street_side,4
+Little Malay,-37.9469,145.1535,restaurant,STANDALONE_PARKING,62,surface,2
+Lolly Jar Cafe,-37.9829,145.0643,cafe,STRIP,81,surface,6
+Long Beach Bakery,-38.0531,145.1159,bakery,STANDALONE_PARKING,54,surface,5
+Longbeach Hotel,-38.051,145.115,pub,STANDALONE_PARKING,37,surface,4
+Longbeach RSL,-38.0506,145.1167,pub,STANDALONE_PARKING,32,surface,0
+Lorenzo's Cafe & Pizzeria,-38.027,145.1025,fast_food,STRIP,13,surface,6
+Lot 88 on the Park,-38.0064,145.2004,cafe,STANDALONE,495,surface,0
+Lunch Hour Cafe,-37.9386,145.1229,cafe,STANDALONE,98,surface,0
+Lunch Matters,-37.9843,145.1112,cafe,STANDALONE,107,surface,0
+Lydford & Co,-37.9813,145.07,bar,STANDALONE,114,surface,2
+Lúa,-37.9521,145.1511,restaurant,STRIP,35,surface,12
+M&J Sieu Ky,-37.9506,145.1516,convenience,STRIP,16,surface,30
+M&M Bakery,-37.9489,145.0428,bakery,STRIP,10,street_side,10
+MJ Butcher Fruit Veg,-37.9868,145.2148,supermarket,MALL,40,multi-storey,3
+MJ's Hideaway,-38.0527,145.1152,cafe,STANDALONE_PARKING,79,surface,1
+MKS Spices n Things,-37.9893,145.2152,supermarket,STANDALONE_PARKING,53,surface,2
+MR. KIKO,-38.0294,145.1313,fast_food,STANDALONE_PARKING,17,surface,3
+MS Coffee Shop,-37.9657,145.1744,cafe,MALL,59,surface,11
+MS Grocery,-37.9499,145.1525,convenience,STANDALONE_PARKING,27,surface,5
+MacKay Fish n Chips,-37.9717,145.1489,fast_food,MALL,33,surface,9
+Mad Shak's Cafe,-38.0386,145.1923,cafe,STANDALONE,224,surface,0
+Madinah Kebab House,-37.9518,145.1521,restaurant,STRIP,55,street_side,13
+Magic Pizza and Pasta,-37.9563,145.0577,restaurant,STANDALONE,221,street_side,3
+Magic Wok,-37.972,145.088,restaurant,MALL,52,surface,1
+Main Street Cafe,-38.0067,145.0869,cafe,STANDALONE_PARKING,46,street_side,2
+Maiwand Bakery,-37.9863,145.2129,bakery,STRIP,24,surface,10
+Maiwand Supermarket,-37.9864,145.2127,supermarket,STRIP,23,surface,11
+Malcolm Rd Take Away,-38.0006,145.11,fast_food,STANDALONE,252,surface,0
+Mania Dinners,-38.0676,145.1437,fast_food,MALL,28,surface,11
+Manilena Filipino & Asian Grocery,-37.9903,145.1829,convenience,STANDALONE,315,surface,4
+Marbled Meats,-37.9361,145.0612,butcher,STRIP,12,street_side,8
+Marina Shisha Lounge & Cafe,-37.988,145.2131,cafe,STANDALONE_PARKING,45,surface,5
+Mark Anthony Cafe,-38.0326,145.1951,cafe,STANDALONE,447,surface,0
+Marketto,-37.9844,145.2148,cafe,STANDALONE_PARKING,79,surface,4
+Marpha Indian,-37.9835,145.0647,restaurant,STRIP,77,surface,7
+Mary's Courtyard Cafe,-37.9853,145.2121,cafe,STRIP,38,surface,10
+Mauritian Food,-37.9827,145.203,restaurant,STANDALONE_PARKING,70,surface,4
+McDonald's,-37.9619,145.1512,fast_food,STANDALONE_PARKING,16,surface,0
+McDonald's,-37.9606,145.0548,fast_food,STANDALONE_PARKING,21,street_side,0
+McDonald's,-37.987,145.2186,fast_food,MALL,82,multi-storey,3
+McDonald's,-37.9579,145.0529,fast_food,MALL,83,surface,13
+McDonald's,-37.9592,145.0544,fast_food,MALL,86,multi-storey,4
+McDonald's,-37.9729,145.1124,fast_food,STANDALONE_PARKING,24,surface,0
+McDonald's,-37.9517,145.0779,fast_food,STANDALONE_PARKING,14,surface,1
+McDonald's,-37.9904,145.1993,fast_food,STANDALONE_PARKING,30,surface,0
+McDonald's,-38.0126,145.1617,fast_food,STANDALONE,123,surface,1
+McDonald's,-38.0289,145.1307,fast_food,STANDALONE_PARKING,21,surface,1
+McDonald's,-37.9948,145.1747,fast_food,STANDALONE_PARKING,19,surface,2
+Mckenzie Smith,-37.9666,145.0556,butcher,STRIP,71,street_side,15
+Mediterranean Pantry,-37.9836,145.0647,deli,STRIP,78,surface,6
+Meet ‘N Eat Kebabs,-37.9702,145.0926,fast_food,MALL,72,surface,2
+Mehfil Indian,-37.9811,145.1657,restaurant,STANDALONE_PARKING,18,surface,3
+Mekong Groceries,-37.9718,145.1496,supermarket,MALL,46,surface,11
+Melbourne Continental Small Goods,-37.9683,145.1758,convenience,STANDALONE_PARKING,25,surface,3
+Mentone Bakery,-37.9838,145.0647,bakery,STRIP,83,surface,6
+Mentone Cellar,-37.9834,145.0852,alcohol,STANDALONE_PARKING,21,street_side,3
+Mentone Mart - All American Products,-37.9834,145.0854,convenience,STANDALONE_PARKING,27,street_side,3
+Mentone Pizza & Pasta,-37.9834,145.0855,fast_food,STANDALONE_PARKING,24,street_side,3
+Mentone RSL,-37.9897,145.0665,restaurant,STANDALONE_PARKING,17,surface,0
+Mentone South East Cafe,-37.9825,145.064,cafe,STANDALONE,99,surface,2
+Merkator Royal,-37.9681,145.1762,cafe,STANDALONE_PARKING,25,street_side,5
+Mila Cafe,-38.0173,145.1947,fast_food,STANDALONE,525,surface,0
+Milan Teahouse,-37.9507,145.1515,cafe,STRIP,18,surface,28
+Milk Bar,-38.0336,145.1138,convenience,STANDALONE,514,surface,0
+Milk Bar,-37.9832,145.1314,convenience,STANDALONE_PARKING,10,street_side,2
+Milk Bar,-37.9821,145.1862,convenience,STANDALONE,413,surface,0
+Milk Bar,-37.9764,145.21,convenience,STANDALONE,142,surface,0
+Milk Bar,-37.9585,145.1646,convenience,STANDALONE,162,surface,0
+Milk Bar,-37.9662,145.1765,convenience,STANDALONE_PARKING,73,surface,4
+Milk Bar,-37.9832,145.2074,convenience,STANDALONE,154,surface,0
+Milk Boy,-37.9667,145.0551,cafe,STRIP,45,street_side,14
+Milkbar,-37.9904,145.1829,convenience,STANDALONE,307,surface,4
+Milkbar,-37.9736,145.1862,convenience,STANDALONE_PARKING,63,street_side,2
+Milkbar,-38.0935,145.1319,convenience,STANDALONE_PARKING,14,surface,0
+Mingi Cafe,-37.9671,145.1745,cafe,STANDALONE_PARKING,31,surface,4
+Minh Ky,-37.95,145.1512,restaurant,STRIP,10,surface,18
+Minh Thái,-37.9493,145.1512,convenience,STRIP,33,surface,28
+Minh Đức,-37.9508,145.1515,bakery,STRIP,21,surface,28
+Minh-Ky,-37.9719,145.1492,restaurant,MALL,36,surface,14
+Miss Viet,-37.9665,145.0556,cafe,STRIP,67,street_side,15
+Mona's,-37.984,145.1336,bakery,STANDALONE_PARKING,29,surface,2
+Monica's Cakes,-37.9645,145.1605,bakery,STANDALONE_PARKING,19,surface,1
+Moon Điểm Hẹn,-37.9503,145.1521,restaurant,STRIP,39,multi-storey,15
+Morris Meats,-37.9834,145.0647,butcher,STRIP,78,surface,7
+Mr Baker,-37.9656,145.1733,bakery,STANDALONE_PARKING,28,surface,3
+Mr Sandwich On The Go,-38.0756,145.1221,fast_food,STANDALONE_PARKING,48,surface,3
+Mr Smoke Stack,-38.0758,145.1222,restaurant,STANDALONE_PARKING,56,surface,3
+Mrs. Fields,-37.9713,145.0889,cafe,MALL,67,surface,0
+Muffin Break,-37.9702,145.089,cafe,MALL,25,surface,3
+Muffin Break,-37.9581,145.0534,cafe,MALL,49,surface,16
+Munch Brunch,-37.9874,145.2156,cafe,STANDALONE_PARKING,59,multi-storey,1
+Munchies Takeaway,-38.0301,145.2028,cafe,STANDALONE,532,surface,0
+Mur Heng,-37.9489,145.1513,butcher,STRIP,23,surface,24
+Muzz Buzz,-37.9698,145.0879,cafe,STANDALONE,83,surface,1
+My Cambodia,-37.949,145.1513,restaurant,STRIP,15,surface,27
+My Tam Grocery,-37.962,145.1427,supermarket,STRIP,54,surface,9
+NQR,-38.0534,145.116,supermarket,STRIP,52,surface,10
+Nachos Mexican Cantina,-38.027,145.1014,restaurant,STANDALONE_PARKING,59,surface,1
+Nam Hiep,-37.952,145.1513,butcher,STRIP,17,street_side,17
+Nam Sơn,-37.9506,145.1422,restaurant,STANDALONE_PARKING,9,surface,1
+Nan Yang Supermarket,-37.9505,145.153,supermarket,STANDALONE_PARKING,37,surface,3
+Nanak Bakery,-37.9826,145.2027,bakery,STANDALONE_PARKING,67,surface,4
+Nando's,-37.9647,145.1727,restaurant,STANDALONE_PARKING,15,surface,1
+Nando's,-37.9933,145.1729,restaurant,MALL,80,surface,6
+Navin Takeaway,-37.9874,145.2153,restaurant,STANDALONE_PARKING,49,multi-storey,2
+Negin Asia Halal Bakery,-37.9854,145.2121,bakery,STRIP,39,surface,10
+New Eastland Pty Ltd,-37.997,145.1847,supermarket,STANDALONE,638,surface,0
+Noble Park Charcoal Chicken,-37.9663,145.1752,restaurant,STRIP,12,surface,14
+Noble Park Kebab House,-37.9663,145.1751,fast_food,STRIP,4,surface,14
+Noble Park RSL,-37.9657,145.1761,restaurant,STANDALONE_PARKING,8,surface,3
+Noble Park RSL,-37.9657,145.1762,pub,STANDALONE_PARKING,17,surface,3
+Noble Pizza,-37.9664,145.1753,fast_food,STRIP,17,surface,12
+Noble Plaza Meats,-37.9656,145.1743,butcher,MALL,45,surface,10
+Noi Lucky,-37.9486,145.1507,restaurant,STRIP,13,surface,15
+Noodle Yum Yum,-37.9812,145.0636,restaurant,STRIP,90,surface,6
+Noti's Souvlaki Bar,-37.9551,145.0295,restaurant,STANDALONE,171,surface,0
+Nu Hotel,-37.9863,145.2131,pub,STRIP,28,surface,6
+Oakdale Meat Co,-38.0018,145.2133,butcher,STANDALONE,149,surface,0
+Oceania Pizza & Pasta,-38.0505,145.1148,fast_food,STANDALONE_PARKING,53,surface,1
+Old Hadie's The Bakery,-37.9865,145.2146,bakery,MALL,74,multi-storey,2
+Omed Fresh. Noble Park Fruit Mart,-37.9658,145.1735,greengrocer,STANDALONE_PARKING,23,surface,3
+Omega 3 Seafood,-38.0539,145.1163,fast_food,STRIP,96,surface,10
+Omega 3 Seafood,-38.0543,145.1165,fast_food,STRIP,74,surface,11
+One Stop Minimart,-37.949,145.1535,supermarket,STANDALONE_PARKING,14,street_side,3
+Onx Cafe,-38.0008,145.1075,cafe,STANDALONE,117,surface,0
+Onyx,-37.9616,145.0381,cafe,STANDALONE,194,street_side,0
+Osaka Sushi,-37.9888,145.2121,restaurant,STANDALONE_PARKING,39,surface,0
+Out 4 Thai,-37.9672,145.0555,restaurant,STRIP,17,surface,12
+Padre Pizzeria,-37.9837,145.1338,restaurant,STANDALONE_PARKING,8,surface,2
+Pakwan,-37.989,145.2141,restaurant,STANDALONE_PARKING,39,surface,2
+Papa John's Pizza and Pasta,-38.0686,145.1441,fast_food,MALL,56,surface,2
+Papaya Pog Pog,-37.9496,145.1507,restaurant,STRIP,21,surface,14
+Pappa Roti's,-37.9503,145.1515,cafe,STRIP,19,surface,31
+Parkdale Beach Kiosk,-38.0,145.0755,cafe,STANDALONE_PARKING,43,street_side,0
+Parkdale Cellars 3185,-37.9941,145.077,alcohol,STANDALONE_PARKING,21,surface,0
+Parkmore Pizza,-37.9807,145.1664,fast_food,STANDALONE_PARKING,43,surface,3
+Patch's Thai Grocery,-37.9485,145.1514,convenience,STRIP,44,surface,12
+Patterson Lakes Hot Bread and Coffee,-38.0677,145.1429,bakery,MALL,70,surface,6
+Pattysmiths,-37.9702,145.0927,fast_food,MALL,78,surface,2
+Pauls Milk Bar,-37.9357,145.0613,cafe,STRIP,8,street_side,9
+Peaberrys,-37.9663,145.0554,cafe,STRIP,47,street_side,16
+Peckish Cafe,-37.9672,145.0563,cafe,STANDALONE_PARKING,17,street_side,4
+Peddler Tuck Shop,-37.9661,145.1748,cafe,STRIP,34,surface,19
+Penta Fresh Kebab and Souvlaki,-38.0674,145.1439,fast_food,MALL,39,surface,11
+Peppercorn Cafe,-38.0071,145.0863,cafe,STANDALONE_PARKING,44,surface,5
+Persian Cafe Restaurant,-37.9664,145.1748,cafe,STRIP,24,surface,16
+Persian Darbar Cafe,-37.9852,145.212,cafe,STRIP,32,surface,10
+Petaling Jaya,-37.9955,145.2328,restaurant,STANDALONE_PARKING,22,surface,0
+Pete's Seafood,-37.9621,145.1428,fast_food,STRIP,49,surface,8
+Phka Chom Pa,-37.9489,145.1513,restaurant,STRIP,23,surface,24
+Pho Kim,-37.9789,145.0533,restaurant,STANDALONE_PARKING,21,surface,3
+Phu Khanh,-37.9504,145.1511,cafe,MALL,17,surface,30
+Phú Linh Chinese Noodle House,-37.9509,145.1507,restaurant,MALL,23,surface,8
+Phước Đạt Butcher,-37.9521,145.1514,butcher,STRIP,20,street_side,16
+Phở & Curry Châu Đốc,-37.9516,145.1521,restaurant,STRIP,65,street_side,10
+Phở Chú Lễ,-37.9515,145.1512,restaurant,MALL,54,street_side,15
+Phở Dakao Hoàng,-37.9493,145.1507,restaurant,MALL,36,rooftop,19
+Phở Gia Hội,-37.952,145.1517,fast_food,STRIP,20,street_side,20
+Phở Hoàng,-37.9492,145.1512,restaurant,STRIP,26,surface,26
+Phở Hùng,-37.9514,145.1512,restaurant,MALL,64,street_side,15
+Phở Hùng Vương Saigon,-37.9494,145.151,restaurant,STRIP,51,surface,22
+Phở No. 1,-37.9492,145.1517,restaurant,STRIP,22,surface,20
+Phở Vân,-38.0542,145.1165,restaurant,STRIP,84,surface,11
+Pie Face,-37.9916,145.1983,cafe,STANDALONE,128,surface,1
+Pie Face,-37.9826,145.0752,cafe,STANDALONE_PARKING,30,surface,1
+Pita Lounge,-37.9737,145.1864,cafe,STANDALONE_PARKING,45,street_side,3
+Pitta Pan's Kebab,-37.9544,145.1521,fast_food,STANDALONE_PARKING,70,surface,3
+Pizza D'lite,-37.9655,145.1742,restaurant,MALL,33,surface,8
+Pizza Day,-37.9644,145.1605,fast_food,STANDALONE_PARKING,21,surface,1
+Pizza Hut,-37.9932,145.1731,restaurant,MALL,72,surface,7
+Pizza Hut,-37.9892,145.2165,restaurant,STANDALONE_PARKING,60,surface,2
+Pizza Kings,-38.0295,145.1314,fast_food,STANDALONE_PARKING,15,surface,3
+Pizza Time,-37.9667,145.1865,fast_food,STANDALONE,354,surface,4
+Port Phillip Pizza,-38.0677,145.1438,fast_food,MALL,17,surface,11
+Preeti Creations Coffee,-37.9879,145.2125,cafe,STRIP,65,surface,6
+Pretzel World,-37.9585,145.0553,cafe,MALL,67,multi-storey,7
+Pride Of Punjab,-37.9621,145.1432,supermarket,STRIP,22,surface,9
+Punjab Street,-37.9542,145.1513,restaurant,STANDALONE_PARKING,19,surface,5
+Punjabi Thali,-37.9516,145.1527,restaurant,STANDALONE_PARKING,32,surface,3
+Quality Spices,-37.9675,145.1745,restaurant,STANDALONE_PARKING,39,surface,3
+Quay BBQ,-37.9497,145.1516,butcher,STRIP,19,surface,14
+Rainbow Coffee,-37.9505,145.1508,cafe,MALL,35,surface,17
+Ran Keo Asian Grocery,-37.9491,145.1512,convenience,STRIP,22,surface,27
+Rayan Roastery,-37.9671,145.1746,convenience,STANDALONE_PARKING,23,surface,4
+Red Peppers,-37.9658,145.1739,restaurant,STRIP,27,surface,10
+Red Pillar Cafe,-38.0082,145.1074,cafe,STANDALONE,656,surface,0
+Red Rooster,-37.9869,145.2188,fast_food,MALL,85,multi-storey,3
+Red Rooster,-37.9791,145.1473,fast_food,STANDALONE_PARKING,16,surface,0
+Reddy Express,-38.0098,145.1403,convenience,STANDALONE_PARKING,57,surface,0
+Reddy Express,-37.9513,145.0781,convenience,STANDALONE_PARKING,33,surface,2
+Reddy Express,-38.0123,145.1985,convenience,STANDALONE,97,surface,1
+Reddy Express,-37.9961,145.1057,convenience,STANDALONE,182,surface,0
+Reddy Express,-37.9681,145.0746,convenience,STANDALONE,83,surface,0
+Reddy Express,-37.9736,145.1123,convenience,STANDALONE_PARKING,74,surface,0
+Reddy Express,-37.9908,145.2085,convenience,STANDALONE,140,surface,0
+Reddy Express,-37.9813,145.0711,convenience,STANDALONE,92,surface,0
+Reddy Roasts,-37.9669,145.0557,restaurant,STRIP,45,street_side,16
+Rediculously Delicious Kitchen House,-37.9506,145.1515,fast_food,STRIP,21,surface,30
+Restaurant 323,-37.9508,145.1528,restaurant,STRIP,53,surface,6
+Riceberry Thai Restaurant,-38.038,145.1079,restaurant,STANDALONE,217,surface,0
+Ritchies IGA,-38.0219,145.1181,supermarket,MALL,46,surface,8
+Rockyz Minimart,-37.9844,145.2143,supermarket,STANDALONE_PARKING,78,surface,4
+Royal Bakers,-37.9668,145.1868,bakery,STANDALONE,326,surface,3
+Royal East Chinese Restaurant,-37.991,145.1503,fast_food,STANDALONE_PARKING,40,surface,0
+Royal Golden Reception,-37.9876,145.2138,restaurant,STANDALONE_PARKING,29,surface,0
+Royal Oak Hotel,-37.9728,145.0641,pub,STANDALONE_PARKING,54,surface,0
+SML Asian Grocery Shop,-37.9467,145.1536,convenience,STANDALONE,84,surface,2
+Sabb Der Thai and Esan Food,-37.9484,145.1505,restaurant,STRIP,38,surface,6
+Sadaqat,-37.9863,145.2123,supermarket,STRIP,33,surface,10
+Sadaqat Halal Butcher,-37.9864,145.2123,butcher,STRIP,25,surface,11
+Safari African Restaurant,-37.9665,145.1769,restaurant,STANDALONE,82,surface,3
+Sahar Takeaway,-37.9866,145.2128,fast_food,STRIP,14,surface,12
+Saigon Bakery,-37.949,145.1536,bakery,STANDALONE_PARKING,12,street_side,3
+Saigon Fresh,-37.9511,145.1514,convenience,MALL,45,surface,22
+Saigon Rex,-37.9492,145.1508,restaurant,MALL,29,rooftop,24
+Saigon Sunrise,-37.9713,145.1491,bakery,MALL,39,surface,6
+Salang Restaurant & Cafe,-37.9855,145.2137,restaurant,STRIP,36,surface,6
+Salsas Fresh Mex Grill,-37.9581,145.053,fast_food,MALL,79,surface,15
+Saltimbocca,-37.9658,145.0558,restaurant,STRIP,72,street_side,8
+Samir,-37.9735,145.186,butcher,STANDALONE,83,street_side,2
+Sammy's Pizza Boys,-38.0268,145.1023,fast_food,STRIP,16,surface,6
+Sana Coffee,-37.9611,145.0398,cafe,STANDALONE_PARKING,57,surface,0
+Sandbelt Hotel,-37.9381,145.068,pub,STANDALONE_PARKING,13,surface,0
+Sandwich Chefs,-37.958,145.0537,fast_food,MALL,22,surface,11
+Saray Halal Meats,-37.9853,145.2145,butcher,STANDALONE,107,surface,0
+Sav's Halal Butchery,-37.9882,145.216,butcher,STANDALONE_PARKING,32,surface,4
+Schnitz,-37.9582,145.053,fast_food,MALL,79,multi-storey,15
+Schnitz,-37.9929,145.1733,fast_food,MALL,89,surface,6
+Scicluna's,-37.9815,145.0642,greengrocer,STANDALONE,116,surface,0
+Seaford Fish & Chips,-38.0892,145.1285,fast_food,STANDALONE_PARKING,17,surface,2
+Seasoning Cafe,-37.9853,145.2122,cafe,STRIP,47,surface,10
+Selfie Cafe,-37.9681,145.1743,cafe,STANDALONE,88,surface,0
+Serina Cafe,-37.9701,145.089,cafe,MALL,14,surface,3
+Sessions,-37.9491,145.0416,alcohol,STANDALONE_PARKING,65,street_side,4
+Setaesh,-37.9897,145.2157,restaurant,STANDALONE_PARKING,44,surface,1
+Shahi Tadka,-37.9891,145.2152,restaurant,STANDALONE_PARKING,40,surface,2
+Shams Restaurant,-37.9877,145.2129,restaurant,STRIP,23,surface,6
+Sharetea,-37.9502,145.1515,cafe,STRIP,10,surface,28
+Shark Fin Chinese Restuarant,-37.9947,145.1735,restaurant,STANDALONE_PARKING,48,surface,3
+Shell,-37.99,145.1412,convenience,STANDALONE,105,surface,0
+Si Mamma,-37.958,145.0536,restaurant,MALL,28,surface,14
+Siam Basil,-37.9879,145.2125,restaurant,STRIP,65,surface,6
+Siem Reap's Grocery,-37.9657,145.1744,supermarket,MALL,59,surface,11
+Sieu Ky Poultry,-37.9508,145.1519,butcher,MALL,29,surface,25
+Simpson Street Cafe,-37.9477,145.0754,cafe,STANDALONE,259,surface,0
+Sing Bros Groceries,-37.9663,145.1746,convenience,STRIP,40,surface,16
+Skippy Pizza Pasta & Ribs,-37.9794,145.0532,restaurant,STRIP,59,surface,6
+Sky Pizza,-37.9899,145.2142,fast_food,STANDALONE_PARKING,43,surface,1
+Somm Wine Bar,-37.9671,145.0552,bar,STRIP,29,surface,12
+Song Hiep Butchers,-37.9503,145.1508,butcher,MALL,38,surface,17
+Sonoun Kimlee Coffee,-37.9489,145.1513,cafe,STRIP,23,surface,24
+Sons of Mischief,-37.9491,145.0438,cafe,STANDALONE_PARKING,36,street_side,3
+Soul Press,-38.0387,145.1083,cafe,STANDALONE,226,surface,2
+Southern Seas,-38.0518,145.1165,restaurant,STANDALONE_PARKING,69,street_side,0
+Souvalicious,-38.0676,145.1438,fast_food,MALL,28,surface,10
+Souvlaki Bar,-37.9839,145.1335,restaurant,STANDALONE_PARKING,25,surface,2
+Souvlaki Grill Burgers,-37.9808,145.0696,fast_food,STANDALONE,166,surface,2
+Soy,-37.9702,145.0891,fast_food,MALL,24,surface,3
+Spice Paradise Indian Cuisine,-37.9835,145.132,restaurant,STANDALONE_PARKING,21,surface,4
+Spice Supermarket,-37.9665,145.1749,convenience,STRIP,24,surface,17
+Spring Hot Bread,-37.9717,145.1496,bakery,MALL,35,surface,12
+Springvale Coffee,-37.9616,145.1426,cafe,STRIP,72,surface,6
+Springvale Kebabs,-37.9482,145.1533,fast_food,STANDALONE_PARKING,46,surface,1
+Springvale Plaza Cellars,-37.9621,145.1433,alcohol,STRIP,19,surface,8
+Springvale South SUPA IGA,-37.972,145.1497,supermarket,MALL,45,surface,8
+Springvale Spices,-37.9476,145.1532,convenience,STANDALONE_PARKING,29,surface,2
+Spudbar,-37.9579,145.0532,restaurant,MALL,56,surface,16
+Squires Loft,-37.9659,145.0574,cafe,STANDALONE_PARKING,34,street_side,1
+Sri Ganapathi South Indian,-37.9669,145.1753,restaurant,STANDALONE_PARKING,33,surface,4
+Star Cafe Springvale,-37.9499,145.1515,cafe,STRIP,18,surface,10
+Stephen Road Cafe,-38.0081,145.2127,cafe,STANDALONE,568,surface,0
+Stirfry's,-38.0674,145.1438,fast_food,MALL,31,surface,11
+Stomping Ground Brewing Co,-37.9416,145.0621,pub,STANDALONE_PARKING,67,surface,0
+Street Hot Pot,-37.9494,145.1521,restaurant,STRIP,21,surface,14
+Strings Takeaway,-37.9665,145.1746,fast_food,STRIP,17,surface,16
+Subway,-38.0669,145.144,fast_food,STRIP,60,surface,6
+Subway,-37.9874,145.1094,fast_food,STANDALONE,331,surface,0
+Subway,-37.9512,145.0783,fast_food,STANDALONE_PARKING,50,surface,1
+Subway,-37.9734,145.1209,fast_food,STANDALONE_PARKING,46,surface,1
+Subway,-37.9931,145.1734,fast_food,MALL,65,surface,7
+Subway,-37.9718,145.088,fast_food,MALL,42,surface,1
+Subway,-37.9648,145.1727,fast_food,STANDALONE_PARKING,17,surface,2
+Subway,-37.9656,145.0554,fast_food,STRIP,32,street_side,8
+Subway,-38.0049,145.2181,fast_food,STANDALONE_PARKING,33,surface,1
+Subway,-37.9837,145.2139,fast_food,STANDALONE_PARKING,55,surface,1
+Subway,-38.0144,145.2146,fast_food,STANDALONE_PARKING,22,surface,0
+Sunny Thor,-37.9886,145.2138,cafe,STANDALONE_PARKING,51,surface,3
+Surur African Variety,-37.9664,145.1765,supermarket,STANDALONE,80,street_side,3
+Sushi Pedia,-37.949,145.0416,fast_food,STANDALONE_PARKING,56,street_side,4
+Sushi Sushi,-37.9582,145.0534,restaurant,MALL,56,surface,16
+Sushi Sushi,-37.9587,145.0552,restaurant,MALL,87,multi-storey,9
+Sushi Takeaway,-38.0537,145.1163,fast_food,STRIP,85,surface,10
+Sweet! Espresso,-37.9749,145.0688,cafe,STANDALONE_PARKING,34,surface,0
+TGI Fridays,-37.9594,145.0538,restaurant,MALL,78,multi-storey,2
+THE Boulevarde Cafe,-37.989,145.1506,cafe,STANDALONE,80,surface,0
+TT Bakehouse,-37.9539,145.1518,bakery,STRIP,38,surface,6
+Tabac Bakery,-37.9527,145.152,bakery,STANDALONE_PARKING,35,surface,4
+Tabaq,-37.9852,145.2137,restaurant,STRIP,46,surface,6
+Tai Wah Chinese Restaurant,-37.981,145.0638,restaurant,STANDALONE,112,surface,3
+Tan Hung Poultry,-37.949,145.1507,butcher,MALL,8,rooftop,24
+Tan Vuong,-37.9507,145.1519,butcher,MALL,19,surface,26
+Tandoori Pavilion,-38.0361,145.1066,restaurant,STANDALONE_PARKING,27,surface,1
+Tasman Butchers,-37.9709,145.0913,butcher,MALL,70,surface,4
+Taste Of Paradise Halal Pizza,-37.9848,145.2132,fast_food,STANDALONE_PARKING,21,surface,5
+Teaser Black,-37.9589,145.0557,cafe,MALL,84,multi-storey,8
+Temptation Pies,-38.042,145.1393,cafe,STANDALONE,147,surface,0
+Thai Hoa Long Co,-37.9489,145.1511,supermarket,STRIP,28,surface,27
+Thai Rose Restaurant,-38.0515,145.1152,restaurant,STANDALONE_PARKING,62,surface,5
+Thai Today,-37.9811,145.0698,restaurant,STANDALONE,133,surface,3
+Thai Village,-37.9809,145.0631,restaurant,STANDALONE_PARKING,63,surface,5
+Thanh Nga Cafe,-37.9522,145.1511,cafe,STRIP,30,surface,12
+Thanh Phat,-37.949,145.1508,butcher,MALL,17,rooftop,28
+Thanh Thien Springvale Fresh Fruit Market,-37.9516,145.1515,greengrocer,MALL,37,street_side,25
+Thanh Vy,-37.9505,145.1515,restaurant,STRIP,24,surface,30
+The Bottle-O Bay Road,-37.9567,145.044,alcohol,STANDALONE_PARKING,17,surface,4
+The Bottle-O Mentone,-37.9796,145.0532,alcohol,STANDALONE_PARKING,79,surface,5
+The Bottle-O Springvale,-37.9487,145.1513,alcohol,STRIP,36,surface,19
+The Bottle-O Steve's Liquor,-37.9713,145.149,alcohol,MALL,32,surface,7
+The Bridge Terrace,-38.0094,145.088,restaurant,STANDALONE,111,surface,2
+The Butcher Club,-37.959,145.055,butcher,MALL,124,multi-storey,7
+The Cheesecake Shop,-37.9895,145.2149,bakery,STANDALONE_PARKING,43,surface,2
+The Cheesecake Shop,-38.0525,145.1168,bakery,STANDALONE,149,street_side,2
+The Chelsea Collective,-38.0531,145.1161,cafe,STANDALONE_PARKING,69,surface,5
+The Coffee Bar,-37.9877,145.2169,cafe,STANDALONE_PARKING,52,surface,1
+The Coffee Club,-38.0536,145.1164,cafe,STRIP,90,surface,8
+The Corner Store,-37.9811,145.0653,restaurant,STANDALONE_PARKING,66,surface,0
+The Cove Hotel,-38.0708,145.1366,pub,STANDALONE_PARKING,25,surface,0
+The Dandenong Pavilion,-37.982,145.2104,pub,STANDALONE_PARKING,10,surface,0
+The Dream Korean Bistro,-37.9485,145.1514,restaurant,STRIP,44,surface,12
+The Famished Wolf,-38.0028,145.1116,cafe,STANDALONE,529,surface,0
+The Fruit Men,-37.9661,145.0554,supermarket,STRIP,54,street_side,14
+The Gate Hot Pot,-37.9493,145.1505,restaurant,MALL,36,rooftop,13
+The Grazery,-37.9809,145.063,restaurant,STANDALONE_PARKING,57,surface,4
+The Hot Bird,-37.9672,145.0552,fast_food,STRIP,21,surface,11
+The Indian Hut,-38.0512,145.1152,restaurant,STANDALONE_PARKING,53,surface,5
+The Lake Restaurant,-38.0678,145.1438,cafe,MALL,7,surface,10
+The Laughing Rooster,-38.0371,145.1074,fast_food,STANDALONE,108,surface,5
+The Little Elphant,-37.9467,145.0319,cafe,STANDALONE_PARKING,24,street_side,0
+The Mango Tree,-37.9849,145.2133,fast_food,STRIP,33,surface,7
+The Mordi Canteen,-38.0087,145.0872,cafe,STANDALONE_PARKING,60,street_side,4
+The Odd Room,-37.9555,145.0381,cafe,STANDALONE,142,multi-storey,0
+The Public's Corner,-37.9884,145.214,pub,STANDALONE_PARKING,78,surface,2
+The Sunny Cafe,-37.9498,145.1523,restaurant,STRIP,11,surface,8
+Thi Thi,-37.9491,145.1513,restaurant,STRIP,13,surface,26
+Thida,-37.9492,145.1507,convenience,MALL,25,rooftop,21
+Thirsty Camel,-38.0102,145.0883,alcohol,STANDALONE_PARKING,32,surface,3
+Thiên Phú,-37.9721,145.1496,restaurant,MALL,39,surface,8
+Thu Thu,-37.9511,145.1515,cafe,MALL,48,surface,24
+Thuận Kiều,-37.972,145.1489,restaurant,MALL,35,surface,8
+Thuận-Phát,-37.9717,145.1497,butcher,MALL,33,surface,8
+Thành Lợi,-37.9508,145.1516,convenience,MALL,29,surface,26
+Thành Lợi,-37.9522,145.1519,convenience,STRIP,41,surface,14
+Thạnh Phát,-37.9488,145.1513,restaurant,STRIP,33,surface,21
+Thủ Đô,-37.9664,145.1753,restaurant,STRIP,17,surface,12
+Top Juice,-37.9581,145.0532,cafe,MALL,64,surface,16
+Toppings and Tea,-37.9506,145.1514,cafe,STRIP,14,surface,32
+Truly Scrumptious,-37.9813,145.0633,cafe,STRIP,63,surface,7
+Trúc Lâm,-37.9662,145.175,convenience,STRIP,14,surface,16
+Trường Giang Grocery,-37.9715,145.149,supermarket,MALL,27,surface,10
+Tudor Inn,-37.964,145.0571,pub,STANDALONE_PARKING,18,street_side,0
+Turbo Chinese takeaway restaurant,-37.9668,145.1864,restaurant,STANDALONE,360,surface,4
+Two Bob Snob,-37.9687,145.0553,cafe,STANDALONE,152,street_side,0
+Two Feet First,-38.055,145.117,cafe,STANDALONE_PARKING,50,surface,3
+Typhoon,-37.9489,145.0425,restaurant,STRIP,14,street_side,8
+UPharmacy,-37.9523,145.1519,chemist,STRIP,41,surface,12
+United,-37.9915,145.1982,convenience,STANDALONE,116,surface,1
+United,-38.0118,145.1955,convenience,STANDALONE_PARKING,53,surface,0
+United,-37.9909,145.1967,convenience,STANDALONE,133,surface,0
+United,-38.0863,145.1251,fuel,STANDALONE_PARKING,72,surface,1
+United,-38.0864,145.1251,convenience,STANDALONE_PARKING,75,surface,1
+United,-37.9547,145.1512,convenience,STANDALONE_PARKING,29,surface,1
+United,-37.9603,145.1384,convenience,STANDALONE,185,surface,0
+United,-37.9528,145.076,convenience,STANDALONE,220,surface,1
+United,-37.9827,145.0751,fuel,STANDALONE_PARKING,29,surface,1
+Urban Whisk Cookie Cafe,-37.9489,145.0441,cafe,STANDALONE_PARKING,19,street_side,1
+V-P Butcher,-37.9503,145.1509,butcher,MALL,29,surface,22
+VIP Kitchens,-37.9542,145.1517,restaurant,STRIP,30,surface,6
+VK Bakery & Cake,-37.9716,145.149,bakery,MALL,32,surface,11
+VL Butcher,-37.9494,145.152,butcher,STRIP,17,surface,13
+VN Food Street,-37.9508,145.1522,restaurant,MALL,46,surface,15
+Vacancy,-37.9517,145.1517,supermarket,STRIP,32,street_side,21
+Valentino's Pizza & Pasta,-38.0221,145.1175,fast_food,MALL,12,surface,6
+Valentinos Fish & Chips,-37.9356,145.0613,cafe,STRIP,16,street_side,8
+Victoria Springvale Cake & Bread,-37.9498,145.1525,bakery,STANDALONE_PARKING,19,surface,5
+Viet Boy,-37.9579,145.0534,restaurant,MALL,39,surface,16
+Villa,-37.9869,145.2148,cafe,MALL,36,multi-storey,3
+Vinh Dat BBQ,-37.9493,145.1504,restaurant,MALL,39,rooftop,13
+Viva La Vida,-37.988,145.2159,cafe,STANDALONE_PARKING,18,surface,2
+Việt Thành,-37.9494,145.1512,bakery,STRIP,42,surface,27
+Walker Street Cafe,-37.9881,145.2123,cafe,STANDALONE_PARKING,62,surface,3
+Walker's Doughnuts,-37.9584,145.0555,fast_food,MALL,46,multi-storey,7
+Walkers Kitchen,-37.9886,145.2102,restaurant,STANDALONE,94,surface,1
+Walrus BBQ,-37.9483,145.1511,restaurant,STRIP,24,surface,13
+Waltzing Matilda Hotel,-37.9631,145.149,restaurant,STANDALONE_PARKING,28,surface,1
+Westall Charcoal Chicken,-37.9405,145.1384,fast_food,STANDALONE_PARKING,15,street_side,2
+Where’s Your Aunty?,-38.0512,145.1152,restaurant,STANDALONE_PARKING,53,surface,5
+White Street Cafe & Take Away,-37.9995,145.0948,fast_food,STANDALONE,273,surface,0
+Window Restaurant,-37.9496,145.1507,restaurant,STRIP,21,surface,14
+Windows on the Bay,-38.0088,145.0841,restaurant,STANDALONE_PARKING,38,surface,0
+Wings Cafe,-37.9945,145.1456,cafe,STANDALONE_PARKING,38,surface,0
+Wishbones Charcoal Chicken,-37.9458,145.0226,fast_food,STANDALONE_PARKING,22,surface,2
+Wisla Continental,-37.9891,145.2164,deli,STANDALONE_PARKING,48,surface,3
+Wolf of the Willows,-37.9893,145.1003,pub,STANDALONE,563,surface,0
+Wonder Fresh,-37.9359,145.0612,greengrocer,STRIP,21,street_side,9
+Woolworths,-37.993,145.1726,supermarket,MALL,116,surface,4
+Woolworths,-37.9404,145.1037,supermarket,STANDALONE_PARKING,56,surface,1
+Woolworths,-37.9841,145.0771,supermarket,MALL,50,surface,1
+Woolworths,-37.9875,145.2177,supermarket,MALL,112,surface,0
+Woolworths,-38.0118,145.1607,supermarket,MALL,67,surface,1
+Woolworths,-37.9742,145.2053,supermarket,STANDALONE_PARKING,79,surface,1
+Woolworths,-37.9816,145.0624,supermarket,STANDALONE_PARKING,38,surface,0
+Woolworths,-38.0543,145.1158,supermarket,STANDALONE_PARKING,71,surface,2
+Woolworths,-37.9491,145.041,supermarket,STANDALONE_PARKING,56,surface,5
+Woolworths,-37.9534,145.1516,supermarket,STANDALONE_PARKING,41,surface,2
+Woolworths,-37.9596,145.0556,supermarket,MALL,110,surface,0
+Woolworths,-38.0677,145.1434,supermarket,MALL,35,surface,13
+Woolworths MetroGo,-37.9368,145.0615,convenience,STANDALONE_PARKING,78,surface,0
+Woolworths Petrol,-38.0564,145.1174,convenience,STANDALONE_PARKING,46,surface,0
+Wrapp'd 619,-38.0749,145.1219,fast_food,STANDALONE_PARKING,75,street_side,2
+Xing,-37.9838,145.0647,restaurant,STRIP,83,surface,6
+Y'hello Bean,-38.0673,145.1441,fast_food,MALL,53,surface,9
+Yarraman Doner Kebabs,-37.9742,145.187,fast_food,STANDALONE_PARKING,30,street_side,2
+Yarraman Road Milk Bar,-37.9774,145.1818,convenience,STANDALONE,333,surface,0
+Yo-Gainz Protein Yoghurt,-38.0757,145.1221,ice_cream,STANDALONE_PARKING,54,surface,3
+Yokohama Sushi,-37.9824,145.0648,restaurant,STRIP,82,surface,11
+Yolo,-37.9503,145.1515,cafe,STRIP,19,surface,31
+Yong Li Groceries,-37.9508,145.1508,convenience,MALL,24,surface,14
+Yoway,-37.9825,145.0648,ice_cream,STRIP,89,surface,12
+Zambrero,-37.9826,145.0648,fast_food,STRIP,97,surface,12
+Zapata,-37.9851,145.2137,restaurant,STRIP,53,surface,7
+Zesty Joe's Pizza & Pasta,-37.9566,145.0439,fast_food,STANDALONE_PARKING,8,surface,4
+madamviet,-37.9794,145.0529,restaurant,STANDALONE_PARKING,76,surface,5
+tsg,-38.0543,145.1166,alcohol,STRIP,79,surface,10
+Đại Gia,-37.9518,145.152,cafe,STRIP,47,street_side,13
+新旺記,-37.9505,145.151,restaurant,MALL,22,surface,28
+Aspendeli,-38.0146,145.0972,cafe,STANDALONE,120,surface,0
+Jayden Brian Bakery,-38.0271,145.1025,bakery,STANDALONE_PARKING,12,surface,5
+The Street Cafe Aspendale,-38.0272,145.1026,cafe,STANDALONE_PARKING,25,surface,5
+Michelangelo,-38.0266,145.1316,restaurant,STANDALONE_PARKING,24,surface,0
+Braeside Lunchbox,-38.01,145.105,fast_food,STANDALONE,387,surface,0
+Nando's,-38.0105,145.14,restaurant,STANDALONE_PARKING,24,surface,0
+Woodlands Cafe & Takeaway,-37.9943,145.1188,cafe,STANDALONE_PARKING,10,surface,0
+Burgled,-38.0752,145.123,fast_food,STANDALONE_PARKING,42,surface,3
+Carrum Fish & Chips,-38.076,145.1234,fast_food,STANDALONE_PARKING,65,surface,3
+Carrum Station Charcoal Chicken,-38.0761,145.1235,fast_food,STANDALONE_PARKING,51,surface,3
+Freddies Kitchen,-38.0755,145.1231,cafe,STANDALONE_PARKING,45,surface,4
+Goodfellows Carrum Village Foodstore,-38.0759,145.1234,supermarket,STANDALONE_PARKING,74,surface,4
+Johnny's Grog Shop,-38.076,145.1234,alcohol,STANDALONE_PARKING,65,surface,3
+The Deli Stall,-38.0754,145.1231,deli,STANDALONE_PARKING,44,surface,3
+Wishing Well Tavern,-38.0753,145.123,bar,STANDALONE_PARKING,37,surface,3
+Alex's Convenience Store,-38.0453,145.1359,convenience,STANDALONE_PARKING,19,street_side,3
+Chelsea Heights Bakehouse,-38.045,145.1365,bakery,STANDALONE_PARKING,46,street_side,3
+Chelsea Heights IGA,-38.0452,145.1363,supermarket,STANDALONE_PARKING,18,street_side,4
+Chelsea Heights Milk Bar,-38.0481,145.1414,convenience,STANDALONE_PARKING,22,surface,3
+Chelsea Inn Chinese Restaurant,-38.0479,145.1412,restaurant,STANDALONE_PARKING,24,surface,3
+Copenhagen Patisserie,-38.048,145.1413,bakery,STANDALONE_PARKING,18,surface,3
+Nakhon Thai Restaurant,-38.0455,145.1355,restaurant,STANDALONE_PARKING,59,street_side,1
+Palermo's Pizza,-38.0479,145.1412,restaurant,STANDALONE_PARKING,24,surface,3
+Pizza Villa,-38.045,145.1365,fast_food,STANDALONE_PARKING,46,street_side,3
+Shark Fish & Chips,-38.0452,145.1361,fast_food,STANDALONE_PARKING,10,street_side,4
+Subway,-38.0294,145.1313,fast_food,STANDALONE_PARKING,17,surface,3
+COS - Cheltenham Organic Store,-37.9588,145.0387,greengrocer,STANDALONE,215,surface,0
+Corner Toppings Pizza,-37.9687,145.0743,restaurant,STANDALONE_PARKING,26,street_side,2
+Dan Murphy's,-37.9565,145.0409,alcohol,STANDALONE_PARKING,40,surface,0
+Direct Chemist Outlet,-37.9678,145.0738,chemist,STANDALONE_PARKING,12,surface,1
+Direct Chemist Outlet,-37.9679,145.0738,chemist,STANDALONE_PARKING,10,surface,1
+Espresso Hit,-37.9667,145.0553,cafe,STRIP,56,street_side,17
+Fabrica Café,-37.9628,145.0409,cafe,STANDALONE,104,street_side,0
+Farm Road Milk Bar,-37.9637,145.082,convenience,STANDALONE,252,surface,0
+G Days Cafe,-37.9506,145.0588,cafe,STANDALONE_PARKING,76,surface,0
+Golden Star Fish & Chips,-37.9688,145.0743,restaurant,STANDALONE_PARKING,21,street_side,2
+Hole In One Pasta & Pizza,-37.9722,145.0507,fast_food,STANDALONE_PARKING,21,street_side,2
+Pie Face,-37.9528,145.0765,cafe,STANDALONE,187,surface,1
+Pizza Roma,-37.9669,145.0559,restaurant,STRIP,31,street_side,13
+Regnier Cakes,-37.9722,145.0504,bakery,STANDALONE_PARKING,16,street_side,2
+Sforno,-37.9674,145.0554,fast_food,STANDALONE_PARKING,8,street_side,5
+Tandoori Zone,-37.9668,145.0556,restaurant,STRIP,58,street_side,18
+The Parlor Milkbar & Kitchen,-37.9709,145.0394,cafe,STANDALONE_PARKING,28,surface,0
+T. T Bakehouse,-37.941,145.1038,bakery,STANDALONE_PARKING,50,surface,3
+Monticello Pizza,-37.9405,145.1382,restaurant,STANDALONE_PARKING,27,street_side,2
+Beletti,-37.9905,145.2144,restaurant,STANDALONE,96,surface,0
+Bojak Brewing,-37.985,145.2002,pub,STANDALONE,183,surface,0
+Corner Coffee And Convenience Store,-37.9738,145.1983,convenience,STANDALONE_PARKING,12,street_side,0
+Family Fresh Butchers and Caterers Cooked Meats,-37.9931,145.1966,butcher,STANDALONE,323,surface,0
+Mix Grill and Pizza,-37.9859,145.2257,fast_food,STANDALONE_PARKING,9,surface,0
+B2C Furniture Warehouse,-38.0367,145.1953,bar,STANDALONE,168,surface,0
+Woolworths,-37.9835,145.133,supermarket,STANDALONE_PARKING,54,surface,5
+Coffee Shop At Raw,-37.9462,145.022,cafe,STANDALONE_PARKING,46,surface,2
+Thomas Street Grocery,-37.9398,145.0138,cafe,STANDALONE,254,street_side,0
+Burger Road,-37.9491,145.0434,fast_food,STANDALONE_PARKING,16,street_side,4
+Chilpa,-37.9487,145.0425,cafe,STRIP,22,street_side,8
+Teo's Pizza,-37.9485,145.0424,cafe,STRIP,46,street_side,8
+The Diplomat Cafe,-37.9486,145.0425,cafe,STRIP,32,street_side,8
+7-Eleven,-37.9942,145.1762,convenience,STANDALONE,137,surface,0
+Applehead Deli,-37.9749,145.0645,cafe,STANDALONE_PARKING,78,surface,0
+BWS,-37.9813,145.0631,alcohol,STRIP,46,surface,6
+Chain of Fools,-37.9884,145.0596,cafe,STANDALONE,417,surface,0
+Joe's of Mentone,-37.9887,145.0603,restaurant,STANDALONE,354,surface,0
+Cool Bean Kitchen Burger bar,-37.9373,145.0655,cafe,STANDALONE_PARKING,13,surface,0
+Mum's Lunch,-37.9431,145.0748,restaurant,STANDALONE,201,surface,0
+USA Foods,-37.9432,145.0714,supermarket,STANDALONE,119,surface,0
+Aldi,-38.006,145.0852,supermarket,STANDALONE_PARKING,29,underground,4
+Augustus Gelatery,-38.008,145.0871,ice_cream,STRIP,44,street_side,11
+Bakers Delight,-38.0077,145.0868,bakery,STRIP,18,underground,9
+Braeside Cellars,-37.9851,145.0949,alcohol,STANDALONE_PARKING,19,street_side,4
+Castle Corner Takeaway,-38.0087,145.0979,fast_food,STANDALONE_PARKING,73,surface,0
+Cellarbrations,-38.0076,145.0877,alcohol,STANDALONE_PARKING,25,surface,1
+Chiavelli Gourmet Gelato,-38.0087,145.0872,ice_cream,STANDALONE_PARKING,60,street_side,4
+Dagach Korean BBQ Mordialloc,-38.0076,145.0858,restaurant,STANDALONE_PARKING,36,surface,0
+Davine Quality Fruit,-38.007,145.0871,greengrocer,STANDALONE_PARKING,19,surface,3
+Delicious Bites Cafe,-38.0068,145.0861,cafe,STRIP,46,surface,6
+Domino's,-38.0079,145.087,fast_food,STRIP,35,underground,11
+Epsom Snack Bar,-38.008,145.0965,fast_food,STANDALONE,161,surface,0
+French Delicacies,-38.0075,145.0867,cafe,STRIP,32,underground,9
+IMMI Dumpling Bar,-38.0064,145.0858,restaurant,STANDALONE_PARKING,56,surface,4
+John Dory Seafood,-38.007,145.0862,fast_food,STANDALONE_PARKING,43,surface,4
+Mamushka (The Cheesecake Shop),-37.985,145.0944,bakery,STANDALONE_PARKING,35,street_side,4
+Manow Thai,-38.0055,145.0861,restaurant,STANDALONE_PARKING,41,surface,0
+Mordi Pizza & Pasta,-38.0065,145.0858,fast_food,STANDALONE_PARKING,46,surface,4
+Mordialloc Cellar Door,-38.0082,145.0872,alcohol,STRIP,27,street_side,11
+Mordialloc Kebabhouse,-37.985,145.0946,fast_food,STANDALONE_PARKING,18,street_side,4
+Mordialloc Sporting Club,-38.0053,145.085,pub,STANDALONE_PARKING,33,surface,1
+Nando's,-38.0061,145.0855,restaurant,STRIP,54,underground,6
+Origami Sushi & Noodles,-38.0079,145.087,fast_food,STRIP,35,underground,11
+Oscars Hangout,-38.0022,145.0979,cafe,STANDALONE_PARKING,21,surface,0
+Pandora Bakehouse,-37.985,145.0948,bakery,STANDALONE_PARKING,6,street_side,4
+Paris Hot Bread,-38.0069,145.0862,bakery,STANDALONE_PARKING,52,surface,5
+Rustic Cafe Bakery,-38.006,145.0854,bakery,STANDALONE_PARKING,40,underground,5
+Siesta Cafe & Deli,-38.0078,145.0869,cafe,STRIP,24,underground,11
+Subway,-38.0079,145.0869,fast_food,STRIP,27,underground,11
+Sun Wah Chinese Restaurant,-38.0085,145.0873,restaurant,STANDALONE_PARKING,36,street_side,5
+SupaNtral,-38.008,145.087,fast_food,STRIP,40,underground,10
+Tender Roast & Cafe,-38.0076,145.0867,cafe,STRIP,21,underground,10
+The Bay Mordialloc,-38.0081,145.0853,bar,STANDALONE_PARKING,63,surface,0
+The Bottle-O,-38.0058,145.0854,alcohol,STANDALONE_PARKING,31,underground,4
+The Bridge Fish & Chips,-38.0082,145.0872,fast_food,STRIP,27,street_side,11
+The Nest Cafe & Grocer,-38.0009,145.1019,cafe,STANDALONE,342,surface,0
+Tour De Cafe,-38.0095,145.0856,cafe,STANDALONE_PARKING,16,surface,0
+Trammo Fish & Chips,-38.0072,145.0873,fast_food,STANDALONE_PARKING,12,surface,2
+Urban Ground,-38.0081,145.0978,restaurant,STANDALONE,132,surface,0
+Wild Yam Health Foods & Cafe,-38.0066,145.0868,cafe,STANDALONE_PARKING,32,street_side,2
+Woolworths,-38.008,145.0867,supermarket,STRIP,24,underground,11
+YOMG,-38.0072,145.0864,fast_food,STRIP,49,surface,6
+Ayam Penyet Ria,-37.9664,145.1748,restaurant,STRIP,24,surface,16
+Street Pho,-37.9662,145.175,restaurant,STRIP,14,surface,16
+TOP Choice,-37.966,145.1747,restaurant,STRIP,37,surface,19
+4 Cousins,-37.9972,145.0844,supermarket,STANDALONE_PARKING,18,surface,2
+4 Cousins Coffee Department,-37.9971,145.0843,cafe,STANDALONE_PARKING,9,surface,1
+Duncan's,-37.9936,145.0764,alcohol,STANDALONE_PARKING,8,surface,5
+Parkdale Bread and Cakes,-37.9936,145.0763,bakery,STANDALONE_PARKING,11,surface,5
+Parkdale Charcoal Chicken,-37.9932,145.0761,fast_food,STANDALONE_PARKING,28,surface,5
+Parkdale Food Store,-37.9932,145.0761,cafe,STANDALONE_PARKING,28,surface,5
+Station Stop Cafe,-37.9932,145.0762,cafe,STANDALONE_PARKING,36,surface,5
+The Local On Como,-37.9933,145.076,cafe,STANDALONE_PARKING,32,surface,5
+K For Kebab,-37.9531,145.021,fast_food,STANDALONE_PARKING,28,street_side,0
+IGA Express,-38.0889,145.1284,supermarket,STANDALONE_PARKING,40,surface,2
+Bun Bun Bakery,-37.9522,145.1521,bakery,STRIP,59,surface,11
+Kao Gaeng,-37.9486,145.1512,restaurant,STRIP,30,surface,19
+McDonald's,-37.9462,145.1399,fast_food,STANDALONE_PARKING,30,surface,0
+Nam Giao,-37.9495,145.1524,restaurant,STRIP,22,surface,10
+Phnom Penh Butcher,-37.9491,145.1507,butcher,MALL,15,rooftop,25
+Kedai Kampung,-37.962,145.1428,restaurant,STRIP,46,surface,9
+Nest at Waterways Cafe,-38.0137,145.1301,cafe,STANDALONE,562,surface,0
