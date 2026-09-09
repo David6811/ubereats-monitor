@@ -19,7 +19,7 @@ class Chime {
         when (call) {
             is AreaCall.AllInside -> friendly()
             is AreaCall.SomeOutside -> warning()
-            AreaCall.NoSuburb -> Unit
+            AreaCall.NoSuburb -> neutral()
         }
     }
 
@@ -38,6 +38,11 @@ class Chime {
             Beat(ToneGenerator.TONE_SUP_ERROR, durationMillis = 400, afterMillis = 500),
             Beat(ToneGenerator.TONE_SUP_ERROR, durationMillis = 400, afterMillis = 1000),
         )
+    }
+
+    /** One flat tick: an offer was seen, the area could not judge it. */
+    private fun neutral() {
+        sequence(Beat(ToneGenerator.TONE_PROP_ACK, durationMillis = 200, afterMillis = 0))
     }
 
     private data class Beat(val tone: Int, val durationMillis: Int, val afterMillis: Long)

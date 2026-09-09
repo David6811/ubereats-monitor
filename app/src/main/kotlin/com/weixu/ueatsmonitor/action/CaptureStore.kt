@@ -66,18 +66,15 @@ class CaptureStore(context: Context) {
     }
 
     /**
-     * An offer screen must survive a long shift, an idle home screen need not.
-     * Money-bearing captures get their own, much larger quota.
+     * Until one real offer card has been seen, nothing on screen can be called
+     * uninteresting - so keep everything and only cap the total.
      */
     private fun prune() {
         if (writesSincePrune++ < PRUNE_EVERY) return
         writesSincePrune = 0
         val texts = dir.listFiles { file -> file.name.endsWith(".txt") }
             ?.sortedByDescending { it.name } ?: return
-        val (money, plain) = texts.partition { file ->
-            runCatching { CaptureText.hasMoney(file.readText()) }.getOrDefault(false)
-        }
-        (money.drop(MONEY_CAPACITY) + plain.drop(PLAIN_CAPACITY)).forEach { text ->
+        texts.drop(CAPACITY).forEach { text ->
             text.delete()
             File(dir, text.nameWithoutExtension + ".jpg").delete()
         }
@@ -86,8 +83,7 @@ class CaptureStore(context: Context) {
     private var writesSincePrune = 0
 
     private companion object {
-        const val MONEY_CAPACITY = 400
-        const val PLAIN_CAPACITY = 60
+        const val CAPACITY = 600
         const val PRUNE_EVERY = 20
         const val JPEG_QUALITY = 70
         val STAMP = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)

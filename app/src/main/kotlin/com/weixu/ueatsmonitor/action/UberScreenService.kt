@@ -5,20 +5,28 @@ import android.graphics.Bitmap
 import android.graphics.ColorSpace
 import android.hardware.HardwareBuffer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.OfferParser
+import com.weixu.ueatsmonitor.domain.OfferShape
 import com.weixu.ueatsmonitor.domain.ServiceArea
 import com.weixu.ueatsmonitor.domain.Suburb
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import java.util.concurrent.Executors
 
 /**
- * Action. Watches the Uber apps' screens, because a foreground offer card never
- * reaches the notification listener. Every distinct screen is written to disk as
- * a text dump plus a screenshot, for offline analysis.
+ * Action. Records what the Uber apps show, because a foreground offer card never
+ * reaches the notification listener.
+ *
+ * It does not wait to be told. A shift was lost to that: for 28 minutes Android
+ * delivered no accessibility event at all, so nothing was recorded even though
+ * offers were ringing. This polls the window list on its own clock instead, and
+ * treats incoming events only as a reason to look sooner.
  *
  * It only reads. It never taps, never accepts, never declines.
  */
@@ -28,43 +36,60 @@ class UberScreenService : AccessibilityService() {
     private val position: CurrentPosition by lazy { CurrentPosition(this) }
     private val chime: Chime by lazy { Chime() }
     private val gazetteer: List<Suburb> by lazy { Gazetteer.suburbs(this) }
+
     private val executor = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
+    private val poll = object : Runnable {
+        override fun run() {
+            look()
+            main.postDelayed(this, POLL_MILLIS)
+        }
+    }
 
     private var lastText: String = ""
     private var lastCaptureAtMillis: Long = 0L
     private var lastRungSignature: String = ""
     private var lastRungAtMillis: Long = 0L
+    private var lastHeartbeatAtMillis: Long = 0L
 
     override fun onServiceConnected() {
         Log.i(TAG, "accessibility service connected")
         ServiceJournal.note(this, "读屏已连接")
+        main.removeCallbacks(poll)
+        main.post(poll)
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         Log.w(TAG, "accessibility service unbound")
         ServiceJournal.note(this, "读屏被断开")
+        main.removeCallbacks(poll)
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         ServiceJournal.note(this, "读屏被销毁")
+        main.removeCallbacks(poll)
         super.onDestroy()
     }
 
+    /** An event is a hint that something moved, nothing more. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val packageName = event?.packageName?.toString() ?: return
-        if (!OfferParser.isUberPackage(packageName)) return
+        if (event == null) return
+        look()
+    }
+
+    override fun onInterrupt() = Unit
+
+    private fun look() {
+        val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
+        val roots = uberRoots()
+        heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
+        if (roots.isEmpty()) return
 
         val now = System.currentTimeMillis()
         if (now - lastCaptureAtMillis < MIN_GAP_MILLIS) return
 
-        // The event can come from an Uber bubble while another app owns the screen.
-        // Only record when the window we are about to read is Uber's own.
-        val root = rootInActiveWindow ?: return
-        val onScreen = root.packageName?.toString() ?: return
-        if (!OfferParser.isUberPackage(onScreen)) return
-
-        val lines = ScreenReader.readAll(root)
+        val lines = roots.flatMap { ScreenReader.readAll(it) }
         if (lines.isEmpty()) return
 
         val text = lines.joinToString("\n")
@@ -72,17 +97,14 @@ class UberScreenService : AccessibilityService() {
 
         lastText = text
         lastCaptureAtMillis = now
-        ring(text, now)
-        Log.i(TAG, "screen changed in $packageName, ${lines.size} lines")
+        Log.i(TAG, "uber screen changed, ${lines.size} lines")
 
-        // Where the car was when the offer appeared. Reading it later would answer
-        // a different question: where the phone is now, sitting at home.
+        val onScreen = roots.first().packageName?.toString() ?: "unknown"
         val fix = position.lastKnown()
         val header = buildString {
             append("package=").append(onScreen).append('\n')
-            append("event_from=").append(packageName).append('\n')
+            append("windows=").append(roots.size).append('\n')
             append("millis=").append(now).append('\n')
-            append("event=").append(event.eventType).append('\n')
             if (fix != null) {
                 append("lat=").append(fix.at.latitude).append('\n')
                 append("lon=").append(fix.at.longitude).append('\n')
@@ -90,7 +112,28 @@ class UberScreenService : AccessibilityService() {
             }
             append("---\n")
         }
-        capture(now) { screen -> store.write(now, screen, header + text) }
+        capture { screen -> store.write(now, screen, header + text) }
+        ring(text, now)
+    }
+
+    /** Says once every few seconds what the service can actually see. */
+    private fun heartbeat(packages: List<String>, uberCount: Int) {
+        val now = System.currentTimeMillis()
+        if (now - lastHeartbeatAtMillis < HEARTBEAT_MILLIS) return
+        lastHeartbeatAtMillis = now
+        val active = rootInActiveWindow?.packageName?.toString() ?: "null"
+        Log.i(TAG, "poll: windows=$packages active=$active uber=$uberCount")
+    }
+
+    /** Every Uber window currently up - an offer card can sit in its own. */
+    private fun uberRoots(): List<AccessibilityNodeInfo> {
+        val fromWindows = runCatching {
+            windows.orEmpty().mapNotNull { it.root }
+        }.getOrDefault(emptyList())
+        val candidates = fromWindows.ifEmpty { listOfNotNull(rootInActiveWindow) }
+        return candidates.filter { node ->
+            OfferParser.isUberPackage(node.packageName?.toString().orEmpty())
+        }
     }
 
     /**
@@ -99,13 +142,13 @@ class UberScreenService : AccessibilityService() {
      */
     private fun ring(text: String, now: Long) {
         if (LiveSettings.current?.areaSoundEnabled == false) return
-        if (!CaptureText.hasMoney(text)) return
+        // An earnings page has money and no distance; an offer card has both.
+        if (!OfferShape.looksLikeOffer(text)) return
 
         val found = SuburbIndex.findAll(text, gazetteer)
         val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
-        if (call is AreaCall.NoSuburb) return
 
-        val signature = found.map { it.name }.sorted().joinToString(",")
+        val signature = found.map { it.name }.sorted().joinToString(",").ifEmpty { "?" }
         if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) return
         lastRungSignature = signature
         lastRungAtMillis = now
@@ -114,10 +157,8 @@ class UberScreenService : AccessibilityService() {
         chime.play(call)
     }
 
-    override fun onInterrupt() = Unit
-
     /** Hands a screenshot to [onReady], or null when the platform refuses one. */
-    private fun capture(atMillis: Long, onReady: (Bitmap?) -> Unit) {
+    private fun capture(onReady: (Bitmap?) -> Unit) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             onReady(null)
             return
@@ -134,7 +175,7 @@ class UberScreenService : AccessibilityService() {
                     }
 
                     override fun onFailure(errorCode: Int) {
-                        Log.w(TAG, "screenshot failed, code $errorCode at $atMillis")
+                        Log.w(TAG, "screenshot failed, code $errorCode")
                         onReady(null)
                     }
                 },
@@ -153,7 +194,9 @@ class UberScreenService : AccessibilityService() {
 
     private companion object {
         const val TAG = "UEatsMonitor"
-        const val MIN_GAP_MILLIS = 2_500L
+        const val POLL_MILLIS = 1_000L
+        const val MIN_GAP_MILLIS = 1_500L
         const val SAME_CALL_MILLIS = 90_000L
+        const val HEARTBEAT_MILLIS = 5_000L
     }
 }

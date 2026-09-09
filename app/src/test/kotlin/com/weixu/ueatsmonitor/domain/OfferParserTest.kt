@@ -136,6 +136,42 @@ class OfferParserTest {
         assertEquals(ParseResult.NotAnOffer, result)
     }
 
+    @Test
+    fun `given the real offer card wording, when parsed, then the payout is read`() {
+        // arrange
+        val raw = notification("Delivery request", "\$18.03 · 27 min (6.0 km) total · Coles - Keysborough")
+
+        // act
+        val result = OfferParser.parse(raw) as ParseResult.Parsed
+
+        // assert
+        assertEquals(Cents(1803), result.offer.payout)
+    }
+
+    @Test
+    fun `given the real offer card wording, when parsed, then the kilometres become miles`() {
+        // arrange
+        val raw = notification("Delivery request", "\$18.03 · 27 min (6.0 km) total · Coles - Keysborough")
+
+        // act
+        val result = OfferParser.parse(raw) as ParseResult.Parsed
+
+        // assert
+        assertEquals(3.7282, result.offer.distance!!.value, 0.001)
+    }
+
+    @Test
+    fun `given the real offer card wording, when parsed, then the total minutes are read`() {
+        // arrange
+        val raw = notification("Delivery request", "\$18.03 · 27 min (6.0 km) total · Coles - Keysborough")
+
+        // act
+        val result = OfferParser.parse(raw) as ParseResult.Parsed
+
+        // assert
+        assertEquals(Minutes(27), result.offer.duration)
+    }
+
     private fun notification(title: String, text: String) = RawNotification(
         packageName = OfferParser.UBER_DRIVER_PACKAGE,
         title = title,
