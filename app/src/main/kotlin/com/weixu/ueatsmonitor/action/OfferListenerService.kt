@@ -1,6 +1,7 @@
 package com.weixu.ueatsmonitor.action
 
 import android.app.Notification
+import android.util.Log
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -11,6 +12,7 @@ import com.weixu.ueatsmonitor.domain.OfferEvaluator
 import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.ParseResult
 import com.weixu.ueatsmonitor.domain.RawNotification
+import com.weixu.ueatsmonitor.domain.Thresholds
 import com.weixu.ueatsmonitor.domain.Verdict
 
 /**
@@ -23,6 +25,7 @@ class OfferListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         ListenerStatus.connected.value = true
+        Log.i(TAG, "listener connected")
     }
 
     override fun onListenerDisconnected() {
@@ -30,20 +33,25 @@ class OfferListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val settings = LiveSettings.current ?: return
-        val fromUber = sbn.packageName == OfferParser.UBER_DRIVER_PACKAGE
-        if (!fromUber && !settings.logEveryNotification) return
-
         val raw = readNotification(sbn)
+        Log.i(TAG, "posted " + sbn.packageName + " :: " + raw.body)
+
+        val settings = LiveSettings.current
+        val fromUber = OfferParser.isUberPackage(sbn.packageName)
+        if (!fromUber && settings?.logEveryNotification != true) return
+
+        // Settings load asynchronously; a real offer must never be dropped waiting for them.
+        val thresholds = settings?.thresholds ?: Thresholds.STARTER
         val result = if (fromUber) OfferParser.parse(raw) else ParseResult.NotAnOffer
         val verdict = (result as? ParseResult.Parsed)
-            ?.let { OfferEvaluator.evaluate(it.offer, settings.thresholds) }
+            ?.let { OfferEvaluator.evaluate(it.offer, thresholds) }
 
         OfferLog.add(LoggedEvent(raw = raw, result = result, verdict = verdict))
 
         if (verdict == null) return
-        if (settings.overlayEnabled) overlay.show(verdict, subtitleOf(result))
-        if (settings.vibrateEnabled) vibrate(verdict)
+        // Silent by default: during a shift the app only records, it never interrupts.
+        if (settings?.overlayEnabled == true) overlay.show(verdict, subtitleOf(result))
+        if (settings?.vibrateEnabled == true) vibrate(verdict)
     }
 
     private fun readNotification(sbn: StatusBarNotification): RawNotification {
@@ -77,6 +85,10 @@ class OfferListenerService : NotificationListenerService() {
             is Verdict.Decline -> longArrayOf(0, 80)
         }
         vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+    }
+
+    private companion object {
+        const val TAG = "UEatsMonitor"
     }
 
     private fun vibrator(): Vibrator? =

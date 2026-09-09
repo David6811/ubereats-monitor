@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">接单助手</string>
     <string name="listener_label">Uber 派单监听</string>
+    <string name="accessibility_description">读取 Uber 派单界面上的文字并留档，用于判断要不要接单。只读，不会替你点任何按钮。</string>
+    <string name="accessibility_label">Uber 派单读屏</string>
 </resources>

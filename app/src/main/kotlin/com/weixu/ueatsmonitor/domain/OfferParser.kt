@@ -10,6 +10,9 @@ object OfferParser {
     /** The package that posts driver offers. Kept here so tests can name it. */
     const val UBER_DRIVER_PACKAGE: String = "com.ubercab.driver"
 
+    /** Uber ships several apps and moves offers between them; keep them all. */
+    fun isUberPackage(packageName: String): Boolean = packageName.startsWith("com.ubercab")
+
     private val MONEY = Regex("""[$＄]\s*(\d+(?:[.,]\d{1,2})?)""")
     private val MILES = Regex("""(\d+(?:\.\d+)?)\s*(?:mi\b|miles?\b)""", RegexOption.IGNORE_CASE)
     private val KILOMETERS = Regex("""(\d+(?:\.\d+)?)\s*(?:km\b|kilomet(?:er|re)s?\b)""", RegexOption.IGNORE_CASE)
