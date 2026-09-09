@@ -1,0 +1,71 @@
+package com.weixu.ueatsmonitor.action
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.weixu.ueatsmonitor.domain.Cents
+import com.weixu.ueatsmonitor.domain.Miles
+import com.weixu.ueatsmonitor.domain.Thresholds
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+/** Action. Reads and writes the driver's bar. The shape it stores is [Settings]. */
+class SettingsStore(private val context: Context) {
+
+    data class Settings(
+        val thresholds: Thresholds,
+        val overlayEnabled: Boolean,
+        val vibrateEnabled: Boolean,
+        val logEveryNotification: Boolean,
+    )
+
+    val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
+        Settings(
+            thresholds = Thresholds(
+                minPayout = Cents(prefs[MIN_PAYOUT_CENTS] ?: Thresholds.STARTER.minPayout.amount),
+                minPayPerMile = prefs[MIN_PAY_PER_MILE] ?: Thresholds.STARTER.minPayPerMile,
+                minPayPerHour = prefs[MIN_PAY_PER_HOUR] ?: Thresholds.STARTER.minPayPerHour,
+                maxDistance = Miles(prefs[MAX_DISTANCE_MILES] ?: Thresholds.STARTER.maxDistance.value),
+            ),
+            overlayEnabled = prefs[OVERLAY_ENABLED] ?: true,
+            vibrateEnabled = prefs[VIBRATE_ENABLED] ?: true,
+            logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
+        )
+    }
+
+    suspend fun saveThresholds(thresholds: Thresholds) {
+        context.dataStore.edit { prefs ->
+            prefs[MIN_PAYOUT_CENTS] = thresholds.minPayout.amount
+            prefs[MIN_PAY_PER_MILE] = thresholds.minPayPerMile
+            prefs[MIN_PAY_PER_HOUR] = thresholds.minPayPerHour
+            prefs[MAX_DISTANCE_MILES] = thresholds.maxDistance.value
+        }
+    }
+
+    suspend fun setOverlayEnabled(enabled: Boolean) = putBoolean(OVERLAY_ENABLED, enabled)
+
+    suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
+
+    suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
+
+    private suspend fun putBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
+        context.dataStore.edit { prefs -> prefs[key] = value }
+    }
+
+    private companion object {
+        val MIN_PAYOUT_CENTS = intPreferencesKey("min_payout_cents")
+        val MIN_PAY_PER_MILE = doublePreferencesKey("min_pay_per_mile")
+        val MIN_PAY_PER_HOUR = doublePreferencesKey("min_pay_per_hour")
+        val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
+        val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
+        val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
+        val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
+    }
+}
