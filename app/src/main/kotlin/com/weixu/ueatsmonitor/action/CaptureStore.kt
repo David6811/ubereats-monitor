@@ -2,6 +2,7 @@ package com.weixu.ueatsmonitor.action
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.weixu.ueatsmonitor.domain.GeoPoint
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -22,6 +23,8 @@ class CaptureStore(context: Context) {
         val atMillis: Long,
         val body: String,
         val imagePath: String?,
+        val recordedAt: GeoPoint?,
+        val fixAgeMillis: Long?,
     )
 
     /** Action. Newest first. Reads only the small text files; images stay on disk. */
@@ -38,6 +41,10 @@ class CaptureStore(context: Context) {
                     atMillis = CaptureText.millisOf(raw) ?: file.lastModified(),
                     body = CaptureText.bodyOf(raw),
                     imagePath = image?.absolutePath,
+                    recordedAt = CaptureText.positionOf(raw),
+                    fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { fixMillis ->
+                        (CaptureText.millisOf(raw) ?: file.lastModified()) - fixMillis
+                    },
                 )
             }
     }

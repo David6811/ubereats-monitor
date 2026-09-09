@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
 import com.weixu.ueatsmonitor.domain.GeoPoint
+import com.weixu.ueatsmonitor.domain.PositionFix
 
 /**
  * Action. The phone's most recent fix, or null. It never asks for a new fix -
@@ -13,7 +14,7 @@ import com.weixu.ueatsmonitor.domain.GeoPoint
  */
 class CurrentPosition(private val context: Context) {
 
-    fun lastKnown(): GeoPoint? {
+    fun lastKnown(): PositionFix? {
         if (!granted()) return null
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         return PROVIDERS
@@ -21,7 +22,7 @@ class CurrentPosition(private val context: Context) {
                 runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
             }
             .maxByOrNull { it.time }
-            ?.let { GeoPoint(it.latitude, it.longitude) }
+            ?.let { PositionFix(GeoPoint(it.latitude, it.longitude), it.time) }
     }
 
     private fun granted(): Boolean = PERMISSIONS.any { permission ->

@@ -54,7 +54,7 @@ fun CaptureScreen() {
     var openName by remember { mutableStateOf<String?>(null) }
 
     val suburbs = remember { Gazetteer.suburbs(context) }
-    val here = remember(reloads) { CurrentPosition(context).lastKnown() }
+    val hereNow = remember(reloads) { CurrentPosition(context).lastKnown()?.at }
 
     val captures by produceState(initialValue = emptyList<CaptureStore.Capture>(), reloads) {
         value = withContext(Dispatchers.IO) { store.list() }
@@ -105,7 +105,7 @@ fun CaptureScreen() {
                 capture = capture,
                 open = openName == capture.name,
                 suburbs = suburbs,
-                here = here,
+                hereNow = hereNow,
                 onToggle = { openName = if (openName == capture.name) null else capture.name },
             )
         }
@@ -117,7 +117,7 @@ private fun CaptureCard(
     capture: CaptureStore.Capture,
     open: Boolean,
     suburbs: List<Suburb>,
-    here: GeoPoint?,
+    hereNow: GeoPoint?,
     onToggle: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)) {
@@ -126,7 +126,7 @@ private fun CaptureCard(
             Text(CaptureText.previewOf(capture.body), fontWeight = FontWeight.Bold)
 
             if (open) {
-                Directions(capture.body, suburbs, here)
+                Directions(capture, suburbs, hereNow)
                 Text(capture.body, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                 capture.imagePath?.let { Screenshot(it) }
             } else {
@@ -136,26 +136,43 @@ private fun CaptureCard(
     }
 }
 
-/** Which way the places named on this screen lie, and how far in a straight line. */
+/**
+ * Which way the places named on this screen lie, measured from where the car was
+ * when the offer appeared. Only when that was never recorded does it fall back to
+ * the phone's position right now, and then it says so.
+ */
 @Composable
-private fun Directions(body: String, suburbs: List<Suburb>, here: GeoPoint?) {
-    val found = remember(body, suburbs) { SuburbIndex.findAll(body, suburbs) }
+private fun Directions(capture: CaptureStore.Capture, suburbs: List<Suburb>, hereNow: GeoPoint?) {
+    val found = remember(capture.name, suburbs) { SuburbIndex.findAll(capture.body, suburbs) }
     if (found.isEmpty()) return
 
+    val recorded = capture.recordedAt
+    val origin = recorded ?: hereNow
+
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        found.forEach { suburb ->
-            val line = if (here == null) {
-                suburb.name + " —— 还没有定位"
-            } else {
-                val heading = Geo.headingTo(here, suburb.at)
-                "%s  %s %.0f°  直线 %.1f mi".format(
-                    suburb.name,
-                    heading.compass.label,
-                    heading.bearingDegrees,
-                    heading.straightLine.value,
+        Text(
+            text = when {
+                recorded != null -> "从派单时车的位置起算" + staleness(capture.fixAgeMillis)
+                origin != null -> "⚠ 这条没记下当时的位置，用的是你现在的位置"
+                else -> "⚠ 没有位置，只能看两地之间的方向"
+            },
+            style = MaterialTheme.typography.labelSmall,
+        )
+
+        origin?.let { from ->
+            found.forEach { suburb ->
+                val heading = Geo.headingTo(from, suburb.at)
+                Text(
+                    text = "%s  %s %.0f°  直线 %.1f mi".format(
+                        suburb.name,
+                        heading.compass.label,
+                        heading.bearingDegrees,
+                        heading.straightLine.value,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
                 )
             }
-            Text(line, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
 
         if (found.size >= 2) {
@@ -170,6 +187,12 @@ private fun Directions(body: String, suburbs: List<Suburb>, here: GeoPoint?) {
             )
         }
     }
+}
+
+/** A fix minutes old was taken somewhere else; say how old rather than hide it. */
+private fun staleness(fixAgeMillis: Long?): String {
+    val minutes = fixAgeMillis?.div(60_000L) ?: return ""
+    return if (minutes < 2) "" else "（定位比派单早 $minutes 分钟）"
 }
 
 @Composable

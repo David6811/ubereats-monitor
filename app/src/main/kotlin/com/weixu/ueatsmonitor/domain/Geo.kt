@@ -10,6 +10,9 @@ import kotlin.math.sqrt
 /** Data. A point on the earth. */
 data class GeoPoint(val latitude: Double, val longitude: Double)
 
+/** Data. A position together with the moment the phone actually measured it. */
+data class PositionFix(val at: GeoPoint, val measuredAtMillis: Long)
+
 /** Data. One named place from the offline gazetteer. */
 data class Suburb(val name: String, val at: GeoPoint)
 

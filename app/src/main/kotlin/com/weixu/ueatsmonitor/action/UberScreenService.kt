@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 class UberScreenService : AccessibilityService() {
 
     private val store: CaptureStore by lazy { CaptureStore(this) }
+    private val position: CurrentPosition by lazy { CurrentPosition(this) }
     private val executor = Executors.newSingleThreadExecutor()
 
     private var lastText: String = ""
@@ -52,7 +53,21 @@ class UberScreenService : AccessibilityService() {
         lastCaptureAtMillis = now
         Log.i(TAG, "screen changed in $packageName, ${lines.size} lines")
 
-        val header = "package=$onScreen\nevent_from=$packageName\nmillis=$now\nevent=${event.eventType}\n---\n"
+        // Where the car was when the offer appeared. Reading it later would answer
+        // a different question: where the phone is now, sitting at home.
+        val fix = position.lastKnown()
+        val header = buildString {
+            append("package=").append(onScreen).append('\n')
+            append("event_from=").append(packageName).append('\n')
+            append("millis=").append(now).append('\n')
+            append("event=").append(event.eventType).append('\n')
+            if (fix != null) {
+                append("lat=").append(fix.at.latitude).append('\n')
+                append("lon=").append(fix.at.longitude).append('\n')
+                append("fix_millis=").append(fix.measuredAtMillis).append('\n')
+            }
+            append("---\n")
+        }
         capture(now) { screen -> store.write(now, screen, header + text) }
     }
 
