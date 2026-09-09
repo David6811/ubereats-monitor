@@ -250,14 +250,19 @@ class ScreenRecorderService : Service() {
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
 
-        /** 720x1600 at 8 fps and 800 kbps is about 360 MB an hour and still legible. */
+        /**
+         * 720x1600 reads back cleanly - street names and the offer card are sharp.
+         * The frame-rate and bitrate hints below are only hints: this phone's
+         * encoder ignores them and settles near 16 fps and 2.7 Mbps, about
+         * 1.1 GB an hour. Measured, not assumed.
+         */
         private const val WIDTH = 720
         private const val HEIGHT = 1600
         private const val DENSITY = 320
         private const val FPS = 8
         private const val BITRATE = 800_000
         private const val SEGMENT_BYTES = 30L * 1024 * 1024
-        private const val BUDGET_BYTES = 3L * 1024 * 1024 * 1024
+        private const val BUDGET_BYTES = 16L * 1024 * 1024 * 1024
 
         /** A shift is two or three hours; four is a recording someone forgot about. */
         private const val AUTO_STOP_MILLIS = 4L * 60 * 60 * 1000

@@ -224,7 +224,7 @@ private fun RecordingCard(recording: Boolean, store: SettingsStore) {
                 }
             }
             Text(
-                text = "720×1600 · 8 帧 · 每小时约 360 MB。超过 3 GB 自动删最老的一段。",
+                text = "720×1600 · 实测每小时约 1.1 GB。超过 16 GB 才自动删最老的一段 —— 跑 3 小时约 3.4 GB，删不到。",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
