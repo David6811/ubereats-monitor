@@ -83,7 +83,7 @@ class CaptureStore(context: Context) {
     private var writesSincePrune = 0
 
     private companion object {
-        const val CAPACITY = 600
+        const val CAPACITY = 8000
         const val PRUNE_EVERY = 20
         const val JPEG_QUALITY = 70
         val STAMP = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)

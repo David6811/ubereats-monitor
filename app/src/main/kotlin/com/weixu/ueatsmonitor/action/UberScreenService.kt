@@ -13,9 +13,14 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.OfferParser
+import com.weixu.ueatsmonitor.domain.OfferCardReader
+import com.weixu.ueatsmonitor.domain.OfferEvaluator
 import com.weixu.ueatsmonitor.domain.OfferShape
+import com.weixu.ueatsmonitor.domain.Verdict
+import com.weixu.ueatsmonitor.domain.VerdictText
 import com.weixu.ueatsmonitor.domain.ServiceArea
 import com.weixu.ueatsmonitor.domain.Suburb
+import com.weixu.ueatsmonitor.domain.Thresholds
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import java.util.concurrent.Executors
 
@@ -107,14 +112,16 @@ class UberScreenService : AccessibilityService() {
         val windowSignature = roots.joinToString("+") { node ->
             (node.packageName?.toString() ?: "?") + ":" + node.childCount
         }
+        // No change detection. An offer card drawn on a canvas changes neither the
+        // accessibility text nor the window list, and gating the screenshot on a
+        // change is how a real offer went unrecorded. While Uber is up, just shoot.
         val windowChanged = windowSignature != lastWindowSignature
         val textChanged = text != lastText
-        if (!textChanged && !windowChanged && !force) return
-
         val trigger = when {
+            force -> "event"
             textChanged -> "text"
             windowChanged -> "window"
-            else -> "event"
+            else -> "cadence"
         }
 
         lastText = text
@@ -124,7 +131,7 @@ class UberScreenService : AccessibilityService() {
 
         val onScreen = roots.first().packageName?.toString() ?: "unknown"
         val fix = position.lastKnown()
-        val decision = decide(text, now)
+        val decision = decide(lines, text, now)
 
         val header = buildString {
             append("package=").append(onScreen).append('\n')
@@ -151,11 +158,19 @@ class UberScreenService : AccessibilityService() {
      * Every step of the judgement, written down. A shift is expensive to repeat,
      * so a capture must explain by itself why it did or did not make a sound.
      */
-    private fun decide(text: String, now: Long): String {
-        val money = CaptureText.hasMoney(text)
-        val offerShape = OfferShape.looksLikeOffer(text)
-        val found = SuburbIndex.findAll(text, gazetteer)
+    private fun decide(lines: List<String>, text: String, now: Long): String {
+        // The card is read by layout, which is far stronger evidence than the
+        // money-and-distance heuristic. The heuristic stays as the fallback for
+        // a card whose text the accessibility tree does not expose.
+        val card = OfferCardReader.read(lines)
+        val offerShape = card != null || OfferShape.looksLikeOffer(text)
+
+        val searchIn = card?.dropoff?.plus("\n")?.plus(card.pickup) ?: text
+        val found = SuburbIndex.findAll(searchIn, gazetteer)
         val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
+        val verdict = card?.let {
+            OfferEvaluator.evaluate(OfferCardReader.toOffer(it), LiveSettings.current?.thresholds ?: Thresholds.STARTER)
+        }
 
         val chime = when {
             !offerShape -> "none_not_offer_shape"
@@ -173,10 +188,24 @@ class UberScreenService : AccessibilityService() {
             }
         }
 
-        Log.i(TAG, "decide money=$money offer=$offerShape suburbs=${found.map { it.name }} chime=$chime")
+        Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
+            " suburbs=" + found.map { it.name } + " chime=" + chime)
 
         return buildString {
-            append("money=").append(money).append('\n')
+            append("card=").append(card != null).append('\n')
+            if (card != null) {
+                append("card_payout=").append(card.payout).append('\n')
+                append("card_minutes=").append(card.duration.value).append('\n')
+                append("card_miles=").append(String.format("%.2f", card.distance.value)).append('\n')
+                append("card_pickup=").append(card.pickup).append('\n')
+                append("card_dropoff=").append(card.dropoff).append('\n')
+            }
+            if (verdict != null) {
+                append("verdict=").append(VerdictText.headline(verdict)).append('\n')
+                append("verdict_why=").append(VerdictText.reason(verdict)).append('\n')
+                append("metrics=").append(VerdictText.metricsLine(verdict.metrics)).append('\n')
+            }
+            append("money=").append(CaptureText.hasMoney(text)).append('\n')
             append("offer_shape=").append(offerShape).append('\n')
             append("suburbs=").append(found.joinToString(",") { it.name }).append('\n')
             append("area=").append(
@@ -248,7 +277,7 @@ class UberScreenService : AccessibilityService() {
     private companion object {
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L
-        const val MIN_GAP_MILLIS = 1_500L
+        const val MIN_GAP_MILLIS = 2_000L
         const val FORCED_GAP_MILLIS = 400L
         const val SAME_CALL_MILLIS = 90_000L
         const val HEARTBEAT_MILLIS = 5_000L
