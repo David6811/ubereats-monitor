@@ -36,7 +36,13 @@ class UberScreenService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (now - lastCaptureAtMillis < MIN_GAP_MILLIS) return
 
-        val lines = ScreenReader.readAll(rootInActiveWindow)
+        // The event can come from an Uber bubble while another app owns the screen.
+        // Only record when the window we are about to read is Uber's own.
+        val root = rootInActiveWindow ?: return
+        val onScreen = root.packageName?.toString() ?: return
+        if (!OfferParser.isUberPackage(onScreen)) return
+
+        val lines = ScreenReader.readAll(root)
         if (lines.isEmpty()) return
 
         val text = lines.joinToString("\n")
@@ -46,7 +52,7 @@ class UberScreenService : AccessibilityService() {
         lastCaptureAtMillis = now
         Log.i(TAG, "screen changed in $packageName, ${lines.size} lines")
 
-        val header = "package=$packageName\nmillis=$now\nevent=${event.eventType}\n---\n"
+        val header = "package=$onScreen\nevent_from=$packageName\nmillis=$now\nevent=${event.eventType}\n---\n"
         capture(now) { screen -> store.write(now, screen, header + text) }
     }
 
@@ -89,6 +95,6 @@ class UberScreenService : AccessibilityService() {
 
     private companion object {
         const val TAG = "UEatsMonitor"
-        const val MIN_GAP_MILLIS = 1_200L
+        const val MIN_GAP_MILLIS = 2_500L
     }
 }

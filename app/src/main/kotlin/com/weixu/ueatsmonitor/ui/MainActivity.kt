@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -58,9 +60,24 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MonitorScreen(App.instance.settingsStore)
+                    HomeTabs()
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeTabs() {
+    var tab by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = tab) {
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("跑单记录") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("设置") })
+        }
+        when (tab) {
+            0 -> CaptureScreen()
+            else -> MonitorScreen(App.instance.settingsStore)
         }
     }
 }
