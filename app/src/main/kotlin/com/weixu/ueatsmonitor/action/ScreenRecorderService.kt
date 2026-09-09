@@ -13,7 +13,9 @@ import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import com.weixu.ueatsmonitor.ui.MainActivity
 import java.io.File
@@ -32,6 +34,19 @@ class ScreenRecorderService : Service() {
     private var recorder: MediaRecorder? = null
     private lateinit var store: RecordingStore
     private var current: File? = null
+    private var startedAtMillis: Long = 0L
+    private val clock = Handler(Looper.getMainLooper())
+    private val tick = object : Runnable {
+        override fun run() {
+            if (System.currentTimeMillis() - startedAtMillis >= AUTO_STOP_MILLIS) {
+                ServiceJournal.note(this@ScreenRecorderService, "录屏到时自动停止")
+                stopSelf()
+                return
+            }
+            goForeground()
+            clock.postDelayed(this, TICK_MILLIS)
+        }
+    }
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
@@ -61,6 +76,7 @@ class ScreenRecorderService : Service() {
         }
 
         store = RecordingStore(this)
+        startedAtMillis = System.currentTimeMillis()
         goForeground()
 
         // The foreground service must already be running before the projection starts.
@@ -80,10 +96,12 @@ class ScreenRecorderService : Service() {
 
         RecordingStatus.running.value = true
         ServiceJournal.note(this, "录屏已开始")
+        clock.postDelayed(tick, TICK_MILLIS)
         return START_STICKY
     }
 
     override fun onDestroy() {
+        clock.removeCallbacks(tick)
         stopSegment()
         display?.release()
         projection?.unregisterCallback(projectionCallback)
@@ -168,12 +186,28 @@ class ScreenRecorderService : Service() {
             Intent(this, MainActivity::class.java),
             android.app.PendingIntent.FLAG_IMMUTABLE,
         )
+        val stop = android.app.PendingIntent.getService(
+            this,
+            1,
+            Intent(this, ScreenRecorderService::class.java).setAction(ACTION_STOP),
+            android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
         val notification: Notification = Notification.Builder(this, CHANNEL)
-            .setContentTitle("正在录屏")
-            .setContentText("跑完在 App 里可以导出或删除")
+            .setContentTitle("正在录屏 · " + elapsed())
+            .setContentText(sizeSoFar() + " · " + hoursLeft() + " 后自动停")
             .setSmallIcon(android.R.drawable.presence_video_online)
             .setContentIntent(open)
+            .addAction(
+                Notification.Action.Builder(
+                    android.graphics.drawable.Icon.createWithResource(
+                        this, android.R.drawable.ic_menu_close_clear_cancel
+                    ),
+                    "停止录屏",
+                    stop,
+                ).build()
+            )
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -185,6 +219,26 @@ class ScreenRecorderService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    private fun elapsed(): String {
+        val minutes = (System.currentTimeMillis() - startedAtMillis) / 60_000L
+        return if (minutes < 60) "$minutes 分钟" else "${minutes / 60} 小时 ${minutes % 60} 分"
+    }
+
+    private fun sizeSoFar(): String {
+        val bytes = store.totalBytes()
+        return if (bytes >= 1024L * 1024 * 1024) {
+            String.format("%.2f GB", bytes / 1024.0 / 1024.0 / 1024.0)
+        } else {
+            String.format("%.0f MB", bytes / 1024.0 / 1024.0)
+        }
+    }
+
+    private fun hoursLeft(): String {
+        val left = AUTO_STOP_MILLIS - (System.currentTimeMillis() - startedAtMillis)
+        val minutes = (left / 60_000L).coerceAtLeast(0)
+        return if (minutes < 60) "$minutes 分钟" else "${minutes / 60} 小时"
     }
 
     companion object {
@@ -204,6 +258,10 @@ class ScreenRecorderService : Service() {
         private const val BITRATE = 800_000
         private const val SEGMENT_BYTES = 30L * 1024 * 1024
         private const val BUDGET_BYTES = 3L * 1024 * 1024 * 1024
+
+        /** A shift is two or three hours; four is a recording someone forgot about. */
+        private const val AUTO_STOP_MILLIS = 4L * 60 * 60 * 1000
+        private const val TICK_MILLIS = 60_000L
 
         fun start(context: Context, resultCode: Int, resultData: Intent) {
             val intent = Intent(context, ScreenRecorderService::class.java)
