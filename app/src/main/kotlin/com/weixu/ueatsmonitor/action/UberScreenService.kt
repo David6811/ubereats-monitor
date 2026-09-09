@@ -101,19 +101,69 @@ class UberScreenService : AccessibilityService() {
 
         val onScreen = roots.first().packageName?.toString() ?: "unknown"
         val fix = position.lastKnown()
+        val decision = decide(text, now)
+
         val header = buildString {
             append("package=").append(onScreen).append('\n')
             append("windows=").append(roots.size).append('\n')
+            append("lines=").append(lines.size).append('\n')
             append("millis=").append(now).append('\n')
             if (fix != null) {
                 append("lat=").append(fix.at.latitude).append('\n')
                 append("lon=").append(fix.at.longitude).append('\n')
                 append("fix_millis=").append(fix.measuredAtMillis).append('\n')
+            } else {
+                append("fix=none\n")
             }
-            append("---\n")
+            append(decision)
         }
-        capture { screen -> store.write(now, screen, header + text) }
-        ring(text, now)
+        DecisionLog.note(this, now, onScreen, decision)
+        capture { screen ->
+            store.write(now, screen, header + "screenshot=" + (screen != null) + "\n---\n" + text)
+        }
+    }
+
+    /**
+     * Every step of the judgement, written down. A shift is expensive to repeat,
+     * so a capture must explain by itself why it did or did not make a sound.
+     */
+    private fun decide(text: String, now: Long): String {
+        val money = CaptureText.hasMoney(text)
+        val offerShape = OfferShape.looksLikeOffer(text)
+        val found = SuburbIndex.findAll(text, gazetteer)
+        val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
+
+        val chime = when {
+            !offerShape -> "none_not_offer_shape"
+            LiveSettings.current?.areaSoundEnabled == false -> "suppressed_setting_off"
+            else -> {
+                val signature = found.map { it.name }.sorted().joinToString(",").ifEmpty { "?" }
+                if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) {
+                    "suppressed_same_within_90s"
+                } else {
+                    lastRungSignature = signature
+                    lastRungAtMillis = now
+                    this@UberScreenService.chime.play(call)
+                    "played_" + call::class.simpleName
+                }
+            }
+        }
+
+        Log.i(TAG, "decide money=$money offer=$offerShape suburbs=${found.map { it.name }} chime=$chime")
+
+        return buildString {
+            append("money=").append(money).append('\n')
+            append("offer_shape=").append(offerShape).append('\n')
+            append("suburbs=").append(found.joinToString(",") { it.name }).append('\n')
+            append("area=").append(
+                when (call) {
+                    is AreaCall.AllInside -> "AllInside"
+                    is AreaCall.SomeOutside -> "SomeOutside:" + call.outside.joinToString("/") { it.name }
+                    AreaCall.NoSuburb -> "NoSuburb"
+                }
+            ).append('\n')
+            append("chime=").append(chime).append('\n')
+        }
     }
 
     /** Says once every few seconds what the service can actually see. */
@@ -134,27 +184,6 @@ class UberScreenService : AccessibilityService() {
         return candidates.filter { node ->
             OfferParser.isUberPackage(node.packageName?.toString().orEmpty())
         }
-    }
-
-    /**
-     * Rings only for a screen that shows money and names a place, and never twice
-     * for the same set of places inside [SAME_CALL_MILLIS] - Uber redraws constantly.
-     */
-    private fun ring(text: String, now: Long) {
-        if (LiveSettings.current?.areaSoundEnabled == false) return
-        // An earnings page has money and no distance; an offer card has both.
-        if (!OfferShape.looksLikeOffer(text)) return
-
-        val found = SuburbIndex.findAll(text, gazetteer)
-        val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
-
-        val signature = found.map { it.name }.sorted().joinToString(",").ifEmpty { "?" }
-        if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) return
-        lastRungSignature = signature
-        lastRungAtMillis = now
-
-        Log.i(TAG, "area call for [$signature] -> " + call::class.simpleName)
-        chime.play(call)
     }
 
     /** Hands a screenshot to [onReady], or null when the platform refuses one. */
