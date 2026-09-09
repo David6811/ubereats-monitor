@@ -34,6 +34,8 @@ import com.weixu.ueatsmonitor.action.CaptureStore
 import com.weixu.ueatsmonitor.action.CaptureText
 import com.weixu.ueatsmonitor.action.CurrentPosition
 import com.weixu.ueatsmonitor.action.Gazetteer
+import com.weixu.ueatsmonitor.action.Permissions
+import com.weixu.ueatsmonitor.action.ServiceJournal
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.Geo
@@ -64,10 +66,39 @@ fun CaptureScreen() {
     }
     val shown = captures.filter { !moneyOnly || CaptureText.hasMoney(it.body) }
 
+    val recording = remember(reloads) { Permissions.screenReadingGranted(context) }
+    val journal = remember(reloads) { ServiceJournal.read(context) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        if (!recording) {
+            item {
+                Card {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("⛔ 读屏没开，这一趟什么都不会记录", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "系统会在重装或某些更新后把它关掉。去「设置 → 无障碍 → 接单助手」打开。",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        TextButton(onClick = { Permissions.openAccessibilitySettings(context) }) {
+                            Text("去开启")
+                        }
+                    }
+                }
+            }
+        }
+
+        if (journal.isNotEmpty()) {
+            item {
+                Text(
+                    text = "读屏状态：" + journal.first(),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),

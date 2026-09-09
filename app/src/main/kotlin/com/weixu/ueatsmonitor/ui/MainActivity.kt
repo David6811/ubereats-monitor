@@ -114,6 +114,15 @@ private fun MonitorScreen(store: SettingsStore) {
 
         item {
             PermissionCard(
+                title = "读屏（无障碍）",
+                granted = Permissions.screenReadingGranted(context),
+                hint = "唯一能看到派单卡片的通道。关掉就什么都记录不到",
+                onFix = { Permissions.openAccessibilitySettings(context) },
+            )
+        }
+
+        item {
+            PermissionCard(
                 title = "悬浮窗",
                 granted = Permissions.overlayGranted(context),
                 hint = "打开后判断结果会盖在 Uber 界面上",

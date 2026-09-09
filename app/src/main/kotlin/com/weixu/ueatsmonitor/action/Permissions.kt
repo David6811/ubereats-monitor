@@ -22,6 +22,25 @@ object Permissions {
 
     fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
 
+    /** The screen recorder is the only source that sees an offer card. */
+    fun screenReadingGranted(context: Context): Boolean {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ) ?: return false
+        val us = ComponentName(context, UberScreenService::class.java)
+        return enabled.split(':').any { entry ->
+            ComponentName.unflattenFromString(entry) == us
+        }
+    }
+
+    fun openAccessibilitySettings(context: Context) {
+        context.startActivity(
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
     fun openNotificationAccessSettings(context: Context) {
         context.startActivity(
             Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)

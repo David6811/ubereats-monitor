@@ -37,6 +37,18 @@ class UberScreenService : AccessibilityService() {
 
     override fun onServiceConnected() {
         Log.i(TAG, "accessibility service connected")
+        ServiceJournal.note(this, "读屏已连接")
+    }
+
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        Log.w(TAG, "accessibility service unbound")
+        ServiceJournal.note(this, "读屏被断开")
+        return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        ServiceJournal.note(this, "读屏被销毁")
+        super.onDestroy()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
