@@ -165,13 +165,18 @@ class UberScreenService : AccessibilityService() {
         // The last dependency to remove: an offer that shows over the lock screen,
         // or over another app, may leave no Uber window we can enumerate. While the
         // screen is lit during a shift, shoot regardless of what the system reports.
-        val onShift = System.currentTimeMillis() - lastSawUberAtMillis < ON_SHIFT_MILLIS
+        // Test mode reads whatever is on screen, so a screenshot of a card opened
+        // in any app runs the whole pipeline. Waiting for a real offer to test
+        // with means either taking it or refusing it, and both cost something.
+        val testing = LiveSettings.current?.testModeEnabled == true
+        val onShift = testing ||
+            System.currentTimeMillis() - lastSawUberAtMillis < ON_SHIFT_MILLIS
         val screenLit = runCatching {
             getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
         }.getOrDefault(false)
         val shootBlind = bursting || (screenLit && onShift)
 
-        val roots = uberRoots().ifEmpty { if (shootBlind) all else emptyList() }
+        val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
         if (roots.isEmpty() && !shootBlind) return
 
@@ -214,6 +219,7 @@ class UberScreenService : AccessibilityService() {
             append("lines=").append(lines.size).append('\n')
             append("trigger=").append(trigger).append('\n')
             append("burst=").append(bursting).append('\n')
+            append("test_mode=").append(testing).append('\n')
             append("blind=").append(roots.isEmpty()).append('\n')
             append("millis=").append(now).append('\n')
             if (fix != null) {

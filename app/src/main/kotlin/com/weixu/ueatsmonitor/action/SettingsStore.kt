@@ -25,6 +25,7 @@ class SettingsStore(private val context: Context) {
         val vibrateEnabled: Boolean,
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
+        val testModeEnabled: Boolean,
         val logEveryNotification: Boolean,
     )
 
@@ -40,6 +41,7 @@ class SettingsStore(private val context: Context) {
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
+            testModeEnabled = prefs[TEST_MODE] ?: false,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
         )
     }
@@ -59,6 +61,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setAreaSoundEnabled(enabled: Boolean) = putBoolean(AREA_SOUND_ENABLED, enabled)
 
+    suspend fun setTestModeEnabled(enabled: Boolean) = putBoolean(TEST_MODE, enabled)
+
     suspend fun setRecordScreenEnabled(enabled: Boolean) = putBoolean(RECORD_SCREEN, enabled)
 
     suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
@@ -76,6 +80,7 @@ class SettingsStore(private val context: Context) {
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val RECORD_SCREEN = booleanPreferencesKey("record_screen")
+        val TEST_MODE = booleanPreferencesKey("test_mode")
         val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
     }
 }
