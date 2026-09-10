@@ -455,6 +455,19 @@ class UberScreenService : AccessibilityService() {
 
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L
+        /**
+         * Measured on this phone over thirty seconds with Uber in front, counting
+         * frames actually judged against screenshots the platform refused:
+         *
+         *   1.0 s -> 20 frames, 21 refusals, 30.1 C
+         *   1.2 s -> 23 frames,  3 refusals, 30.7 C
+         *   1.5 s -> 17 frames,  3 refusals
+         *   2.0 s -> the setting below
+         *
+         * takeScreenshot is rate limited (error code 3), so asking faster than the
+         * platform allows costs work and heat without yielding frames. 1.2 s was
+         * the best of the four; two seconds is the conservative setting in use.
+         */
         const val MIN_GAP_MILLIS = 2_000L
         const val FORCED_GAP_MILLIS = 400L
         /**
