@@ -35,6 +35,7 @@ import com.weixu.ueatsmonitor.action.SuburbShapes
 fun ProfileScreen() {
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(Profiles.list(context)) }
+    var fromPhone by remember { mutableStateOf(Profiles.chosenHere(context)) }
 
     val shapes = remember { SuburbShapes.all(context) }
 
@@ -43,6 +44,14 @@ fun ProfileScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("用哪套选区", fontWeight = FontWeight.Bold)
+        profiles.firstOrNull { it.active }?.let { live ->
+            // Two places can pick, so say plainly which one did.
+            Text(
+                text = "现在用「" + live.name + "」，" +
+                    (if (fromPhone) "在这台手机上选的" else "从电脑推过来的"),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         if (profiles.isEmpty()) {
             Text(
                 text = "手机上还没有规则。在电脑的编辑器里点一次「保存并推送到手机」。",
@@ -61,6 +70,7 @@ fun ProfileScreen() {
                 onClick = {
                     Profiles.choose(context, profile.name)
                     profiles = Profiles.list(context)
+                    fromPhone = Profiles.chosenHere(context)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = if (profile.active) {

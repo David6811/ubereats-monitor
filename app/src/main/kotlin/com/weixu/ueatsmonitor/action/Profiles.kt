@@ -2,6 +2,7 @@ package com.weixu.ueatsmonitor.action
 
 import android.content.Context
 import android.util.Log
+import com.weixu.ueatsmonitor.domain.ActiveSet
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -27,21 +28,39 @@ object Profiles {
     private const val CHOICE = "profile.txt"
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** The set in force: the one picked here, or the one the laptop marked active. */
+    /**
+     * The set in force. Whichever was chosen last wins - a tap here while driving,
+     * or a push from the laptop. Neither place owns the answer; having the phone
+     * always win made a change on the laptop look like it had done nothing.
+     */
     fun chosen(context: Context): String? {
-        val picked = File(context.filesDir, CHOICE)
+        val choice = File(context.filesDir, CHOICE)
+        val picked = choice
             .takeIf { it.exists() }
             ?.runCatching { readText().trim() }
             ?.getOrNull()
             ?.ifEmpty { null }
-        val known = all(context).map { it.name }
-        return picked?.takeIf { it in known } ?: laptopActive(context)
+        return ActiveSet.inForce(
+            picked = picked,
+            pickedAtMillis = if (choice.exists()) choice.lastModified() else 0,
+            named = laptopActive(context),
+            namedAtMillis = rulesFile(context).let { if (it.exists()) it.lastModified() else 0 },
+            known = all(context).map { it.name }.toSet(),
+        )
     }
 
     fun choose(context: Context, name: String) {
         runCatching { File(context.filesDir, CHOICE).writeText(name) }
             .onSuccess { Log.i("UEatsMonitor", "rules: using set " + name) }
             .onFailure { Log.w("UEatsMonitor", "rules: could not record the set", it) }
+    }
+
+    /** Whether the live set was chosen here or arrived from the laptop. */
+    fun chosenHere(context: Context): Boolean {
+        val choice = File(context.filesDir, CHOICE)
+        if (!choice.exists()) return false
+        val rules = rulesFile(context)
+        return !rules.exists() || choice.lastModified() >= rules.lastModified()
     }
 
     fun list(context: Context): List<RuleProfile> {
@@ -69,8 +88,10 @@ object Profiles {
     private fun laptopActive(context: Context): String? =
         root(context)?.get("active")?.jsonPrimitive?.content
 
+    private fun rulesFile(context: Context): File = File(context.getExternalFilesDir(null), RULES)
+
     private fun root(context: Context): JsonObject? {
-        val file = File(context.getExternalFilesDir(null), RULES)
+        val file = rulesFile(context)
         if (!file.exists()) return null
         return runCatching { json.parseToJsonElement(file.readText()).jsonObject }.getOrNull()
     }
