@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>接单规则</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root{
@@ -101,6 +102,13 @@ textarea{
 #status[data-kind="ok"]{color:var(--yes)}
 #status[data-kind="bad"]{color:var(--no)}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
+
+#map{height:560px;border-radius:10px;border:1px solid var(--line);margin-top:12px;background:var(--sunk)}
+.leaflet-container{font-family:inherit}
+.maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.btn.armed{background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -136,9 +144,19 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
 
   <section>
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
-    <p class="hint">点亮 = 去。送达点的郊区不在里面就不接。</p>
-    <input type="search" id="suburbSearch" placeholder="搜郊区…">
-    <div class="chips" id="suburbChips"></div>
+    <p class="hint">点地图上的区块切换去 / 不去。绿色=去。锚点和半径圈也画在同一张图上，一眼看得出哪些区在圈外。</p>
+    <div class="maptools">
+      <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
+      <button class="btn plain" id="setAnchor">在地图上点一个锚点</button>
+      <button class="btn plain" id="allInCircle">把圈内的区全选上</button>
+      <button class="btn plain" id="clearAll">全部取消</button>
+    </div>
+    <div id="map"></div>
+    <div class="legend">
+      <span><i style="background:rgba(47,122,79,.55)"></i>去</span>
+      <span><i style="background:rgba(138,144,153,.18);border:1px solid var(--ink-3)"></i>不去</span>
+      <span><i style="background:transparent;border:2px solid var(--accent)"></i>锚点半径</span>
+    </div>
   </section>
 
   <section>
@@ -166,6 +184,7 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
   <span class="mono">files/rules.json</span>。手机上不显示任何设置 —— 跑单时只会看到「可以接单 / 不要接单」和一句原因。
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 (function(){
   "use strict";
@@ -187,10 +206,10 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
     $("anchorKm").value = a.maxKm || 15;
     $("kmLabel").textContent = a.maxKm || 15;
     $("addresses").value = (state.rules.addresses.deny || []).join("\n");
-    drawSuburbs();
     drawStores();
     drawDenied();
     counts();
+    initMap();
   }
 
   function counts(){
@@ -200,36 +219,122 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
     $("addressCount").textContent = "（" + lines.length + " 条）";
   }
 
-  /* ---- suburbs ---- */
-  function drawSuburbs(){
-    var q = $("suburbSearch").value.trim().toLowerCase();
-    var allow = state.rules.suburbs.allow;
-    var shown = state.suburbs.filter(function(s){
-      if (q) return s.name.toLowerCase().indexOf(q) >= 0;
-      return allow.indexOf(s.name) >= 0;
+  /* ---- the map: suburbs, anchor and radius on one canvas ---- */
+  var map, shapes = {}, anchorMark = null, anchorRing = null, armed = false;
+
+  function initMap(){
+    map = L.map("map", { zoomControl: true }).setView([-37.99, 145.15], 11);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    map.on("click", function(e){
+      if (!armed) return;
+      armed = false;
+      $("setAnchor").classList.remove("armed");
+      $("anchorLat").value = e.latlng.lat.toFixed(5);
+      $("anchorLon").value = e.latlng.lng.toFixed(5);
+      drawAnchor();
+      say("锚点已放在地图上", "ok");
     });
-    var box = $("suburbChips");
-    box.textContent = "";
-    shown.slice(0, 400).forEach(function(s){
-      var chip = document.createElement("span");
-      chip.className = "chip";
-      chip.textContent = s.name;
-      chip.dataset.on = allow.indexOf(s.name) >= 0 ? "1" : "0";
-      chip.addEventListener("click", function(){
-        var at = allow.indexOf(s.name);
-        if (at >= 0) allow.splice(at, 1); else allow.push(s.name);
-        drawSuburbs(); counts();
-      });
-      box.appendChild(chip);
+
+    fetch("suburbs.geojson").then(function(r){ return r.json(); }).then(function(gj){
+      L.geoJSON(gj, {
+        style: styleFor,
+        onEachFeature: function(feature, layer){
+          var name = feature.properties.name;
+          shapes[name] = layer;
+          layer.bindTooltip(name, { sticky: true });
+          layer.on("click", function(){ toggle(name); });
+        },
+      }).addTo(map);
+      drawAnchor();
+      counts();
     });
-    if (!shown.length) {
-      var empty = document.createElement("span");
-      empty.className = "hint";
-      empty.textContent = q ? "没有匹配的郊区。" : "一个区都没选，等于哪都不去。";
-      box.appendChild(empty);
-    }
   }
-  $("suburbSearch").addEventListener("input", drawSuburbs);
+
+  function allowed(name){ return state.rules.suburbs.allow.indexOf(name) >= 0; }
+
+  function styleFor(feature){
+    var on = allowed(feature.properties.name);
+    return {
+      color: on ? "#2F7A4F" : "#8A9099",
+      weight: on ? 1.6 : 0.7,
+      fillColor: on ? "#2F7A4F" : "#8A9099",
+      fillOpacity: on ? 0.45 : 0.10,
+    };
+  }
+
+  function toggle(name){
+    var allow = state.rules.suburbs.allow;
+    var at = allow.indexOf(name);
+    if (at >= 0) allow.splice(at, 1); else allow.push(name);
+    if (shapes[name]) shapes[name].setStyle(styleFor({ properties: { name: name } }));
+    counts();
+  }
+
+  function repaint(){
+    Object.keys(shapes).forEach(function(name){
+      shapes[name].setStyle(styleFor({ properties: { name: name } }));
+    });
+    counts();
+  }
+
+  function drawAnchor(){
+    var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
+    var km = parseFloat($("anchorKm").value) || 15;
+    if (anchorMark) { map.removeLayer(anchorMark); anchorMark = null; }
+    if (anchorRing) { map.removeLayer(anchorRing); anchorRing = null; }
+    if (isNaN(lat) || isNaN(lon)) return;
+    anchorRing = L.circle([lat, lon], {
+      radius: km * 1000, color: "#0E5B62", weight: 2, fillOpacity: 0.05,
+    }).addTo(map);
+    anchorMark = L.circleMarker([lat, lon], {
+      radius: 6, color: "#0E5B62", fillColor: "#0E5B62", fillOpacity: 1,
+    }).addTo(map).bindTooltip($("anchorLabel").value || "锚点");
+  }
+
+  $("setAnchor").addEventListener("click", function(){
+    armed = !armed;
+    this.classList.toggle("armed", armed);
+    say(armed ? "在地图上点一下放锚点" : "");
+  });
+
+  $("clearAll").addEventListener("click", function(){
+    state.rules.suburbs.allow = [];
+    repaint();
+  });
+
+  $("allInCircle").addEventListener("click", function(){
+    var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
+    var km = parseFloat($("anchorKm").value);
+    if (isNaN(lat) || isNaN(lon)) return say("先定锚点", "bad");
+    var added = 0;
+    state.suburbs.forEach(function(s){
+      if (haversine(lat, lon, s.lat, s.lon) <= km && !allowed(s.name) && shapes[s.name]) {
+        state.rules.suburbs.allow.push(s.name); added++;
+      }
+    });
+    repaint();
+    say("圈内新增 " + added + " 个区", "ok");
+  });
+
+  function haversine(la1, lo1, la2, lo2){
+    var R = 6371, r = Math.PI / 180;
+    var dLa = (la2-la1)*r, dLo = (lo2-lo1)*r;
+    var a = Math.sin(dLa/2)*Math.sin(dLa/2) +
+            Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)*Math.sin(dLo/2);
+    return 2*R*Math.asin(Math.sqrt(a));
+  }
+
+  $("suburbSearch").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var q = this.value.trim().toLowerCase();
+    var hit = state.suburbs.filter(function(s){ return s.name.toLowerCase().indexOf(q) === 0; })[0] ||
+              state.suburbs.filter(function(s){ return s.name.toLowerCase().indexOf(q) >= 0; })[0];
+    if (hit) { map.setView([hit.lat, hit.lon], 13); if (shapes[hit.name]) shapes[hit.name].openTooltip(); }
+    else say("没找到这个区", "bad");
+  });
 
   /* ---- stores ---- */
   var SETTING = { MALL:["mall","商场里"], STRIP:["strip","主街"],
@@ -306,7 +411,13 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
   }
 
   /* ---- anchor ---- */
-  $("anchorKm").addEventListener("input", function(){ $("kmLabel").textContent = this.value; });
+  $("anchorKm").addEventListener("input", function(){
+    $("kmLabel").textContent = this.value;
+    if (map) drawAnchor();
+  });
+  ["anchorLat","anchorLon","anchorLabel"].forEach(function(id){
+    $(id).addEventListener("change", function(){ if (map) drawAnchor(); });
+  });
   $("addresses").addEventListener("input", counts);
 
   $("usePhone").addEventListener("click", function(){
@@ -315,6 +426,8 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
       if (data.location) {
         $("anchorLat").value = data.location.lat;
         $("anchorLon").value = data.location.lon;
+        drawAnchor();
+        if (map) map.setView([data.location.lat, data.location.lon], 12);
         say("已用手机当前位置", "ok");
       } else {
         say("手机没给出位置 —— 插着线、亮着屏再试一次", "bad");
