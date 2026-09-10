@@ -83,13 +83,13 @@ private fun HomeTabs() {
     var tab by remember { mutableStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("跑单记录") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("用哪套") })
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("用哪套") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("跑单记录") })
             Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("设置") })
         }
         when (tab) {
-            0 -> CaptureScreen()
-            1 -> ProfileScreen()
+            0 -> ProfileScreen()
+            1 -> CaptureScreen()
             else -> MonitorScreen(App.instance.settingsStore)
         }
     }
