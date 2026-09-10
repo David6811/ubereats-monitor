@@ -771,15 +771,6 @@ body.mapfull h2{font-size:17px}
     return 2*R*Math.asin(Math.sqrt(a));
   }
 
-  $("suburbSearch").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    var q = this.value.trim().toLowerCase();
-    var hit = state.suburbs.filter(function(s){ return s.name.toLowerCase().indexOf(q) === 0; })[0] ||
-              state.suburbs.filter(function(s){ return s.name.toLowerCase().indexOf(q) >= 0; })[0];
-    if (hit) { map.setView([hit.lat, hit.lon], 13); if (shapes[hit.name]) shapes[hit.name].openTooltip(); }
-    else say("没找到这个区", "bad");
-  });
-
   /* ---- stores ---- */
   var SETTING = { MALL:["mall","商场里"], STRIP:["strip","主街"],
                   STANDALONE_PARKING:["easy","独立+停车场"], STANDALONE:["unknown","独立·未知"] };
