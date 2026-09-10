@@ -456,6 +456,18 @@ body.mapfull h2{font-size:17px}
     return state.rules.far;
   }
 
+  /** Draws whichever set is being edited onto the map. */
+  function applyToMap(){
+    if (state.editing === FAR) {
+      state.rules.suburbs.allow = far().suburbs.slice();
+    } else {
+      var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+      if (here) state.rules.suburbs.allow = here.suburbs.slice();
+    }
+    repaint();
+    drawProfiles();
+  }
+
   /** Puts what is drawn on the map back into whichever set is being edited. */
   function stash(){
     if (state.editing === FAR) {
@@ -972,16 +984,18 @@ body.mapfull h2{font-size:17px}
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;
     stash();
+    state.rules.stores.cbdDeny = cbdNames();
     // What the phone judges by is the live set, whatever the map happens to be
     // showing: editing the far set must not become the ordinary allow list.
-    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
-    if (here) state.rules.suburbs.allow = here.suburbs.slice();
-    state.rules.stores.cbdDeny = cbdNames();
+    var live = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+    var sending = JSON.parse(JSON.stringify(state.rules));
+    if (live) sending.suburbs.allow = live.suburbs.slice();
+    sending.stamp = state.stamp;
     state.rules.addresses.deny = $("addresses").value.split("\n")
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
 
-    if (!state.rules.suburbs.allow.length) {
+    if (!sending.suburbs.allow.length) {
       return say("一个区都没选，等于哪都不去", "bad");
     }
 
@@ -991,16 +1005,26 @@ body.mapfull h2{font-size:17px}
     fetch("/api/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.rules),
+      body: JSON.stringify(sending),
     }).then(function(r){ return r.json(); }).then(function(data){
       $("save").disabled = false;
       $("save").textContent = "保存并推送到手机";
+      if (data.stale) {
+        say("没保存", "bad");
+        showResult("bad", "这个页面过期了", data.detail, []);
+        return;
+      }
+      state.stamp = data.stamp;
+      // The map goes back to showing whatever is being edited; leaving it and
+      // the data disagreeing is what made a save look like it had reverted.
+      applyToMap();
       var rows = [
-        ["选区方案", state.rules.active],
-        ["去的区", state.rules.suburbs.allow.length + " 个"],
-        ["市中心不接的店", (state.rules.stores.cbdDeny || []).length + " 家"],
-        ["手动拉黑的店", state.rules.stores.deny.length + " 家"],
-        ["不接的地址", state.rules.addresses.deny.length + " 条"],
+        ["选区方案", state.rules.active + (state.editing === FAR ? "（在改远区）" : "")],
+        ["去的区", sending.suburbs.allow.length + " 个"],
+        ["远区 >$" + (far().overDollars || 30), far().suburbs.length + " 个"],
+        ["市中心不接的店", (sending.stores.cbdDeny || []).length + " 家"],
+        ["手动拉黑的店", sending.stores.deny.length + " 家"],
+        ["不接的地址", sending.addresses.deny.length + " 条"],
       ];
       if (data.pushed) {
         say("已推送", "ok");

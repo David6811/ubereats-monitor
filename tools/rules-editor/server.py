@@ -76,6 +76,11 @@ def adb(*args):
         return False, str(error)
 
 
+def stamp_of(path):
+    """When the file last changed, to the millisecond. Zero when it is not there."""
+    return int(os.path.getmtime(path) * 1000) if os.path.exists(path) else 0
+
+
 def load_rules():
     if os.path.exists(RULES):
         try:
@@ -232,6 +237,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/state":
+            # The page sends this back when it saves. A tab left open while the
+            # file changed underneath would otherwise write its stale copy over
+            # the new one - which is how a live set was lost once already.
             connected, devices = adb("devices")
             attached = [
                 line.split("\t")[0]
@@ -245,6 +253,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "stores": stores(),
                     "places": PLACES,
                     "phone": attached[0] if attached else None,
+                    "stamp": stamp_of(RULES),
                 }
             )
         if self.path == "/api/cbd":
@@ -285,11 +294,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         body = json.loads(self.rfile.read(length) or b"{}")
 
         if self.path == "/api/save":
+            sent = body.pop("stamp", None)
+            here = stamp_of(RULES)
+            if sent is not None and here and sent != here:
+                return self.send_json(
+                    {
+                        "saved": False,
+                        "stale": True,
+                        "detail": "这个页面打开之后规则被改过了，刷新页面再改，不然会盖掉新的",
+                    },
+                    status=409,
+                )
             os.makedirs(DATA, exist_ok=True)
             with open(RULES, "w") as handle:
                 json.dump(body, handle, ensure_ascii=False, indent=2)
             ok, out = adb("push", RULES, PHONE_DIR + "/rules.json")
-            return self.send_json({"saved": True, "pushed": ok, "detail": out})
+            return self.send_json(
+                {"saved": True, "pushed": ok, "detail": out, "stamp": stamp_of(RULES)}
+            )
 
         return self.send_json({"error": "unknown"}, status=404)
 
