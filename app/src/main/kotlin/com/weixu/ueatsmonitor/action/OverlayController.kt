@@ -98,7 +98,8 @@ class OverlayController(private val context: Context) {
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
             // Over the map, above everything the card says. Anywhere on the card
@@ -106,7 +107,7 @@ class OverlayController(private val context: Context) {
             // pickup once came out as the suburb this chip was naming.
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             x = 0
-            y = (context.resources.displayMetrics.heightPixels * TOP_ROW).toInt()
+            y = TOP_PIXELS
         }
     }
 
@@ -181,12 +182,12 @@ class OverlayController(private val context: Context) {
 
     private companion object {
         /**
-         * How far down the chip sits. High enough to be clear of the card, which
-         * starts around halfway down and whose text the reader parses; the chip's
-         * own words landing among that text is what put a suburb where a shop
-         * name belonged.
+         * How far down the chip sits, in pixels from the very top of the screen.
+         * It has to be clear of the card, which starts around halfway down and
+         * whose text the reader parses - the chip's own words landing among that
+         * text is what once put a suburb where a shop name belonged.
          */
-        const val TOP_ROW = 0.037
+        const val TOP_PIXELS = 20
 
         /** How much of the screen's width the chip takes. */
         const val WIDTH = 0.62
