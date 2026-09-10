@@ -156,6 +156,12 @@ object OfferCardReader {
     private fun normalise(line: String): String = line
         .replace(Regex("""[lI](?=\s*hr)""", RegexOption.IGNORE_CASE), "1")
         .replace(Regex("""(?<=\d)[Oo](?=\d)"""), "0")
+        // Inside a number: "(8.l km)" is 8.1, and "l.6" is 1.6. Bounded to a
+        // letter that sits against a digit or a decimal point, so a street name
+        // never qualifies.
+        .replace(Regex("""(?<=[\d.])[lI](?![a-zA-Z])"""), "1")
+        .replace(Regex("""(?<![a-zA-Z])[lI](?=\.\d)"""), "1")
+        .replace(Regex("""(?<=[\d.])[Oo](?![a-zA-Z])"""), "0")
         .replace(Regex("""^[^\w$＄]+"""), "")
 
     /** Shorter than this and OCR is showing us a button edge, not an address. */

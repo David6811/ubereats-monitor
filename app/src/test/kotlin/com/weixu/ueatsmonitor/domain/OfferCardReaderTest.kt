@@ -481,4 +481,46 @@ class OfferCardReaderTest {
             "Accept",
         )
     }
+
+    @Test
+    fun `given a distance whose digit OCR read as a letter, when the card is read, then the distance survives`() {
+        // arrange  the real reading of a Match card: 8.1 km came back as 8.l km
+        val lines = listOf(
+            "Delivery X",
+            "${'$'}8.55",
+            "Est. earnings for completed trip",
+            "G) 19 min (8.l km) total",
+            "9 Guzman y Gomez (Springvale)",
+            "Nettelbeck Road & Watton Close,",
+            "Clayton South",
+            "Match",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertEquals(19, card?.duration?.value)
+
+        // assert  8.1 km in miles
+        assertEquals(5.03, card?.distance?.value ?: 0.0, 0.01)
+    }
+
+    @Test
+    fun `given a street whose name ends in a letter after a number, when the card is read, then the address is left alone`() {
+        // arrange
+        val lines = listOf(
+            "${'$'}5.00",
+            "10 min (1.6 km) total",
+            "Mario's Pizza And Pasta",
+            "12 Cole Street, Noble Park",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // assert
+        assertEquals("12 Cole Street, Noble Park", card?.dropoff)
+    }
 }
