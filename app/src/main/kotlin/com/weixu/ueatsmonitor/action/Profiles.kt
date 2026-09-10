@@ -10,7 +10,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 
 /** Data. One of the sets of suburbs drawn on the laptop. */
-data class RuleProfile(val name: String, val suburbs: Int, val active: Boolean)
+data class RuleProfile(val name: String, val suburbs: List<String>, val active: Boolean)
 
 /**
  * Action. The sets of suburbs, and which one the driver picked on the phone.
@@ -52,18 +52,18 @@ object Profiles {
     /** The suburbs of the set in force, or null when there are no sets at all. */
     fun suburbsInForce(context: Context): Set<String>? {
         val name = chosen(context) ?: return null
-        val profile = root(context)?.get("profiles")?.jsonArray.orEmpty()
-            .map { it.jsonObject }
-            .firstOrNull { it["name"]?.jsonPrimitive?.content == name }
-            ?: return null
-        return profile["suburbs"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet()
+        return all(context).firstOrNull { it.name == name }?.suburbs?.toSet()
     }
 
     private fun all(context: Context): List<RuleProfile> =
         root(context)?.get("profiles")?.jsonArray.orEmpty().mapNotNull { entry ->
             val profile = entry.jsonObject
             val name = profile["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
-            RuleProfile(name, profile["suburbs"]?.jsonArray?.size ?: 0, active = false)
+            RuleProfile(
+                name = name,
+                suburbs = profile["suburbs"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty(),
+                active = false,
+            )
         }
 
     private fun laptopActive(context: Context): String? =

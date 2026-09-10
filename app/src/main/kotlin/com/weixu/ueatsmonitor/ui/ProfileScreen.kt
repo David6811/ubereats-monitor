@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
@@ -22,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.Profiles
+import com.weixu.ueatsmonitor.action.SuburbShapes
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -33,7 +36,12 @@ fun ProfileScreen() {
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(Profiles.list(context)) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val shapes = remember { SuburbShapes.all(context) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text("用哪套选区", fontWeight = FontWeight.Bold)
         if (profiles.isEmpty()) {
             Text(
@@ -41,6 +49,11 @@ fun ProfileScreen() {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        // Whichever set is live, drawn as shapes so it is obvious which one it is.
+        profiles.firstOrNull { it.active }?.let { live ->
+            SuburbMap(chosen = live.suburbs.toSet(), shapes = shapes)
+        }
+
         profiles.forEach { profile ->
             // The Card overload that takes onClick, not a clickable modifier: the
             // Surface inside a plain Card swallows the touch before it reaches one.
@@ -64,7 +77,7 @@ fun ProfileScreen() {
                     Column(Modifier.padding(start = 10.dp)) {
                         Text(profile.name, fontWeight = FontWeight.Bold)
                         Text(
-                            text = "去 " + profile.suburbs + " 个区",
+                            text = "去 " + profile.suburbs.size + " 个区",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
