@@ -531,12 +531,12 @@ body.mapfull h2{font-size:17px}
         // save, not a one-off dump of names into the manual list.
         var acts = document.createElement("div");
         acts.className = "acts";
-        acts.appendChild(toggle(
+        acts.appendChild(switchLine(
           "整片不接（" + safe.length + " 家）",
           cbdSetting()[core.key] !== false,
           function(on){ cbdSetting()[core.key] = on; drawCores(); }
         ));
-        acts.appendChild(toggle(
+        acts.appendChild(switchLine(
           "连同名的一起（+" + shared.length + "）",
           cbdSetting().includeShared === true,
           function(on){ cbdSetting().includeShared = on; drawCores(); }
@@ -577,7 +577,7 @@ body.mapfull h2{font-size:17px}
     return Object.keys(names);
   }
 
-  function toggle(label, on, onChange){
+  function switchLine(label, on, onChange){
     var wrap = document.createElement("label");
     wrap.className = "checkline";
     var box = document.createElement("input");
