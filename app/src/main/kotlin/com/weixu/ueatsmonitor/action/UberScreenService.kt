@@ -291,6 +291,9 @@ class UberScreenService : AccessibilityService() {
             append("ocr_ms=").append(ocrMillis).append('\n')
             append("ocr_lines=").append(ocrLines.size).append('\n')
             append("kept=").append(why).append('\n')
+            if (source == "ocr" && OfferCardReader.read(ocrLines) != null) {
+                append("windows_detail=").append(windowReport()).append('\n')
+            }
             append("green=").append(String.format("%.3f", greenFraction)).append('\n')
             append(decision)
             append("screenshot=").append(screen != null).append('\n')
@@ -393,6 +396,27 @@ class UberScreenService : AccessibilityService() {
         return samples.toIntArray()
     }
 
+    /**
+     * Every window the system reports, including the ones whose content we are
+     * not given. An offer card was on screen while the tree described the map
+     * underneath, and the window it lives in never appeared in our list - so the
+     * windows that get dropped are exactly what has to be logged.
+     */
+    private fun windowReport(): String = runCatching {
+        windows.orEmpty().joinToString(" | ") { window ->
+            val root = window.root
+            buildString {
+                append("type=").append(window.type)
+                append(" layer=").append(window.layer)
+                append(" active=").append(window.isActive)
+                append(" focused=").append(window.isFocused)
+                append(" pkg=").append(root?.packageName ?: window.title ?: "?")
+                append(" root=").append(root != null)
+                append(" children=").append(root?.childCount ?: -1)
+            }
+        }.ifEmpty { "(none)" }
+    }.getOrElse { "error: " + it.message }
+
     /** Says once every few seconds what the service can actually see. */
     private fun heartbeat(packages: List<String>, uberCount: Int) {
         val now = System.currentTimeMillis()
@@ -400,6 +424,7 @@ class UberScreenService : AccessibilityService() {
         lastHeartbeatAtMillis = now
         val active = rootInActiveWindow?.packageName?.toString() ?: "null"
         Log.i(TAG, "poll: windows=$packages active=$active uber=$uberCount")
+        Log.i(TAG, "windows: " + windowReport())
     }
 
     /** Every Uber window currently up - an offer card can sit in its own. */
