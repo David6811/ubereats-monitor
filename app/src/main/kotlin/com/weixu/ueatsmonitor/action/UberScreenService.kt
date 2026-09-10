@@ -257,6 +257,9 @@ class UberScreenService : AccessibilityService() {
             }
         }
         store.write(now, screen, body)
+        // 1080x2400 in ARGB_8888 is ten megabytes; at one every two seconds the
+        // collector cannot keep up unless each one is released here.
+        runCatching { screen?.recycle() }
     }
 
     private fun decide(lines: List<String>, text: String, now: Long): String {

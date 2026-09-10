@@ -44,6 +44,7 @@ import com.weixu.ueatsmonitor.domain.ServiceArea
 import com.weixu.ueatsmonitor.domain.Suburb
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -54,6 +55,7 @@ import java.util.Locale
 fun CaptureScreen() {
     val context = LocalContext.current
     val store = remember { CaptureStore(context) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var reloads by remember { mutableIntStateOf(0) }
     var moneyOnly by remember { mutableStateOf(false) }
     var openName by remember { mutableStateOf<String?>(null) }
@@ -117,7 +119,7 @@ fun CaptureScreen() {
                     style = MaterialTheme.typography.bodySmall,
                 )
                 TextButton(onClick = { reloads++ }) { Text("刷新") }
-                TextButton(onClick = { store.deleteAll(); reloads++ }) { Text("全部删除") }
+                TextButton(onClick = { scope.launch(Dispatchers.IO) { store.deleteAll(); reloads++ } }) { Text("全部删除") }
             }
         }
 

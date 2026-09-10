@@ -27,11 +27,16 @@ class CaptureStore(context: Context) {
         val fixAgeMillis: Long?,
     )
 
-    /** Action. Newest first. Reads only the small text files; images stay on disk. */
-    fun list(): List<Capture> {
+    /**
+     * Action. Newest first, capped. A shift leaves tens of thousands of captures
+     * and the review screen only ever shows the recent end of them; reading every
+     * one to draw a list froze the screen.
+     */
+    fun list(limit: Int = PAGE): List<Capture> {
         val texts = dir.listFiles { file -> file.name.endsWith(".txt") } ?: return emptyList()
         return texts
             .sortedByDescending { it.name }
+            .take(limit)
             .map { file ->
                 val name = file.nameWithoutExtension
                 val raw = runCatching { file.readText() }.getOrDefault("")
@@ -70,22 +75,29 @@ class CaptureStore(context: Context) {
      * uninteresting - so keep everything and only cap the total.
      */
     private fun prune() {
-        if (writesSincePrune++ < PRUNE_EVERY) return
-        writesSincePrune = 0
+        // Counting in memory, and only walking the directory once the count says
+        // there is something to delete: listing ten thousand files every twenty
+        // writes cost more than everything else this service does.
+        if (known < 0) known = dir.list()?.size ?: 0
+        known += 2
+        if (known < CAPACITY * 2 + SLACK) return
+
         val texts = dir.listFiles { file -> file.name.endsWith(".txt") }
             ?.sortedByDescending { it.name } ?: return
         texts.drop(CAPACITY).forEach { text ->
             text.delete()
             File(dir, text.nameWithoutExtension + ".jpg").delete()
         }
+        known = dir.list()?.size ?: 0
     }
 
-    private var writesSincePrune = 0
+    private var known = -1
 
     private companion object {
         /** About eleven hours at the two-second cadence; roughly 4 GB. */
         const val CAPACITY = 20_000
-        const val PRUNE_EVERY = 20
+        const val SLACK = 400
+        const val PAGE = 400
         const val JPEG_QUALITY = 70
         val STAMP = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)
     }

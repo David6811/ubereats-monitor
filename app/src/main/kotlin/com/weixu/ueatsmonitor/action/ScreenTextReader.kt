@@ -22,20 +22,33 @@ object ScreenTextReader {
     /** Results come back here, never on the caller's main looper. */
     private val callbacks = Executors.newSingleThreadExecutor()
 
-    /** Lines top to bottom, the same shape the accessibility path produces. */
+    /**
+     * Lines top to bottom, the same shape the accessibility path produces.
+     *
+     * Read at half size: everything that matters on an offer card is set large,
+     * and quartering the pixels quarters the work on a phone that is doing this
+     * every two seconds for hours.
+     */
     fun read(screen: Bitmap, onLines: (List<String>, Long) -> Unit) {
         val startedAt = System.currentTimeMillis()
+        val small = runCatching {
+            Bitmap.createScaledBitmap(screen, screen.width / 2, screen.height / 2, true)
+        }.getOrDefault(screen)
         runCatching {
-            recognizer.process(InputImage.fromBitmap(screen, 0))
+            recognizer.process(InputImage.fromBitmap(small, 0))
                 .addOnSuccessListener(callbacks) { result ->
                     val lines = result.textBlocks
                         .flatMap { block -> block.lines }
                         .sortedBy { line -> line.boundingBox?.top ?: 0 }
                         .map { line -> line.text.trim() }
                         .filter { it.isNotEmpty() }
+                    if (small !== screen) runCatching { small.recycle() }
                     onLines(lines, System.currentTimeMillis() - startedAt)
                 }
-                .addOnFailureListener(callbacks) { onLines(emptyList(), System.currentTimeMillis() - startedAt) }
+                .addOnFailureListener(callbacks) {
+                    if (small !== screen) runCatching { small.recycle() }
+                    onLines(emptyList(), System.currentTimeMillis() - startedAt)
+                }
         }.onFailure { onLines(emptyList(), System.currentTimeMillis() - startedAt) }
     }
 }
