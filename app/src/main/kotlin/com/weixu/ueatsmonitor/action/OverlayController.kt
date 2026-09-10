@@ -13,7 +13,9 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.weixu.ueatsmonitor.domain.Verdict
+import com.weixu.ueatsmonitor.domain.OfferCard
+import com.weixu.ueatsmonitor.domain.Ruling
+import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
 
 /**
@@ -29,7 +31,7 @@ class OverlayController(private val context: Context) {
     /** Data. What the chip is saying right now. */
     sealed interface State {
         data object Thinking : State
-        data class Decided(val verdict: Verdict, val inArea: Boolean) : State
+        data class Decided(val ruling: Ruling, val card: OfferCard) : State
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -77,7 +79,7 @@ class OverlayController(private val context: Context) {
 
     private fun keyOf(state: State): String = when (state) {
         State.Thinking -> "thinking"
-        is State.Decided -> VerdictText.headline(state.verdict) + state.inArea
+        is State.Decided -> RulingText.headline(state.ruling) + RulingText.reason(state.ruling)
     }
 
     private fun layoutParams(): WindowManager.LayoutParams {
@@ -150,16 +152,32 @@ class OverlayController(private val context: Context) {
             ink = Color.WHITE,
         )
         is State.Decided -> {
-            val take = state.verdict is Verdict.Accept && state.inArea
+            val take = state.ruling is Ruling.Take
+            val unsure = state.ruling is Ruling.NoRules || state.ruling is Ruling.Unknown
             Face(
-                title = if (take) "可以接单" else "不要接单",
-                detail = VerdictText.metricsLine(state.verdict.metrics),
-                fill = if (take) Color.parseColor("#F21B5E20") else Color.parseColor("#F27F1D17"),
-                edge = if (take) Color.parseColor("#66BB6A") else Color.parseColor("#EF5350"),
+                title = RulingText.headline(state.ruling),
+                detail = RulingText.reason(state.ruling) + "\n" +
+                    VerdictText.metricsLine(metricsOf(state.card)),
+                fill = when {
+                    unsure -> Color.parseColor("#F2263238")
+                    take -> Color.parseColor("#F21B5E20")
+                    else -> Color.parseColor("#F27F1D17")
+                },
+                edge = when {
+                    unsure -> Color.parseColor("#FFB300")
+                    take -> Color.parseColor("#66BB6A")
+                    else -> Color.parseColor("#EF5350")
+                },
                 ink = Color.WHITE,
             )
         }
     }
+
+    /** The numbers are shown, never judged: the driver reads the money himself. */
+    private fun metricsOf(card: OfferCard) =
+        com.weixu.ueatsmonitor.domain.OfferEvaluator.metricsOf(
+            com.weixu.ueatsmonitor.domain.OfferCardReader.toOffer(card)
+        )
 
     private fun dp(value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()

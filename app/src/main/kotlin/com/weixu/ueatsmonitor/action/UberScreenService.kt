@@ -18,11 +18,11 @@ import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.OfferCardReader
 import com.weixu.ueatsmonitor.domain.OfferEvaluator
 import com.weixu.ueatsmonitor.domain.OfferShape
-import com.weixu.ueatsmonitor.domain.Verdict
+import com.weixu.ueatsmonitor.domain.RuleJudge
+import com.weixu.ueatsmonitor.domain.Ruling
+import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
-import com.weixu.ueatsmonitor.domain.ServiceArea
 import com.weixu.ueatsmonitor.domain.Suburb
-import com.weixu.ueatsmonitor.domain.Thresholds
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import java.util.concurrent.Executors
 
@@ -316,40 +316,44 @@ class UberScreenService : AccessibilityService() {
         val card = OfferCardReader.read(lines)
         val offerShape = card != null || OfferShape.looksLikeOffer(text)
 
-        val searchIn = card?.dropoff?.plus("\n")?.plus(card.pickup) ?: text
+        // The driver's own rules, and nothing else. The payout floors that used
+        // to live here were invented by this app and are gone; the numbers are
+        // still shown on the chip, they just do not decide anything.
+        val rules = RulesStore.current(this)
+        val ruling = card?.let { RuleJudge.judge(it, rules, gazetteer) }
+
+        val searchIn = card?.dropoff ?: text
         val found = SuburbIndex.findAll(searchIn, gazetteer)
-        val call = AreaJudge.call(found, ServiceArea.SOUTH_EAST)
-        val verdict = card?.let {
-            OfferEvaluator.evaluate(OfferCardReader.toOffer(it), LiveSettings.current?.thresholds ?: Thresholds.STARTER)
-        }
 
         val chime = when {
             !offerShape -> "none_not_offer_shape"
             LiveSettings.current?.areaSoundEnabled == false -> "suppressed_setting_off"
+            ruling == null -> "none_no_card"
             else -> {
-                val signature = found.map { it.name }.sorted().joinToString(",").ifEmpty { "?" }
+                val signature = RulingText.headline(ruling) + RulingText.reason(ruling)
                 if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) {
                     "suppressed_same_within_3s"
                 } else {
                     lastRungSignature = signature
                     lastRungAtMillis = now
-                    this@UberScreenService.chime.play(call)
-                    "played_" + call::class.simpleName
+                    this@UberScreenService.chime.play(
+                        when (ruling) {
+                            is Ruling.Take -> AreaCall.AllInside(found)
+                            is Ruling.Leave -> AreaCall.SomeOutside(found, emptyList())
+                            else -> AreaCall.NoSuburb
+                        }
+                    )
+                    "played_" + ruling::class.simpleName
                 }
             }
         }
 
-        if (card != null && verdict != null && LiveSettings.current?.overlayEnabled != false) {
-            overlay.show(
-                OverlayController.State.Decided(
-                    verdict = verdict,
-                    inArea = call is AreaCall.AllInside,
-                )
-            )
+        if (card != null && ruling != null && LiveSettings.current?.overlayEnabled != false) {
+            overlay.show(OverlayController.State.Decided(ruling = ruling, card = card))
         }
 
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
-            " suburbs=" + found.map { it.name } + " chime=" + chime)
+            " ruling=" + (ruling?.let { RulingText.headline(it) } ?: "-") + " chime=" + chime)
 
         return buildString {
             append("card=").append(card != null).append('\n')
@@ -359,22 +363,19 @@ class UberScreenService : AccessibilityService() {
                 append("card_miles=").append(card.distance?.let { String.format("%.2f", it.value) } ?: "?").append('\n')
                 append("card_pickup=").append(card.pickup).append('\n')
                 append("card_dropoff=").append(card.dropoff).append('\n')
+                append("metrics=").append(
+                    VerdictText.metricsLine(OfferEvaluator.metricsOf(OfferCardReader.toOffer(card)))
+                ).append('\n')
             }
-            if (verdict != null) {
-                append("verdict=").append(VerdictText.headline(verdict)).append('\n')
-                append("verdict_why=").append(VerdictText.reason(verdict)).append('\n')
-                append("metrics=").append(VerdictText.metricsLine(verdict.metrics)).append('\n')
+            if (ruling != null) {
+                append("ruling=").append(RulingText.headline(ruling)).append('\n')
+                append("ruling_why=").append(RulingText.reason(ruling)).append('\n')
             }
+            append("rules_suburbs=").append(rules.allowedSuburbs.size).append('\n')
+            append("rules_denied_stores=").append(rules.deniedStores.size).append('\n')
             append("money=").append(CaptureText.hasMoney(text)).append('\n')
             append("offer_shape=").append(offerShape).append('\n')
             append("suburbs=").append(found.joinToString(",") { it.name }).append('\n')
-            append("area=").append(
-                when (call) {
-                    is AreaCall.AllInside -> "AllInside"
-                    is AreaCall.SomeOutside -> "SomeOutside:" + call.outside.joinToString("/") { it.name }
-                    AreaCall.NoSuburb -> "NoSuburb"
-                }
-            ).append('\n')
             append("chime=").append(chime).append('\n')
         }
     }

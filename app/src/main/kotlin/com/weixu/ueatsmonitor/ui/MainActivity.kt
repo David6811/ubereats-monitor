@@ -147,10 +147,17 @@ private fun MonitorScreen(store: SettingsStore) {
         }
 
         item {
-            ThresholdCard(
-                thresholds = current.thresholds,
-                onSave = { scope.launch { store.saveThresholds(it) } },
-            )
+            Card {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("规则在电脑上设", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "去哪些区、不接哪些店，都在电脑的规则编辑器里改，保存时推到这台手机。" +
+                            "这里不设规则，跑单时也不用看这一页。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(rulesSummary(context), style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
     }
 }
@@ -218,6 +225,15 @@ private fun megabytes(bytes: Long): String =
     } else {
         String.format("%.0f MB", bytes / 1024.0 / 1024.0)
     }
+
+/** What the phone is actually running, straight from the pushed file. */
+private fun rulesSummary(context: android.content.Context): String {
+    val rules = com.weixu.ueatsmonitor.action.RulesStore.current(context)
+    if (rules.allowedSuburbs.isEmpty() && rules.deniedStores.isEmpty()) {
+        return "还没收到规则文件"
+    }
+    return "去 " + rules.allowedSuburbs.size + " 个区 · 拉黑 " + rules.deniedStores.size + " 家店"
+}
 
 @Composable
 private fun PermissionCard(title: String, granted: Boolean, hint: String, onFix: () -> Unit) {
