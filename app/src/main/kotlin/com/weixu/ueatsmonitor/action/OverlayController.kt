@@ -112,7 +112,7 @@ class OverlayController(private val context: Context) {
         val face = faceOf(state)
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(14), dp(18), dp(14))
+            setPadding(dp(18), dp(8), dp(18), dp(10))
             background = GradientDrawable().apply {
                 cornerRadius = dp(14).toFloat()
                 setColor(face.fill)
@@ -124,6 +124,9 @@ class OverlayController(private val context: Context) {
                     textSize = 26f
                     setTextColor(face.ink)
                     setTypeface(typeface, Typeface.BOLD)
+                    // A 26sp line reserves a lot of room above the letters; without
+                    // this the title floats in the middle of its own padding.
+                    includeFontPadding = false
                 }
             )
             face.detail?.let { detail ->
@@ -132,7 +135,8 @@ class OverlayController(private val context: Context) {
                         text = detail
                         textSize = 17f
                         setTypeface(typeface, Typeface.BOLD)
-                        setLineSpacing(0f, 1.15f)
+                        setLineSpacing(0f, 1.05f)
+                        includeFontPadding = false
                         setTextColor(face.ink)
                     }
                 )
