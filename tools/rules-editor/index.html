@@ -66,6 +66,10 @@ input[type="text"],input[type="number"],input[type="search"]{
   background:var(--sunk); color:var(--ink); font:inherit; font-size:14px; min-width:150px;
 }
 input[type="range"]{width:260px;accent-color:var(--accent)}
+select{
+  padding:8px 10px;border:1px solid var(--line);border-radius:7px;
+  background:var(--sunk);color:var(--ink);font:inherit;font-size:14px;min-width:230px;
+}
 
 .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
 .chip{
@@ -164,12 +168,15 @@ body.mapfull h2{font-size:17px}
     </div>
 
     <div class="row" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
-      <button class="btn plain" id="setAnchor">1 · 在地图上点个圆心</button>
+      <label class="field"><span class="eyebrow">1 · 圆心</span>
+        <select id="placePick"></select></label>
+      <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
+        <input type="search" id="customAddress" placeholder="街名 + 郊区，回车定位"></label>
       <label class="field" style="flex:1;min-width:220px">
         <span class="eyebrow">2 · 半径 <b class="mono" id="kmLabel">15</b> 公里</span>
         <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
       </label>
-      <button class="btn plain" id="usePhone">圆心用手机当前位置</button>
+      <button class="btn plain" id="usePhone">用手机当前位置</button>
       <button class="btn plain" id="allInCircle">3 · 把圈内的区全选上</button>
     </div>
     <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
@@ -220,6 +227,7 @@ body.mapfull h2{font-size:17px}
     drawDenied();
     counts();
     initMap();
+    drawPlaces();
   }
 
   function counts(){
@@ -237,16 +245,6 @@ body.mapfull h2{font-size:17px}
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18, attribution: "© OpenStreetMap"
     }).addTo(map);
-
-    map.on("click", function(e){
-      if (!armed) return;
-      armed = false;
-      $("setAnchor").classList.remove("armed");
-      $("anchorLat").value = e.latlng.lat.toFixed(5);
-      $("anchorLon").value = e.latlng.lng.toFixed(5);
-      drawAnchor();
-      say("圆心已放好，拖半径，再点「把圈内的区全选上」", "ok");
-    });
 
     fetch("suburbs.geojson").then(function(r){ return r.json(); }).then(function(gj){
       L.geoJSON(gj, {
@@ -317,10 +315,55 @@ body.mapfull h2{font-size:17px}
     }).addTo(map).bindTooltip("画圈圆心");
   }
 
-  $("setAnchor").addEventListener("click", function(){
-    armed = !armed;
-    this.classList.toggle("armed", armed);
-    say(armed ? "在地图上点一下放圆心" : "");
+  function drawPlaces(){
+    var pick = $("placePick");
+    pick.textContent = "";
+    (state.places || []).forEach(function(place, index){
+      var option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = place.label;
+      pick.appendChild(option);
+    });
+    var own = document.createElement("option");
+    own.value = "own";
+    own.textContent = "自己输入地址…";
+    pick.appendChild(own);
+    usePlace(0);
+  }
+
+  function usePlace(index){
+    var place = (state.places || [])[index];
+    if (!place) return;
+    $("anchorLat").value = place.lat;
+    $("anchorLon").value = place.lon;
+    $("anchorLabel").value = place.label;
+    drawAnchor();
+    if (map) map.setView([place.lat, place.lon], 12);
+  }
+
+  $("placePick").addEventListener("change", function(){
+    var own = this.value === "own";
+    $("customWrap").hidden = !own;
+    if (own) { $("customAddress").focus(); say("输入街名和郊区，回车定位"); }
+    else usePlace(parseInt(this.value, 10));
+  });
+
+  $("customAddress").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var query = this.value.trim();
+    if (!query) return;
+    say("正在定位…");
+    fetch("/api/geocode?q=" + encodeURIComponent(query))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (!data.hit) return say("查不到这个地址，换个写法试试", "bad");
+        $("anchorLat").value = data.hit.lat;
+        $("anchorLon").value = data.hit.lon;
+        $("anchorLabel").value = query;
+        drawAnchor();
+        map.setView([data.hit.lat, data.hit.lon], 13);
+        say("圆心已定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim(), "ok");
+      });
   });
 
   /** Frames the suburbs that are actually selected - the way back from any zoom. */

@@ -26,6 +26,17 @@ STORES_DB = os.path.join(DATA, "stores.db")
 SUBURBS_CSV = os.path.join(ROOT, "app/src/main/assets/melbourne-suburbs.csv")
 
 PHONE_DIR = "/sdcard/Android/data/com.weixu.ueatsmonitor/files"
+
+# Geocoded once against Nominatim and pinned here, so the two places the driver
+# actually starts from are one click away and work with no network.
+PLACES = [
+    {"label": "Wells Rd, Aspendale Gardens",
+     "full": "317-369 Wells Rd, Aspendale Gardens VIC 3195",
+     "lat": -38.02506, "lon": 145.12873},
+    {"label": "Ambrie Cres, Noble Park",
+     "full": "13 Ambrie Cres, Noble Park VIC 3174",
+     "lat": -37.95370, "lon": 145.17477},
+]
 PORT = 8777
 
 STARTER_ALLOW = [
@@ -59,7 +70,6 @@ def load_rules():
             pass
     return {
         "version": 1,
-        "anchor": {"lat": None, "lon": None, "maxKm": 15.0, "label": "锚点"},
         "suburbs": {"allow": STARTER_ALLOW, "deny": []},
         "stores": {"deny": []},
         "addresses": {"deny": []},
@@ -135,9 +145,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "rules": load_rules(),
                     "suburbs": suburbs(),
                     "stores": stores(),
+                    "places": PLACES,
                     "phone": attached[0] if attached else None,
                 }
             )
+        if self.path.startswith("/api/geocode"):
+            from urllib.parse import urlparse, parse_qs, quote
+
+            query = parse_qs(urlparse(self.path).query).get("q", [""])[0].strip()
+            if not query:
+                return self.send_json({"hit": None})
+            # curl, not urllib: python on macOS ships without a root certificate
+            # bundle, so urlopen fails on the certificate while curl succeeds.
+            url = ("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
+                   + quote(query + ", Victoria, Australia"))
+            try:
+                done = subprocess.run(
+                    ["curl", "-s", "-m", "20", "-A", "ueats-rules-editor/1.0", url],
+                    capture_output=True, text=True, timeout=25,
+                )
+                found = json.loads(done.stdout or "[]")
+                if found:
+                    return self.send_json({"hit": {
+                        "lat": float(found[0]["lat"]),
+                        "lon": float(found[0]["lon"]),
+                        "name": found[0]["display_name"],
+                    }})
+            except Exception as error:
+                return self.send_json({"hit": None, "error": str(error)})
+            return self.send_json({"hit": None})
+
         if self.path == "/api/phone-location":
             return self.send_json({"location": phone_location()})
         return super().do_GET()
