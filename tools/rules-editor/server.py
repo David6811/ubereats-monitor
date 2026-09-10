@@ -195,8 +195,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(DATA, exist_ok=True)
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as server:
+    # Threaded on purpose: a single-threaded server is held hostage by one
+    # keep-alive connection, and an adb call inside a request can take seconds.
+    class Server(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
+
+    with Server(("127.0.0.1", PORT), Handler) as server:
         url = f"http://localhost:{PORT}"
         print(f"规则编辑器: {url}")
         print("Ctrl-C 退出")
