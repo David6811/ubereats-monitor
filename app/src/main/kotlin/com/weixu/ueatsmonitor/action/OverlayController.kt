@@ -156,8 +156,8 @@ class OverlayController(private val context: Context) {
         State.Thinking -> Face(
             title = "思考中…",
             detail = null,
-            fill = Color.parseColor("#F2263238"),
-            edge = Color.parseColor("#607D8B"),
+            fill = THINKING_FILL,
+            edge = THINKING_EDGE,
             ink = Color.WHITE,
         )
         is State.Decided -> {
@@ -173,16 +173,17 @@ class OverlayController(private val context: Context) {
                     ChipText.rate(state.card),
                 ).joinToString("\n").ifEmpty { null },
                 fill = when {
-                    unsure -> Color.parseColor("#F2263238")
-                    take -> Color.parseColor("#F21B5E20")
-                    else -> Color.parseColor("#F27F1D17")
+                    unsure -> UNSURE_FILL
+                    take -> TAKE_FILL
+                    else -> LEAVE_FILL
                 },
                 edge = when {
-                    unsure -> Color.parseColor("#FFB300")
-                    take -> Color.parseColor("#66BB6A")
-                    else -> Color.parseColor("#EF5350")
+                    unsure -> UNSURE_EDGE
+                    take -> TAKE_EDGE
+                    else -> LEAVE_EDGE
                 },
-                ink = Color.WHITE,
+                // Yellow wants dark letters; the other two want light ones.
+                ink = if (take) Color.parseColor("#14110A") else Color.WHITE,
             )
         }
     }
@@ -198,6 +199,18 @@ class OverlayController(private val context: Context) {
         const val WIDTH = 0.62
 
         private const val THINKING = "thinking"
+
+        // None of these appear on the offer card. Uber's is white, its Accept
+        // button green and its Match button black, so a green chip - which is
+        // what this used to be - sat on the card almost unseen.
+        val TAKE_FILL: Int = Color.parseColor("#FAFFD400")
+        val TAKE_EDGE: Int = Color.parseColor("#FF8F00")
+        val LEAVE_FILL: Int = Color.parseColor("#FAD32F2F")
+        val LEAVE_EDGE: Int = Color.parseColor("#FFCDD2")
+        val UNSURE_FILL: Int = Color.parseColor("#FA3949AB")
+        val UNSURE_EDGE: Int = Color.parseColor("#C5CAE9")
+        val THINKING_FILL: Int = Color.parseColor("#F2263238")
+        val THINKING_EDGE: Int = Color.parseColor("#B0BEC5")
 
         /** Two frames' worth of grace, so a missed frame does not make it flicker. */
         const val TTL_MILLIS = 4_500L
