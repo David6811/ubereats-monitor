@@ -453,8 +453,13 @@ class UberScreenService : AccessibilityService() {
         const val SAME_CALL_MILLIS = 3_000L
         const val HEARTBEAT_MILLIS = 5_000L
 
-        /** A frame kept now and then even with no button, so a shift is not blind. */
-        const val ROUTINE_MILLIS = 30_000L
+        /**
+         * A frame kept even with no button detected, so a shift is never blind.
+         * Ten seconds, not thirty: an offer card is only on screen for a few tens
+         * of seconds, and this is the net that has to catch one if the button
+         * check ever fails. It costs disk, not CPU - no OCR runs on these.
+         */
+        const val ROUTINE_MILLIS = 10_000L
         const val BAND_SAMPLES = 60
 
         /** How long to keep shooting after the screen lights up. */
