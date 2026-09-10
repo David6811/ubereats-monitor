@@ -11,3 +11,4 @@ captures/
 *.keystore
 data/rules.json
 data/backup-*/
+tools/stores/cache/

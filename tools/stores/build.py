@@ -20,6 +20,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(ROOT, "app/src/main/assets/service-area-stores.csv")
+CACHE = os.path.join(HERE, "cache")
 # The public endpoint sheds load hard; the mirrors are tried in turn.
 OVERPASS = (
     "https://overpass-api.de/api/interpreter",
@@ -44,10 +45,13 @@ PARKING_M = 80
 NEIGHBOUR_M = 60
 STRIP_NEIGHBOURS = 6
 
+# Between calls. The public endpoints refuse a client that does not wait.
+PAUSE = 30
+
 
 def overpass(query):
     """One Overpass call, retried: the public endpoint sheds load under pressure."""
-    for attempt in range(6):
+    for attempt in range(9):
         endpoint = OVERPASS[attempt % len(OVERPASS)]
         done = subprocess.run(
             ["curl", "-s", "-m", "240", "-X", "POST", "-d", query, endpoint],
@@ -57,17 +61,32 @@ def overpass(query):
         if body.startswith("{"):
             return json.loads(body)["elements"]
         print(f"  {endpoint.split('/')[2]} 没给数据，等一下再试", flush=True)
-        time.sleep(15 * (attempt + 1))
+        time.sleep(60 * (attempt + 1))
     sys.exit("Overpass 一直不给数据，稍后再跑")
 
 
+def cached(name, query):
+    """Every answer is kept, so a run that dies part way costs only what is left."""
+    os.makedirs(CACHE, exist_ok=True)
+    path = os.path.join(CACHE, name + ".json")
+    if os.path.exists(path):
+        with open(path) as handle:
+            elements = json.load(handle)
+        print(f"  {name}: {len(elements)}（用缓存）", flush=True)
+        return elements
+    elements = overpass(query)
+    with open(path, "w") as handle:
+        json.dump(elements, handle)
+    print(f"  {name}: {len(elements)}", flush=True)
+    time.sleep(PAUSE)
+    return elements
+
+
 def gather(kinds, key):
-    """Overpass refuses one query with every tag in it, so ask a few at a time."""
+    """One tag per call. Asking for four at once is what the mirrors refuse."""
     found = []
-    for at in range(0, len(kinds), 4):
-        batch = kinds[at:at + 4]
-        print(f"  {', '.join(batch)}", flush=True)
-        found += overpass(area([f'["{key}"="{kind}"]' for kind in batch]))
+    for kind in kinds:
+        found += cached(f"{key}-{kind}", area([f'["{key}"="{kind}"]']))
     return found
 
 
@@ -122,10 +141,10 @@ def main():
     raw = gather(list(FOOD), "amenity") + gather(list(SHOPS), "shop")
 
     print("拉停车场…", flush=True)
-    parks = overpass(area(['["amenity"="parking"]']))
+    parks = cached("parking", area(['["amenity"="parking"]']))
 
     print("拉商场…", flush=True)
-    malls = shapes_of(overpass(area(['["shop"="mall"]'], geometry=True)))
+    malls = shapes_of(cached("mall", area(['["shop"="mall"]'], geometry=True)))
 
     shops = []
     for element in raw:
