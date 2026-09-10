@@ -48,7 +48,7 @@ class OfferCardReaderTest {
         val card = OfferCardReader.read(lines)!!
 
         // assert
-        assertEquals(0.9942, card.distance.value, 0.001)
+        assertEquals(0.9942, card.distance!!.value, 0.001)
     }
 
     @Test
@@ -137,6 +137,99 @@ class OfferCardReaderTest {
 
         // assert
         assertEquals(Cents(1803), card.payout)
+    }
+
+    @Test
+    fun `given the real offer card, when tested for presence, then Accept plus a payout is enough`() {
+        // arrange
+        val lines = REAL_CARD
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(looksLikeCard)
+    }
+
+    @Test
+    fun `given a card whose totals line was garbled, when read, then the card is still found`() {
+        // arrange
+        val lines = listOf(
+            "Delivery", "\$5", "Est. earnings for completed trip",
+            "1O min (l.6 krn) totaI",
+            "Mario's Pizza And Pasta",
+            "Cole Street & Nockolds Crescent, Noble Park",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals("Cole Street & Nockolds Crescent, Noble Park", card!!.dropoff)
+    }
+
+    @Test
+    fun `given a card whose totals line was garbled, when read, then the distance is null not zero`() {
+        // arrange
+        val lines = listOf("\$5", "1O min (l.6 krn) totaI", "Mario's Pizza And Pasta", "Noble Park", "Accept")
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertNull(card.distance)
+    }
+
+    @Test
+    fun `given a batched card with three stops, when read, then the last stop is the dropoff`() {
+        // arrange
+        val lines = listOf(
+            "Delivery (2)", "Batched", "\$14.20", "32 min (7.4 km) total",
+            "Mario's Pizza And Pasta",
+            "12 Cole Street, Noble Park",
+            "30 Keating Cres, Dandenong",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("30 Keating Cres, Dandenong", card.dropoff)
+    }
+
+    @Test
+    fun `given a batched card with three stops, when read, then every stop is kept`() {
+        // arrange
+        val lines = listOf(
+            "Delivery (2)", "Batched", "\$14.20", "32 min (7.4 km) total",
+            "Mario's Pizza And Pasta",
+            "12 Cole Street, Noble Park",
+            "30 Keating Cres, Dandenong",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals(3, card.stops.size)
+    }
+
+    @Test
+    fun `given the earnings page, when tested for presence, then a price alone is not a card`() {
+        // arrange
+        val lines = listOf("Wallet", "Balance", "\$44.49", "Next payout 14 Sept")
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(!looksLikeCard)
     }
 
     private companion object {

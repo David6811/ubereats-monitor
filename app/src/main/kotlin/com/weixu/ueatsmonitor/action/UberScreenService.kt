@@ -57,12 +57,42 @@ class UberScreenService : AccessibilityService() {
     private var lastRungSignature: String = ""
     private var lastRungAtMillis: Long = 0L
     private var lastHeartbeatAtMillis: Long = 0L
+    private var burstUntilMillis: Long = 0L
+    private var lastSawUberAtMillis: Long = 0L
+
+    /**
+     * An offer wakes a sleeping phone, and on the lock screen the window list is
+     * not ours to read - which is how a real offer left a 109 second hole in a
+     * recording. So the screen lighting up is itself a reason to shoot: blind,
+     * and regardless of which app the system says is in front.
+     */
+    private val screenWatcher = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            when (intent?.action) {
+                android.content.Intent.ACTION_SCREEN_ON,
+                android.content.Intent.ACTION_USER_PRESENT -> {
+                    burstUntilMillis = System.currentTimeMillis() + BURST_MILLIS
+                    ServiceJournal.note(this@UberScreenService, "屏幕亮起，密集截图 " + (BURST_MILLIS / 1000) + " 秒")
+                    look(force = true)
+                }
+            }
+        }
+    }
 
     override fun onServiceConnected() {
         Log.i(TAG, "accessibility service connected")
         ServiceJournal.note(this, "读屏已连接")
         main.removeCallbacks(poll)
         main.post(poll)
+        runCatching {
+            registerReceiver(
+                screenWatcher,
+                android.content.IntentFilter().apply {
+                    addAction(android.content.Intent.ACTION_SCREEN_ON)
+                    addAction(android.content.Intent.ACTION_USER_PRESENT)
+                },
+            )
+        }
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
@@ -73,6 +103,7 @@ class UberScreenService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(screenWatcher) }
         ServiceJournal.note(this, "读屏被销毁")
         main.removeCallbacks(poll)
         super.onDestroy()
@@ -94,19 +125,31 @@ class UberScreenService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun look(force: Boolean = false) {
+        val bursting = System.currentTimeMillis() < burstUntilMillis
         val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
-        val roots = uberRoots()
+        // During a burst take whatever windows are there - on the lock screen that
+        // may be none, and a screenshot with no text still shows the offer.
+        // The last dependency to remove: an offer that shows over the lock screen,
+        // or over another app, may leave no Uber window we can enumerate. While the
+        // screen is lit during a shift, shoot regardless of what the system reports.
+        val onShift = System.currentTimeMillis() - lastSawUberAtMillis < ON_SHIFT_MILLIS
+        val screenLit = runCatching {
+            getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
+        }.getOrDefault(false)
+        val shootBlind = bursting || (screenLit && onShift)
+
+        val roots = uberRoots().ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
-        if (roots.isEmpty()) return
+        if (roots.isEmpty() && !shootBlind) return
 
         // A card that appears half a second after the last capture must not be
         // swallowed by the throttle that exists to stop a moving map spamming files.
         val now = System.currentTimeMillis()
-        val gap = if (force) FORCED_GAP_MILLIS else MIN_GAP_MILLIS
+        val gap = if (force || bursting) FORCED_GAP_MILLIS else MIN_GAP_MILLIS
         if (now - lastCaptureAtMillis < gap) return
 
         val lines = roots.flatMap { ScreenReader.readAll(it) }
-        if (lines.isEmpty()) return
+        if (lines.isEmpty() && !shootBlind) return
 
         val text = lines.joinToString("\n")
         val windowSignature = roots.joinToString("+") { node ->
@@ -129,7 +172,7 @@ class UberScreenService : AccessibilityService() {
         lastCaptureAtMillis = now
         Log.i(TAG, "capture by $trigger, ${lines.size} lines")
 
-        val onScreen = roots.first().packageName?.toString() ?: "unknown"
+        val onScreen = roots.firstOrNull()?.packageName?.toString() ?: "locked_or_unknown"
         val fix = position.lastKnown()
         val decision = decide(lines, text, now)
 
@@ -138,6 +181,8 @@ class UberScreenService : AccessibilityService() {
             append("windows=").append(roots.size).append('\n')
             append("lines=").append(lines.size).append('\n')
             append("trigger=").append(trigger).append('\n')
+            append("burst=").append(bursting).append('\n')
+            append("blind=").append(roots.isEmpty()).append('\n')
             append("millis=").append(now).append('\n')
             if (fix != null) {
                 append("lat=").append(fix.at.latitude).append('\n')
@@ -195,8 +240,8 @@ class UberScreenService : AccessibilityService() {
             append("card=").append(card != null).append('\n')
             if (card != null) {
                 append("card_payout=").append(card.payout).append('\n')
-                append("card_minutes=").append(card.duration.value).append('\n')
-                append("card_miles=").append(String.format("%.2f", card.distance.value)).append('\n')
+                append("card_minutes=").append(card.duration?.value ?: -1).append('\n')
+                append("card_miles=").append(card.distance?.let { String.format("%.2f", it.value) } ?: "?").append('\n')
                 append("card_pickup=").append(card.pickup).append('\n')
                 append("card_dropoff=").append(card.dropoff).append('\n')
             }
@@ -234,9 +279,11 @@ class UberScreenService : AccessibilityService() {
             windows.orEmpty().mapNotNull { it.root }
         }.getOrDefault(emptyList())
         val candidates = fromWindows.ifEmpty { listOfNotNull(rootInActiveWindow) }
-        return candidates.filter { node ->
+        val uber = candidates.filter { node ->
             OfferParser.isUberPackage(node.packageName?.toString().orEmpty())
         }
+        if (uber.isNotEmpty()) lastSawUberAtMillis = System.currentTimeMillis()
+        return uber
     }
 
     /** Hands a screenshot to [onReady], or null when the platform refuses one. */
@@ -281,5 +328,11 @@ class UberScreenService : AccessibilityService() {
         const val FORCED_GAP_MILLIS = 400L
         const val SAME_CALL_MILLIS = 90_000L
         const val HEARTBEAT_MILLIS = 5_000L
+
+        /** How long to keep shooting after the screen lights up. */
+        const val BURST_MILLIS = 60_000L
+
+        /** How long after seeing Uber we still treat the driver as on shift. */
+        const val ON_SHIFT_MILLIS = 15L * 60 * 1000
     }
 }
