@@ -33,7 +33,12 @@ data class OfferCard(
  */
 object OfferCardReader {
 
-    private val ACCEPT = Regex("""^\s*accept\s*$""", RegexOption.IGNORE_CASE)
+    /**
+     * The Accept button, however Android happens to describe it: bare, with a
+     * countdown ("Accept 12s"), or with a role suffix ("Accept, button"). What it
+     * must not match is a past tense elsewhere in the app - "Accepted", "Acceptance".
+     */
+    private val ACCEPT = Regex("""(^|[^a-z])accept([^a-z]|$)""", RegexOption.IGNORE_CASE)
     private val PAYOUT = Regex("""^[$＄]\s*(\d+(?:[.,]\d{1,2})?)$""")
     private val TOTALS = Regex(
         """^(\d+)\s*min\s*\(\s*([\d.]+)\s*(km|mi|miles?|kilomet(?:er|re)s?)\s*\)\s*total$""",
@@ -50,13 +55,13 @@ object OfferCardReader {
     /** Cheap presence test: the Accept button, plus a payout or a totals line. */
     fun looksLikeCard(lines: List<String>): Boolean {
         val clean = clean(lines)
-        if (clean.none { ACCEPT.matches(it) }) return false
+        if (clean.none { ACCEPT.containsMatchIn(it) }) return false
         return clean.any { PAYOUT.matches(it) } || clean.any { TOTALS.matches(it) }
     }
 
     fun read(lines: List<String>): OfferCard? {
         val clean = clean(lines)
-        val acceptAt = clean.indexOfLast { ACCEPT.matches(it) }
+        val acceptAt = clean.indexOfLast { ACCEPT.containsMatchIn(it) }
         val end = if (acceptAt >= 0) acceptAt else clean.size
 
         val totalsAt = clean.take(end).indexOfLast { TOTALS.matches(it) }

@@ -232,6 +232,42 @@ class OfferCardReaderTest {
         assertTrue(!looksLikeCard)
     }
 
+    @Test
+    fun `given an Accept button with a countdown, when tested, then the card is still recognised`() {
+        // arrange
+        val lines = listOf("Delivery", "\$5", "10 min (1.6 km) total", "Mario's", "Noble Park", "Accept 12s")
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(looksLikeCard)
+    }
+
+    @Test
+    fun `given an Accept button described with its role, when tested, then the card is still recognised`() {
+        // arrange
+        val lines = listOf("Delivery", "\$5", "10 min (1.6 km) total", "Mario's", "Noble Park", "Accept, button")
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(looksLikeCard)
+    }
+
+    @Test
+    fun `given the word Accepted in past tense, when tested, then it is not taken for the button`() {
+        // arrange
+        val lines = listOf("Trip Accepted", "\$5", "Acceptance rate 92%")
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(!looksLikeCard)
+    }
+
     private companion object {
         val REAL_CARD = listOf(
             "Delivery",
