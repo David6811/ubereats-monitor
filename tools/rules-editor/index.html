@@ -102,7 +102,7 @@ textarea{
   font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; resize:vertical;
 }
 .count{color:var(--ink-3); font-size:12px; margin-left:8px}
-#status{font-size:13px; color:var(--ink-2); min-height:20px}
+#status{font-size:13px;color:var(--ink-2);max-width:34ch;text-align:right;line-height:1.35}
 #status[data-kind="ok"]{color:var(--yes)}
 #status[data-kind="bad"]{color:var(--no)}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
@@ -150,6 +150,7 @@ body.mapfull h2{font-size:17px}
   <span class="sub">在这台电脑上改，保存时直接推到手机</span>
   <span class="spacer"></span>
   <span id="phone">手机：检测中…</span>
+  <span id="status"></span>
   <button class="btn" id="save">保存并推送到手机</button>
 </header>
 
@@ -206,7 +207,6 @@ body.mapfull h2{font-size:17px}
     <textarea id="addresses" placeholder="Cnr Springvale and Cheltenham Rds&#10;Tower 3, Docklands"></textarea>
   </section>
 
-  <div id="status"></div>
 </main>
 
 <footer>
@@ -688,6 +688,7 @@ body.mapfull h2{font-size:17px}
     }
 
     $("save").disabled = true;
+    $("save").textContent = "保存中…";
     say("保存中…");
     fetch("/api/save", {
       method: "POST",
@@ -695,6 +696,7 @@ body.mapfull h2{font-size:17px}
       body: JSON.stringify(state.rules),
     }).then(function(r){ return r.json(); }).then(function(data){
       $("save").disabled = false;
+      $("save").textContent = "保存并推送到手机";
       if (data.pushed) say("已保存并推送到手机（当前方案「" + state.rules.active + "」，" +
                             state.rules.suburbs.allow.length + " 个区）", "ok");
       else say("已存在电脑上，但没推到手机：" + (data.detail || "手机没插线"), "bad");
