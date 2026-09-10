@@ -162,8 +162,8 @@ body.mapfull h2{font-size:17px}
     </div>
     <div id="map"></div>
     <div class="legend">
-      <span><i style="background:rgba(47,122,79,.55)"></i>去</span>
-      <span><i style="background:rgba(138,144,153,.18);border:1px solid var(--ink-3)"></i>不去</span>
+      <span><i style="background:linear-gradient(90deg,#2F7A4F,#0E5B62,#7A3E5E,#3A5A9E)"></i>去（颜色只为分开相邻的区）</span>
+      <span><i style="background:transparent;border:1px solid var(--ink-3)"></i>不去（只剩轮廓）</span>
       <span><i style="background:transparent;border:2px solid var(--accent)"></i>画圈工具</span>
     </div>
 
@@ -258,7 +258,7 @@ body.mapfull h2{font-size:17px}
             toggle(name);
           });
           layer.on("mouseover", function(){
-            this.setStyle({ weight: 3, color: "#0E5B62" });
+            this.setStyle({ weight: 3.4, color: "#111", opacity: 1 });
           });
           layer.on("mouseout", function(){
             this.setStyle(styleFor({ properties: { name: name } }));
@@ -273,16 +273,33 @@ body.mapfull h2{font-size:17px}
 
   function allowed(name){ return state.rules.suburbs.allow.indexOf(name) >= 0; }
 
+  /**
+   * Eight hues, assigned by name. Seven hundred suburbs cannot each have their
+   * own colour, and they do not need one - what has to be readable is where one
+   * ends and the next begins, so neighbours only have to differ from each other.
+   * A hash gives that instantly; a proper graph colouring would cost adjacency
+   * for 760 polygons to buy the rare case of two same-coloured neighbours.
+   *
+   * Chosen or not is carried by the fill, not the hue: a suburb you go to is
+   * filled, one you do not is an outline.
+   */
+  var HUES = ["#2F7A4F","#0E5B62","#7A5B1E","#7A3E5E","#3A5A9E","#1E7A6E","#8A5A2B","#4A4E8C"];
+
+  function hueOf(name){
+    var sum = 0;
+    for (var i = 0; i < name.length; i++) sum = (sum * 31 + name.charCodeAt(i)) >>> 0;
+    return HUES[sum % HUES.length];
+  }
+
   function styleFor(feature){
-    var on = allowed(feature.properties.name);
+    var name = feature.properties.name;
+    var on = allowed(name);
     return {
-      color: on ? "#1E6B40" : "#8A9099",
-      weight: on ? 2.2 : 0.6,
-      fillColor: on ? "#2F7A4F" : "#8A9099",
-      fillOpacity: on ? 0.45 : 0.06,
-      // The shape itself is the selection indicator, so it has to read at a
-      // glance: a chosen suburb gets a solid outline, the rest almost vanish.
-      opacity: on ? 1 : 0.5,
+      color: on ? hueOf(name) : "#9AA0A6",
+      weight: on ? 1.8 : 0.6,
+      fillColor: hueOf(name),
+      fillOpacity: on ? 0.52 : 0,
+      opacity: on ? 1 : 0.45,
     };
   }
 
