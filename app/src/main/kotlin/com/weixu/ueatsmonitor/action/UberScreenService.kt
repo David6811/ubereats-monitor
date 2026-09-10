@@ -369,6 +369,23 @@ class UberScreenService : AccessibilityService() {
             overlay.show(OverlayController.State.Decided(ruling = ruling, card = card))
         }
 
+        // Onto the board, so the two stops are still there after the card goes.
+        // Repeats of the same card are dropped there, not here.
+        if (card != null) {
+            JobStore.add(
+                context = this,
+                atMillis = now,
+                offer = com.weixu.ueatsmonitor.domain.OfferRecord(
+                    isMatch = card.isMatch,
+                    payout = card.payout.toString(),
+                    pickup = card.pickup,
+                    dropoff = card.dropoff,
+                    ruling = ruling?.let { RulingText.headline(it, card.isMatch) },
+                    why = ruling?.let(RulingText::reason),
+                ),
+            )
+        }
+
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
             " ruling=" + (ruling?.let { RulingText.headline(it, card.isMatch) } ?: "-") + " chime=" + chime)
 

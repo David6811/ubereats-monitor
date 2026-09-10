@@ -84,12 +84,14 @@ private fun HomeTabs() {
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("用哪套") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("跑单记录") })
-            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("设置") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("主工作区") })
+            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("跑单记录") })
+            Tab(selected = tab == 3, onClick = { tab = 3 }, text = { Text("设置") })
         }
         when (tab) {
             0 -> ProfileScreen()
-            1 -> CaptureScreen()
+            1 -> WorkScreen()
+            2 -> CaptureScreen()
             else -> MonitorScreen(App.instance.settingsStore)
         }
     }
