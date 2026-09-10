@@ -135,6 +135,12 @@ body.mapfull h2{font-size:17px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
 .btn.armed{background:var(--accent);color:#fff}
+.prof{
+  border:1px solid var(--line);background:var(--sunk);color:var(--ink-2);
+  border-radius:999px;padding:5px 14px;font-size:14px;cursor:pointer;user-select:none;
+}
+.prof[data-on="1"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+.prof .x{margin-left:8px;opacity:.5}
 </style>
 </head>
 <body>
@@ -154,6 +160,7 @@ body.mapfull h2{font-size:17px}
       点区块切换去 / 不去，绿色=去。<b>保存的只有这份名单</b> —— 下面那个圈是画图工具，
       用来一次填满一片区，它本身不是规则。
     </p>
+    <div class="maptools" id="profileBar"></div>
     <div class="maptools">
       <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
       <button class="btn plain" id="fit">回到选中的区</button>
@@ -228,6 +235,7 @@ body.mapfull h2{font-size:17px}
     counts();
     initMap();
     drawPlaces();
+    drawProfiles();
   }
 
   function counts(){
@@ -355,6 +363,88 @@ body.mapfull h2{font-size:17px}
     anchorMark = L.circleMarker([lat, lon], {
       radius: 6, color: "#0E5B62", fillColor: "#0E5B62", fillOpacity: 1,
     }).addTo(map).bindTooltip("画圈圆心");
+  }
+
+  /**
+   * Named sets of suburbs. The phone only ever reads suburbs.allow, so switching
+   * a set copies it there - nothing on the phone has to know these exist.
+   */
+  function profiles(){
+    if (!state.rules.profiles) {
+      state.rules.profiles = [{ name: "默认", suburbs: state.rules.suburbs.allow.slice() }];
+      state.rules.active = "默认";
+    }
+    return state.rules.profiles;
+  }
+
+  function drawProfiles(){
+    var bar = $("profileBar");
+    bar.textContent = "";
+    var label = document.createElement("span");
+    label.className = "eyebrow";
+    label.textContent = "选区方案";
+    bar.appendChild(label);
+
+    profiles().forEach(function(profile){
+      var chip = document.createElement("span");
+      chip.className = "prof";
+      chip.dataset.on = profile.name === state.rules.active ? "1" : "0";
+      chip.textContent = profile.name;
+      chip.addEventListener("click", function(){ switchTo(profile.name); });
+      chip.addEventListener("dblclick", function(){
+        var name = (prompt("改名", profile.name) || "").trim();
+        if (!name || name === profile.name) return;
+        if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
+        if (state.rules.active === profile.name) state.rules.active = name;
+        profile.name = name;
+        drawProfiles();
+      });
+      chip.title = profile.suburbs.length + " 个区 · 双击改名";
+      if (profiles().length > 1) {
+        var kill = document.createElement("span");
+        kill.className = "x";
+        kill.textContent = "×";
+        kill.title = "删除这套";
+        kill.addEventListener("click", function(e){
+          e.stopPropagation();
+          if (!confirm("删除方案「" + profile.name + "」？")) return;
+          state.rules.profiles = profiles().filter(function(p){ return p.name !== profile.name; });
+          if (state.rules.active === profile.name) switchTo(profiles()[0].name);
+          else drawProfiles();
+        });
+        chip.appendChild(kill);
+      }
+      bar.appendChild(chip);
+    });
+
+    var add = document.createElement("button");
+    add.className = "btn plain";
+    add.textContent = "把现在的选区另存为…";
+    add.addEventListener("click", function(){
+      var name = (prompt("这套叫什么？", "") || "").trim();
+      if (!name) return;
+      var existing = profiles().filter(function(p){ return p.name === name; })[0];
+      if (existing) existing.suburbs = state.rules.suburbs.allow.slice();
+      else profiles().push({ name: name, suburbs: state.rules.suburbs.allow.slice() });
+      state.rules.active = name;
+      drawProfiles();
+      say("已存为「" + name + "」", "ok");
+    });
+    bar.appendChild(add);
+  }
+
+  /** Keeps the set you are leaving up to date before loading the next one. */
+  function switchTo(name){
+    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+    if (here) here.suburbs = state.rules.suburbs.allow.slice();
+    var next = profiles().filter(function(p){ return p.name === name; })[0];
+    if (!next) return;
+    state.rules.active = name;
+    state.rules.suburbs.allow = next.suburbs.slice();
+    repaint();
+    drawProfiles();
+    fitToChosen();
+    say("已切到「" + name + "」，" + next.suburbs.length + " 个区", "ok");
   }
 
   function drawPlaces(){
@@ -572,6 +662,8 @@ body.mapfull h2{font-size:17px}
 
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;
+    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+    if (here) here.suburbs = state.rules.suburbs.allow.slice();
     state.rules.addresses.deny = $("addresses").value.split("\n")
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
@@ -588,7 +680,8 @@ body.mapfull h2{font-size:17px}
       body: JSON.stringify(state.rules),
     }).then(function(r){ return r.json(); }).then(function(data){
       $("save").disabled = false;
-      if (data.pushed) say("已保存并推送到手机", "ok");
+      if (data.pushed) say("已保存并推送到手机（当前方案「" + state.rules.active + "」，" +
+                            state.rules.suburbs.allow.length + " 个区）", "ok");
       else say("已存在电脑上，但没推到手机：" + (data.detail || "手机没插线"), "bad");
     });
   });

@@ -70,6 +70,8 @@ def load_rules():
             pass
     return {
         "version": 1,
+        "profiles": [{"name": "默认", "suburbs": STARTER_ALLOW}],
+        "active": "默认",
         "suburbs": {"allow": STARTER_ALLOW, "deny": []},
         "stores": {"deny": []},
         "addresses": {"deny": []},
