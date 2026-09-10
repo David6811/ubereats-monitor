@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptyList()), GAZETTEER)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptyList(), emptyList()), GAZETTEER)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -99,6 +99,35 @@ class RuleJudgeTest {
         assertTrue(ruling is Ruling.Take)
     }
 
+    @Test
+    fun `given a chain that always has parking, when it is on the deny list, then it is still taken`() {
+        // arrange
+        val card = card(pickup = "McDonald's® (Dandenong)", dropoff = "Some Street, Noble Park")
+        val rules = RULES.copy(
+            deniedStores = listOf("McDonald's"),
+            alwaysOkStores = listOf("McDonald"),
+        )
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // assert
+        assertTrue(ruling is Ruling.Take)
+    }
+
+    @Test
+    fun `given a whitelisted chain with a destination outside the area, when judged, then the suburb still rules`() {
+        // arrange
+        val card = card(pickup = "KFC (Dandenong)", dropoff = "Bangholme Road, Dandenong South")
+        val rules = RULES.copy(deniedStores = listOf("KFC"), alwaysOkStores = listOf("KFC"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // assert
+        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling))
+    }
+
     private fun card(pickup: String, dropoff: String, payout: Cents = Cents(907)) = OfferCard(
         payout = payout,
         duration = Minutes(16),
@@ -112,6 +141,7 @@ class RuleJudgeTest {
         val RULES = Rules(
             allowedSuburbs = setOf("Noble Park", "Keysborough", "Dandenong"),
             deniedStores = emptyList(),
+            alwaysOkStores = emptyList(),
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),

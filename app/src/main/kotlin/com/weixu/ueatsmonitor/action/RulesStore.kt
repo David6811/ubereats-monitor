@@ -39,23 +39,31 @@ object RulesStore {
         Log.i(
             "UEatsMonitor",
             "rules: " + parsed.allowedSuburbs.size + " suburbs, " +
-                parsed.deniedStores.size + " denied stores",
+                parsed.deniedStores.size + " denied stores, " +
+                parsed.alwaysOkStores.size + " always ok",
         )
         return parsed
     }
 
     private fun parse(file: File): Rules {
-        if (!file.exists()) return Rules(emptySet(), emptyList())
+        if (!file.exists()) return Rules(emptySet(), emptyList(), emptyList())
         return runCatching {
             val root = json.parseToJsonElement(file.readText()).jsonObject
             val allow = root["suburbs"]?.jsonObject?.get("allow")?.jsonArray
                 ?.map { it.jsonPrimitive.content }
                 ?.toSet()
                 .orEmpty()
-            val deny = root["stores"]?.jsonObject?.get("deny")?.jsonArray
+            // Two lists, one meaning: names typed by hand, and the shopping-strip
+            // rule expanded on the laptop. Kept apart there so either can be
+            // changed without disturbing the other.
+            val stores = root["stores"]?.jsonObject
+            val deny = listOf("deny", "cbdDeny").flatMap { key ->
+                stores?.get(key)?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+            }.distinct()
+            val alwaysOk = stores?.get("alwaysOk")?.jsonArray
                 ?.map { it.jsonPrimitive.content }
                 .orEmpty()
-            Rules(allow, deny)
-        }.getOrElse { Rules(emptySet(), emptyList()) }
+            Rules(allow, deny, alwaysOk)
+        }.getOrElse { Rules(emptySet(), emptyList(), emptyList()) }
     }
 }

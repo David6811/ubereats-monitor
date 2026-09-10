@@ -47,6 +47,10 @@ CBD = [
 ]
 CBD_RADIUS_KM = 0.7
 
+# Chains with their own car park. Never refused, whatever else a rule says, and
+# left out of the shopping-strip expansion.
+ALWAYS_OK = ["McDonald", "KFC", "Red Rooster", "Coles", "Woolworths", "Aldi"]
+
 STARTER_ALLOW = [
     "Aspendale", "Aspendale Gardens", "Bangholme", "Bonbeach", "Braeside",
     "Carrum", "Chelsea", "Chelsea Heights", "Cheltenham", "Clarinda",
@@ -81,7 +85,7 @@ def load_rules():
         "profiles": [{"name": "默认", "suburbs": STARTER_ALLOW}],
         "active": "默认",
         "suburbs": {"allow": STARTER_ALLOW, "deny": []},
-        "stores": {"deny": []},
+        "stores": {"deny": [], "cbdDeny": [], "alwaysOk": ALWAYS_OK},
         "addresses": {"deny": []},
     }
 
@@ -162,8 +166,17 @@ def cbd_groups():
             "key": core["key"],
             "label": core["label"],
             "radiusKm": CBD_RADIUS_KM,
-            "deny": shape([r for r in near if r["setting"] in ("STRIP", "MALL")]),
-            "keep": shape([r for r in near if r["setting"] == "STANDALONE_PARKING"]),
+            # A whitelisted chain is not proposed for refusal in the first place.
+            "deny": shape([
+                r for r in near
+                if r["setting"] in ("STRIP", "MALL")
+                and not any(ok.lower() in r["name"].lower() for ok in ALWAYS_OK)
+            ]),
+            "keep": shape([
+                r for r in near
+                if r["setting"] == "STANDALONE_PARKING"
+                or any(ok.lower() in r["name"].lower() for ok in ALWAYS_OK)
+            ]),
             "unknown": shape([r for r in near if r["setting"] == "STANDALONE"]),
         })
     return out
@@ -218,7 +231,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 }
             )
         if self.path == "/api/cbd":
-            return self.send_json({"cores": cbd_groups()})
+            return self.send_json({"cores": cbd_groups(), "alwaysOk": ALWAYS_OK})
 
         if self.path.startswith("/api/geocode"):
             from urllib.parse import urlparse, parse_qs, quote

@@ -153,6 +153,8 @@ body.mapfull h2{font-size:17px}
 .core .items span{color:var(--ink-2)}
 .core .items span.warn{color:var(--warn)}
 .core .items span.kept{color:var(--yes)}
+.checkline{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);cursor:pointer}
+.core .acts .checkline{border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:var(--panel)}
 </style>
 </head>
 <body>
@@ -253,6 +255,7 @@ body.mapfull h2{font-size:17px}
     $("addresses").value = (state.rules.addresses.deny || []).join("\n");
     drawStores();
     drawDenied();
+    drawAlwaysOk();
     counts();
     initMap();
     drawPlaces();
@@ -462,6 +465,7 @@ body.mapfull h2{font-size:17px}
   function switchTo(name){
     var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
     if (here) here.suburbs = state.rules.suburbs.allow.slice();
+    state.rules.stores.cbdDeny = cbdNames();
     var next = profiles().filter(function(p){ return p.name === name; })[0];
     if (!next) return;
     state.rules.active = name;
@@ -479,6 +483,7 @@ body.mapfull h2{font-size:17px}
    */
   function drawCores(){
     fetch("/api/cbd").then(function(r){ return r.json(); }).then(function(data){
+      coreData = data.cores;
       var box = $("cores");
       box.textContent = "";
       data.cores.forEach(function(core){
@@ -496,24 +501,20 @@ body.mapfull h2{font-size:17px}
                           " 家 · 自带停车场保留 " + core.keep.length + " 家";
         el.append(title, sum);
 
+        // A switch, not a button: this is a standing rule that travels with every
+        // save, not a one-off dump of names into the manual list.
         var acts = document.createElement("div");
         acts.className = "acts";
-        var addSafe = document.createElement("button");
-        addSafe.className = "btn plain";
-        addSafe.textContent = "拉黑这 " + safe.length + " 家";
-        addSafe.addEventListener("click", function(){
-          safe.forEach(function(r){ deny(r.name); });
-          say(core.label + "：已加入 " + safe.length + " 家", "ok");
-        });
-        var addShared = document.createElement("button");
-        addShared.className = "btn plain";
-        addShared.textContent = "连同名的一起（+" + shared.length + "）";
-        addShared.title = "会连带拉黑别处的同名店";
-        addShared.addEventListener("click", function(){
-          safe.concat(shared).forEach(function(r){ deny(r.name); });
-          say(core.label + "：已加入 " + (safe.length + shared.length) + " 家（含同名）", "ok");
-        });
-        acts.append(addSafe, addShared);
+        acts.appendChild(toggle(
+          "整片不接（" + safe.length + " 家）",
+          cbdSetting()[core.key] !== false,
+          function(on){ cbdSetting()[core.key] = on; drawCores(); }
+        ));
+        acts.appendChild(toggle(
+          "连同名的一起（+" + shared.length + "）",
+          cbdSetting().includeShared === true,
+          function(on){ cbdSetting().includeShared = on; drawCores(); }
+        ));
         el.appendChild(acts);
 
         el.appendChild(groupBlock("会被拉黑", safe, ""));
@@ -527,6 +528,42 @@ body.mapfull h2{font-size:17px}
   }
 
   /** One collapsible block, its rows grouped by what kind of shop they are. */
+  /** The standing setting for the two cores, defaulting both on. */
+  function cbdSetting(){
+    if (!state.rules.cbd) state.rules.cbd = { springvale: true, dandenong: true, includeShared: false };
+    return state.rules.cbd;
+  }
+
+  /** The cores as they stand right now, expanded into names for the phone. */
+  var coreData = [];
+  function cbdNames(){
+    var names = {};
+    coreData.forEach(function(core){
+      if (cbdSetting()[core.key] === false) return;
+      core.deny.forEach(function(r){
+        var whitelisted = alwaysOk().some(function(ok){
+          return r.name.toLowerCase().indexOf(ok.toLowerCase()) >= 0;
+        });
+        if (whitelisted) return;
+        if (r.elsewhere === 0 || cbdSetting().includeShared) names[r.name] = 1;
+      });
+    });
+    return Object.keys(names);
+  }
+
+  function toggle(label, on, onChange){
+    var wrap = document.createElement("label");
+    wrap.className = "checkline";
+    var box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = on;
+    box.addEventListener("change", function(){ onChange(box.checked); });
+    var text = document.createElement("span");
+    text.textContent = label;
+    wrap.append(box, text);
+    return wrap;
+  }
+
   function groupBlock(title, rows, cls){
     var d = document.createElement("details");
     var s = document.createElement("summary");
@@ -720,6 +757,16 @@ body.mapfull h2{font-size:17px}
   }
   $("storeSearch").addEventListener("input", drawStores);
 
+  $("addAlwaysOk").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var name = this.value.trim();
+    if (!name) return;
+    if (alwaysOk().indexOf(name) < 0) alwaysOk().push(name);
+    this.value = "";
+    drawAlwaysOk();
+    drawCores();
+  });
+
   $("denyShown").addEventListener("click", function(){
     var names = {};
     matchedStores().forEach(function(s){ names[s.mall || s.name] = 1; });
@@ -729,6 +776,28 @@ body.mapfull h2{font-size:17px}
   function deny(name){
     if (state.rules.stores.deny.indexOf(name) < 0) state.rules.stores.deny.push(name);
     drawDenied(); counts();
+  }
+
+  function alwaysOk(){
+    if (!state.rules.stores.alwaysOk) state.rules.stores.alwaysOk = [];
+    return state.rules.stores.alwaysOk;
+  }
+
+  function drawAlwaysOk(){
+    var box = $("alwaysOk");
+    box.textContent = "";
+    alwaysOk().forEach(function(name){
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.dataset.on = "1";
+      chip.textContent = name + "  ×";
+      chip.title = "点一下移除";
+      chip.addEventListener("click", function(){
+        state.rules.stores.alwaysOk = alwaysOk().filter(function(n){ return n !== name; });
+        drawAlwaysOk();
+      });
+      box.appendChild(chip);
+    });
   }
 
   function drawDenied(){
@@ -783,6 +852,7 @@ body.mapfull h2{font-size:17px}
     delete state.rules.anchor;
     var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
     if (here) here.suburbs = state.rules.suburbs.allow.slice();
+    state.rules.stores.cbdDeny = cbdNames();
     state.rules.addresses.deny = $("addresses").value.split("\n")
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
@@ -801,8 +871,10 @@ body.mapfull h2{font-size:17px}
     }).then(function(r){ return r.json(); }).then(function(data){
       $("save").disabled = false;
       $("save").textContent = "保存并推送到手机";
-      if (data.pushed) say("已保存并推送到手机（当前方案「" + state.rules.active + "」，" +
-                            state.rules.suburbs.allow.length + " 个区）", "ok");
+      if (data.pushed) say("已推送：方案「" + state.rules.active + "」" +
+                            state.rules.suburbs.allow.length + " 个区，市中心 " +
+                            (state.rules.stores.cbdDeny || []).length + " 家 + 手动 " +
+                            state.rules.stores.deny.length + " 家", "ok");
       else say("已存在电脑上，但没推到手机：" + (data.detail || "手机没插线"), "bad");
     });
   });

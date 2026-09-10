@@ -8,6 +8,12 @@ package com.weixu.ueatsmonitor.domain
 data class Rules(
     val allowedSuburbs: Set<String>,
     val deniedStores: List<String>,
+    /**
+     * Chains that always have their own car park. A pickup matching one of these
+     * is never refused, whatever else says so - a McDonald's inside a shopping
+     * strip is still a McDonald's with a car park.
+     */
+    val alwaysOkStores: List<String>,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -41,7 +47,10 @@ object RuleJudge {
     fun judge(card: OfferCard, rules: Rules, gazetteer: List<Suburb>): Ruling {
         if (rules.allowedSuburbs.isEmpty() && rules.deniedStores.isEmpty()) return Ruling.NoRules
 
-        val denied = rules.deniedStores.firstOrNull { name ->
+        val alwaysOk = rules.alwaysOkStores.any { name ->
+            name.isNotBlank() && card.pickup.contains(name, ignoreCase = true)
+        }
+        val denied = if (alwaysOk) null else rules.deniedStores.firstOrNull { name ->
             name.isNotBlank() && card.pickup.contains(name, ignoreCase = true)
         }
         if (denied != null) return Ruling.Leave(Ruling.Reason.StoreDenied(denied))
