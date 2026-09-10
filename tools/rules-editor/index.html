@@ -166,15 +166,15 @@ body.mapfull h2{font-size:17px}
       <button class="btn plain" id="fit">回到选中的区</button>
       <button class="btn plain" id="clearAll">全部取消</button>
       <button class="btn plain" id="full">全屏</button>
+      <button class="btn plain" id="circleTool">用圈选区</button>
     </div>
     <div id="map"></div>
     <div class="legend">
       <span><i style="background:linear-gradient(90deg,#2F7A4F,#0E5B62,#7A3E5E,#3A5A9E)"></i>去（颜色只为分开相邻的区）</span>
       <span><i style="background:transparent;border:1px solid var(--ink-3)"></i>不去（只剩轮廓）</span>
-      <span><i style="background:transparent;border:2px solid var(--accent)"></i>画圈工具</span>
     </div>
 
-    <div class="row" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
+    <div class="row" id="circleRow" hidden style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
       <label class="field"><span class="eyebrow">1 · 圆心</span>
         <select id="placePick"></select></label>
       <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
@@ -332,6 +332,9 @@ body.mapfull h2{font-size:17px}
 
   var anchorSpoke = null, anchorTip = null;
 
+  /** Off unless the circle tool is open: it is scaffolding, not part of the rule. */
+  var circleOn = false;
+
   function drawAnchor(){
     var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
     var km = parseFloat($("anchorKm").value) || 15;
@@ -339,7 +342,7 @@ body.mapfull h2{font-size:17px}
       if (layer) map.removeLayer(layer);
     });
     anchorMark = anchorRing = anchorSpoke = anchorTip = null;
-    if (isNaN(lat) || isNaN(lon)) return;
+    if (!circleOn || isNaN(lat) || isNaN(lon)) return;
 
     anchorRing = L.circle([lat, lon], {
       radius: km * 1000, color: "#0E5B62", weight: 2, fillOpacity: 0.05,
@@ -508,6 +511,18 @@ body.mapfull h2{font-size:17px}
     map.fitBounds(L.featureGroup(group).getBounds(), { padding: [30, 30] });
   }
   $("fit").addEventListener("click", fitToChosen);
+
+  $("circleTool").addEventListener("click", function(){
+    circleOn = !circleOn;
+    this.classList.toggle("armed", circleOn);
+    this.textContent = circleOn ? "收起圈" : "用圈选区";
+    $("circleRow").hidden = !circleOn;
+    drawAnchor();
+    if (circleOn) {
+      var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
+      if (!isNaN(lat) && !isNaN(lon)) map.setView([lat, lon], 12);
+    }
+  });
 
   $("full").addEventListener("click", function(){
     var on = document.body.classList.toggle("mapfull");
