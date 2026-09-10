@@ -37,11 +37,9 @@ object ScreenTextReader {
         runCatching {
             recognizer.process(InputImage.fromBitmap(small, 0))
                 .addOnSuccessListener(callbacks) { result ->
-                    val lines = result.textBlocks
-                        .flatMap { block -> block.lines }
-                        .sortedBy { line -> line.boundingBox?.top ?: 0 }
-                        .map { line -> line.text.trim() }
-                        .filter { it.isNotEmpty() }
+                    val lines = rows(
+                        result.textBlocks.flatMap { block -> block.lines }
+                    )
                     if (small !== screen) runCatching { small.recycle() }
                     onLines(lines, System.currentTimeMillis() - startedAt)
                 }
@@ -50,5 +48,44 @@ object ScreenTextReader {
                     onLines(emptyList(), System.currentTimeMillis() - startedAt)
                 }
         }.onFailure { onLines(emptyList(), System.currentTimeMillis() - startedAt) }
+    }
+
+    /**
+     * Rebuilds visual rows from the fragments the recogniser returns.
+     *
+     * ML Kit splits one line of the card across several blocks - "Guzman" in one,
+     * "y Gomez (Springvale)" in another - and ordering the fragments by their top
+     * edge alone scatters the halves. A real offer came back with a pickup of
+     * "nan y Gomez (Springvale)" and a street of "elbeck Road" because of it.
+     *
+     * Fragments whose vertical centres fall within half a line height are the
+     * same row, and within a row they read left to right.
+     */
+    private fun rows(fragments: List<com.google.mlkit.vision.text.Text.Line>): List<String> {
+        data class Piece(val text: String, val middle: Int, val left: Int, val height: Int)
+
+        val pieces = fragments.mapNotNull { line ->
+            val box = line.boundingBox ?: return@mapNotNull null
+            Piece(line.text.trim(), box.centerY(), box.left, box.height())
+        }.filter { it.text.isNotEmpty() }.sortedBy { it.middle }
+
+        val out = mutableListOf<String>()
+        var group = mutableListOf<Piece>()
+
+        fun flush() {
+            if (group.isEmpty()) return
+            out += group.sortedBy { it.left }.joinToString(" ") { it.text }
+            group = mutableListOf()
+        }
+
+        for (piece in pieces) {
+            val head = group.firstOrNull()
+            val sameRow = head != null &&
+                kotlin.math.abs(piece.middle - head.middle) <= (head.height / 2).coerceAtLeast(6)
+            if (!sameRow) flush()
+            group += piece
+        }
+        flush()
+        return out
     }
 }
