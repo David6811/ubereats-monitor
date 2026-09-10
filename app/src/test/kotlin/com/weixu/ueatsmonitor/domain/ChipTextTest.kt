@@ -35,7 +35,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Springvale（快餐） → Noble Park North", route)
+        assertEquals("Springvale（快餐·商场） → Noble Park North", route)
     }
 
     @Test
@@ -47,7 +47,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Springvale（快餐） → Boundary Road…", route)
+        assertEquals("Springvale（快餐·商场） → Boundary Road…", route)
     }
 
     @Test

@@ -13,7 +13,11 @@ object ChipText {
     fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>): String {
         val from = suburbOf(card.pickup, suburbs) ?: shorten(card.pickup)
         val to = suburbOf(card.dropoff, suburbs) ?: shorten(card.dropoff)
-        val kind = StoreKinds.of(card.pickup, stores)?.let { "（" + StoreKinds.label(it) + "）" } ?: ""
+        val shop = StoreKinds.find(card.pickup, stores)
+        val kind = shop?.let { found ->
+            listOfNotNull(StoreKinds.label(found.kind), StoreKinds.where(found.setting))
+                .joinToString("·", prefix = "（", postfix = "）")
+        } ?: ""
         return from + kind + " → " + to
     }
 
