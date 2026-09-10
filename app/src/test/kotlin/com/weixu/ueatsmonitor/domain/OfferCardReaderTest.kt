@@ -367,6 +367,66 @@ class OfferCardReaderTest {
         assertEquals(27.15, metrics.payPerHour!!, 0.02)
     }
 
+    @Test
+    fun `given a Match button instead of Accept, when read, then it is still an offer card`() {
+        // arrange
+        val lines = MATCH_CARD
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals(Cents(855), card!!.payout)
+    }
+
+    @Test
+    fun `given the Match card, when read, then its destination is whole`() {
+        // arrange
+        val lines = MATCH_CARD
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("Nettelbeck Road & Watton Close, Clayton South", card.dropoff)
+    }
+
+    @Test
+    fun `given the Match card, when judged, then the same rules apply as to any offer`() {
+        // arrange
+        val card = OfferCardReader.read(MATCH_CARD)!!
+        val rules = Rules(
+            allowedSuburbs = setOf("Noble Park"),
+            deniedStores = emptyList(),
+            alwaysOkStores = emptyList(),
+        )
+        val gazetteer = listOf(
+            Suburb("Clayton South", GeoPoint(-37.9415, 145.1245)),
+            Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),
+        )
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, gazetteer)
+
+        // assert
+        assertEquals("Clayton South 不在名单里", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given the word Matched in past tense, when tested, then it is not the button`() {
+        // arrange
+        val lines = listOf("Trip Matched", "\$5", "Rematch later")
+
+        // act
+        val looksLikeCard = OfferCardReader.looksLikeCard(lines)
+
+        // assert
+        assertTrue(!looksLikeCard)
+    }
+
     private companion object {
         /** Exactly what ML Kit read off the screen at 13:13 on 10 Sept. */
         val REAL_OCR = listOf(
@@ -396,6 +456,18 @@ class OfferCardReaderTest {
             "Drive, Dandenong South",
             "Se",
             "Accept",
+        )
+
+        /** The 17:12 card: a black Match button, a Trip Radar offer. */
+        val MATCH_CARD = listOf(
+            "Delivery",
+            "\$8.55",
+            "Est. earnings for completed trip",
+            "19 min (8.1 km) total",
+            "Guzman y Gomez (Springvale)",
+            "Nettelbeck Road & Watton Close,",
+            "Clayton South",
+            "Match",
         )
 
         val REAL_CARD = listOf(

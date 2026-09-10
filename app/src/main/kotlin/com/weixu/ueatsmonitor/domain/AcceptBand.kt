@@ -1,48 +1,60 @@
 package com.weixu.ueatsmonitor.domain
 
 /**
- * Calculation. Is the Accept button on screen?
+ * Calculation. Is the offer card's action button on screen?
  *
- * The button is also the countdown: it fills dark green RGB(16,130,70) and
- * empties to a lighter RGB(63,155,106), so the mix shifts second by second and
- * neither shade can be the test on its own. Both are matched, with room around
- * them for the shades in between.
+ * Not by its colour. Uber ships at least two cards: a green Accept, which is
+ * also the countdown - filling RGB(16,130,70) and emptying to RGB(63,155,106) -
+ * and a black Match, RGB(0,0,0), for a Trip Radar offer. Both measured off real
+ * screenshots. Pinning the test to one hue lost every card of the other kind,
+ * and would lose the next kind too.
  *
- * Measured off a real offer card, where about 85% of the pixels sampled across
- * the band are one of those two. Testing a few hundred pixels costs
- * microseconds, against a couple of hundred milliseconds to read the whole
- * screen - so this decides whether reading is worth doing at all.
+ * What both have in common is the shape: a wide band of one flat colour across
+ * the bottom of the card, against the card's white body. So that is the test.
+ * A few hundred pixels cost microseconds, against a couple of hundred
+ * milliseconds to read the whole screen.
  */
 object AcceptBand {
 
     /** Where the button sits, as fractions of screen height. */
-    /** Spans the button and its edges, so a shifted layout still lands on it. */
-    val ROWS: List<Double> = listOf(0.87, 0.89, 0.91, 0.93, 0.95, 0.97)
+    val ROWS: List<Double> = listOf(0.89, 0.91, 0.93, 0.95, 0.97)
 
     /**
      * Deliberately low. A frame wrongly read costs a fifth of a second; a frame
-     * wrongly skipped costs the offer. The two failures are not worth the same,
-     * so the threshold leans towards reading.
+     * wrongly skipped costs the offer.
      */
-    private const val MIN_GREEN = 0.12
+    private const val MIN_SHARE = 0.22
 
-    fun isUberGreen(argb: Int): Boolean {
+    /** Colours are quantised before counting, so anti-aliasing does not split a band. */
+    private const val STEP = 24
+
+    /** The card's own body, which a button has to stand out from. */
+    fun isCardWhite(argb: Int): Boolean {
         val red = (argb shr 16) and 0xFF
         val green = (argb shr 8) and 0xFF
         val blue = argb and 0xFF
-        return green in 80..205 &&
-            red < 130 &&
-            blue < 145 &&
-            green - red > 35 &&
-            green - blue > 35
+        return red > 225 && green > 225 && blue > 225
     }
 
-    /** How much of [samples] is button green, 0 to 1. */
-    fun greenFraction(samples: IntArray): Double {
+    /** How much of [samples] one flat, non-white colour takes, 0 to 1. */
+    fun bandShare(samples: IntArray): Double {
         if (samples.isEmpty()) return 0.0
-        return samples.count(::isUberGreen).toDouble() / samples.size
+        val counts = HashMap<Int, Int>()
+        for (pixel in samples) {
+            if (isCardWhite(pixel)) continue
+            val key = quantise(pixel)
+            counts[key] = (counts[key] ?: 0) + 1
+        }
+        val biggest = counts.values.maxOrNull() ?: return 0.0
+        return biggest.toDouble() / samples.size
     }
 
-    /** True when enough of [samples] is that green for a button to be there. */
-    fun holdsButton(samples: IntArray): Boolean = greenFraction(samples) >= MIN_GREEN
+    fun holdsButton(samples: IntArray): Boolean = bandShare(samples) >= MIN_SHARE
+
+    private fun quantise(argb: Int): Int {
+        val red = ((argb shr 16) and 0xFF) / STEP
+        val green = ((argb shr 8) and 0xFF) / STEP
+        val blue = (argb and 0xFF) / STEP
+        return (red shl 16) or (green shl 8) or blue
+    }
 }

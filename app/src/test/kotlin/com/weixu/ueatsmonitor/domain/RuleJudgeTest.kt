@@ -129,6 +129,7 @@ class RuleJudgeTest {
     }
 
     private fun card(pickup: String, dropoff: String, payout: Cents = Cents(907)) = OfferCard(
+        isMatch = false,
         payout = payout,
         duration = Minutes(16),
         distance = Miles(2.86),

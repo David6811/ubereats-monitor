@@ -74,9 +74,11 @@ object RuleJudge {
 /** Calculation. The ruling in the few words the chip has room for. */
 object RulingText {
 
-    fun headline(ruling: Ruling): String = when (ruling) {
-        is Ruling.Take -> "可以接单"
-        is Ruling.Leave -> "不要接单"
+    fun headline(ruling: Ruling, isMatch: Boolean = false): String = when (ruling) {
+        // A Match is worth entering, not "taken": several drivers are shown the
+        // same trip and only one gets it.
+        is Ruling.Take -> if (isMatch) "可以抢（Match）" else "可以接单"
+        is Ruling.Leave -> if (isMatch) "不要抢（Match）" else "不要接单"
         Ruling.NoRules -> "没设规则"
         Ruling.Unknown -> "认不出地点"
     }

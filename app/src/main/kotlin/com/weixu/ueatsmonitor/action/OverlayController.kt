@@ -79,7 +79,7 @@ class OverlayController(private val context: Context) {
 
     private fun keyOf(state: State): String = when (state) {
         State.Thinking -> "thinking"
-        is State.Decided -> RulingText.headline(state.ruling) + RulingText.reason(state.ruling)
+        is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) + RulingText.reason(state.ruling)
     }
 
     private fun layoutParams(): WindowManager.LayoutParams {
@@ -155,8 +155,9 @@ class OverlayController(private val context: Context) {
             val take = state.ruling is Ruling.Take
             val unsure = state.ruling is Ruling.NoRules || state.ruling is Ruling.Unknown
             Face(
-                title = RulingText.headline(state.ruling),
-                detail = RulingText.reason(state.ruling) + "\n" +
+                title = RulingText.headline(state.ruling, state.card.isMatch),
+                detail = (if (state.card.isMatch) "多人竞争，点了不一定拿到 · " else "") +
+                    RulingText.reason(state.ruling) + "\n" +
                     VerdictText.metricsLine(metricsOf(state.card)),
                 fill = when {
                     unsure -> Color.parseColor("#F2263238")

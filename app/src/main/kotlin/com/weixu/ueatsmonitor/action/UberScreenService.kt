@@ -227,7 +227,7 @@ class UberScreenService : AccessibilityService() {
 
         capture { screen ->
             val treeHasCard = OfferCardReader.read(lines) != null
-            val green = if (screen != null) AcceptBand.greenFraction(sampleBand(screen)) else 0.0
+            val green = if (screen != null) AcceptBand.bandShare(sampleBand(screen)) else 0.0
             val button = AcceptBand.holdsButton(if (screen != null) sampleBand(screen) else IntArray(0))
             val routine = now - lastRoutineAtMillis >= ROUTINE_MILLIS
 
@@ -330,7 +330,7 @@ class UberScreenService : AccessibilityService() {
             LiveSettings.current?.areaSoundEnabled == false -> "suppressed_setting_off"
             ruling == null -> "none_no_card"
             else -> {
-                val signature = RulingText.headline(ruling) + RulingText.reason(ruling)
+                val signature = RulingText.headline(ruling, card.isMatch) + RulingText.reason(ruling)
                 if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) {
                     "suppressed_same_within_3s"
                 } else {
@@ -353,7 +353,7 @@ class UberScreenService : AccessibilityService() {
         }
 
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
-            " ruling=" + (ruling?.let { RulingText.headline(it) } ?: "-") + " chime=" + chime)
+            " ruling=" + (ruling?.let { RulingText.headline(it, card.isMatch) } ?: "-") + " chime=" + chime)
 
         return buildString {
             append("card=").append(card != null).append('\n')
@@ -368,7 +368,8 @@ class UberScreenService : AccessibilityService() {
                 ).append('\n')
             }
             if (ruling != null) {
-                append("ruling=").append(RulingText.headline(ruling)).append('\n')
+                append("card_kind=").append(if (card.isMatch) "match" else "accept").append('\n')
+                append("ruling=").append(RulingText.headline(ruling, card.isMatch)).append('\n')
                 append("ruling_why=").append(RulingText.reason(ruling)).append('\n')
             }
             append("rules_suburbs=").append(rules.allowedSuburbs.size).append('\n')

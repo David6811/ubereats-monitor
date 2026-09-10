@@ -15,6 +15,14 @@ package com.weixu.ueatsmonitor.domain
  * still leave a card that says an offer appeared, rather than no card at all.
  */
 data class OfferCard(
+    /**
+     * True when the button said Match rather than Accept: a Trip Radar offer,
+     * broadcast to several drivers, where pressing it enters you for the trip
+     * instead of assigning it to you. Judged by exactly the same rules - it only
+     * changes what the driver is told, because taking it is not the same as
+     * getting it.
+     */
+    val isMatch: Boolean,
     val payout: Cents,
     val duration: Minutes?,
     val distance: Miles?,
@@ -38,7 +46,17 @@ object OfferCardReader {
      * countdown ("Accept 12s"), or with a role suffix ("Accept, button"). What it
      * must not match is a past tense elsewhere in the app - "Accepted", "Acceptance".
      */
-    private val ACCEPT = Regex("""(^|[^a-z])accept([^a-z]|$)""", RegexOption.IGNORE_CASE)
+    /**
+     * The card's action button. Two words, not one: a plain offer says Accept on
+     * a green button, while a Trip Radar offer - broadcast to several drivers at
+     * once, where pressing it enters you rather than assigns you - says Match on
+     * a black one. Both are offers, judged by the same rules.
+     *
+     * What must not match is a past tense from elsewhere in the app: "Accepted",
+     * "Acceptance", "Matched".
+     */
+    private val ACCEPT = Regex("""(^|[^a-z])(accept|match)([^a-z]|$)""", RegexOption.IGNORE_CASE)
+    private val MATCH = Regex("""(^|[^a-z])match([^a-z]|$)""", RegexOption.IGNORE_CASE)
     private val PAYOUT = Regex("""^[$＄]\s*(\d+(?:[.,]\d{1,2})?)$""")
     /**
      * "18 min (8.6 km) total", and the long-haul form "1 hr 6 min (53.0 km) total".
@@ -67,6 +85,7 @@ object OfferCardReader {
     fun read(lines: List<String>): OfferCard? {
         val clean = clean(lines)
         val acceptAt = clean.indexOfLast { ACCEPT.containsMatchIn(it) }
+        val isMatch = acceptAt >= 0 && MATCH.containsMatchIn(clean[acceptAt])
         val end = if (acceptAt >= 0) acceptAt else clean.size
 
         val totalsAt = clean.take(end).indexOfLast { TOTALS.containsMatchIn(it) }
@@ -104,6 +123,7 @@ object OfferCardReader {
         if (stops.isEmpty()) return null
 
         return OfferCard(
+            isMatch = isMatch,
             payout = payout,
             duration = minutes,
             distance = distance,

@@ -4,38 +4,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Every colour here was measured off a real card, not chosen. */
 class AcceptBandTest {
 
     @Test
-    fun `given the button green measured off a real card, when tested, then it is recognised`() {
+    fun `given the green Accept button, when tested, then a button is there`() {
         // arrange
-        val pixel = 0xFF108246.toInt()
-
-        // act
-        val isGreen = AcceptBand.isUberGreen(pixel)
-
-        // assert
-        assertTrue(isGreen)
-    }
-
-    @Test
-    fun `given the lighter green the countdown empties to, when tested, then it is recognised`() {
-        // arrange
-        val pixel = 0xFF3F9B6A.toInt()
-
-        // act
-        val isGreen = AcceptBand.isUberGreen(pixel)
-
-        // assert
-        assertTrue(isGreen)
-    }
-
-    @Test
-    fun `given a band half filled by the countdown, when tested, then a button is still there`() {
-        // arrange
-        val samples = IntArray(100) { index ->
-            if (index < 50) 0xFF108246.toInt() else 0xFF3F9B6A.toInt()
-        }
+        val samples = band(GREEN_FULL, 85)
 
         // act
         val holds = AcceptBand.holdsButton(samples)
@@ -45,11 +20,9 @@ class AcceptBandTest {
     }
 
     @Test
-    fun `given a band the countdown has almost emptied, when tested, then a button is still there`() {
+    fun `given the black Match button, when tested, then a button is there`() {
         // arrange
-        val samples = IntArray(100) { index ->
-            if (index < 3) 0xFF108246.toInt() else 0xFF3F9B6A.toInt()
-        }
+        val samples = band(BLACK, 75)
 
         // act
         val holds = AcceptBand.holdsButton(samples)
@@ -59,35 +32,9 @@ class AcceptBandTest {
     }
 
     @Test
-    fun `given the white card body, when tested, then it is not the button`() {
+    fun `given the countdown half emptied, when tested, then a button is still there`() {
         // arrange
-        val pixel = 0xFFFFFFFF.toInt()
-
-        // act
-        val isGreen = AcceptBand.isUberGreen(pixel)
-
-        // assert
-        assertFalse(isGreen)
-    }
-
-    @Test
-    fun `given the map's park green, when tested, then it is not the button`() {
-        // arrange
-        val pixel = 0xFFD8ECD8.toInt()
-
-        // act
-        val isGreen = AcceptBand.isUberGreen(pixel)
-
-        // assert
-        assertFalse(isGreen)
-    }
-
-    @Test
-    fun `given a row that is mostly button, when tested, then a button is there`() {
-        // arrange
-        val samples = IntArray(100) { index ->
-            if (index < 85) 0xFF108246.toInt() else 0xFFFFFFFF.toInt()
-        }
+        val samples = IntArray(100) { index -> if (index < 50) GREEN_FULL else GREEN_EMPTY }
 
         // act
         val holds = AcceptBand.holdsButton(samples)
@@ -97,10 +44,40 @@ class AcceptBandTest {
     }
 
     @Test
-    fun `given a row with a few green map pixels, when tested, then no button is there`() {
+    fun `given the countdown almost emptied, when tested, then a button is still there`() {
+        // arrange
+        val samples = IntArray(100) { index -> if (index < 3) GREEN_FULL else GREEN_EMPTY }
+
+        // act
+        val holds = AcceptBand.holdsButton(samples)
+
+        // assert
+        assertTrue(holds)
+    }
+
+    @Test
+    fun `given the white card body alone, when tested, then no button is there`() {
+        // arrange
+        val samples = IntArray(100) { WHITE }
+
+        // act
+        val holds = AcceptBand.holdsButton(samples)
+
+        // assert
+        assertFalse(holds)
+    }
+
+    @Test
+    fun `given a scattering of map colours, when tested, then no button is there`() {
         // arrange
         val samples = IntArray(100) { index ->
-            if (index < 5) 0xFF108246.toInt() else 0xFFEFEFEF.toInt()
+            when (index % 5) {
+                0 -> 0xFFD8ECD8.toInt()
+                1 -> 0xFFEFEFEF.toInt()
+                2 -> 0xFFC8D8F0.toInt()
+                3 -> 0xFFF4E8D0.toInt()
+                else -> WHITE
+            }
         }
 
         // act
@@ -108,5 +85,16 @@ class AcceptBandTest {
 
         // assert
         assertFalse(holds)
+    }
+
+    private fun band(colour: Int, share: Int) = IntArray(100) { index ->
+        if (index < share) colour else WHITE
+    }
+
+    private companion object {
+        val GREEN_FULL = 0xFF108246.toInt()
+        val GREEN_EMPTY = 0xFF3F9B6A.toInt()
+        val BLACK = 0xFF000000.toInt()
+        val WHITE = 0xFFFFFFFF.toInt()
     }
 }
