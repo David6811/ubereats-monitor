@@ -128,7 +128,6 @@ body.mapfull .mapsection{
 body.mapfull #map{height:100%;flex:1;min-height:0;margin-top:10px}
 body.mapfull .hint{display:none}
 body.mapfull h2{font-size:17px}
-#full{margin-left:auto}
 .leaflet-container{font-family:inherit}
 /* The browser draws a rectangular focus ring around a clicked SVG path, which
    on a map reads as if the suburb itself were a rectangle. Selection is shown
@@ -136,6 +135,7 @@ body.mapfull h2{font-size:17px}
 .leaflet-container path.leaflet-interactive:focus,
 .leaflet-container path.leaflet-interactive:focus-visible{outline:none}
 .maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.maptools>span{display:contents}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
 .btn.armed{background:var(--accent);color:#fff}
@@ -175,8 +175,10 @@ body.mapfull h2{font-size:17px}
 <main>
   <section class="mapsection">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
-    <div class="maptools" id="profileBar"></div>
-    <div class="maptools" id="mapTools"></div>
+    <div class="maptools">
+      <span id="profileBar"></span>
+      <span id="mapTools"></span>
+    </div>
     <div id="map"></div>
     <div class="legend">
       <span><i style="background:linear-gradient(90deg,#2F7A4F,#0E5B62,#7A3E5E,#3A5A9E)"></i>去（颜色只为分开相邻的区）</span>
