@@ -84,12 +84,12 @@ private fun HomeTabs() {
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("跑单记录") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("去哪些区") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("用哪套") })
             Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("设置") })
         }
         when (tab) {
             0 -> CaptureScreen()
-            1 -> SuburbScreen()
+            1 -> ProfileScreen()
             else -> MonitorScreen(App.instance.settingsStore)
         }
     }
@@ -157,7 +157,7 @@ private fun MonitorScreen(store: SettingsStore) {
                     Text("规则在电脑上设", fontWeight = FontWeight.Bold)
                     Text(
                         text = "不接哪些店在电脑的规则编辑器里改，保存时推到这台手机。" +
-                            "去哪些区在上面那一页也能改。",
+                            "上面那一页可以换用哪一套选区。",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(rulesSummary(context), style = MaterialTheme.typography.labelMedium)
