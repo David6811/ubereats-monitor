@@ -93,7 +93,7 @@ class OverlayController(private val context: Context) {
             WindowManager.LayoutParams.TYPE_PHONE
         }
         return WindowManager.LayoutParams(
-            (context.resources.displayMetrics.widthPixels * WIDTH).toInt(),
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -188,9 +188,6 @@ class OverlayController(private val context: Context) {
          * text is what once put a suburb where a shop name belonged.
          */
         const val TOP_PIXELS = 20
-
-        /** How much of the screen's width the chip takes. */
-        const val WIDTH = 0.62
 
         private const val THINKING = "thinking"
 
