@@ -168,7 +168,9 @@ body.mapfull h2{font-size:17px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
 .btn.armed{background:var(--accent);color:#fff}
 .prof.far{border-style:dashed;border-color:var(--warn);color:var(--warn)}
-.prof.far[data-on="1"]{background:var(--warn);border-style:solid;color:#fff}
+/* Being edited on the map, which is not the same as being the live set. */
+.prof[data-editing="1"]{box-shadow:0 0 0 2px var(--accent)}
+.prof.far[data-editing="1"]{box-shadow:0 0 0 2px var(--warn);border-style:solid}
 .prof{
   border:1px solid var(--line);background:var(--sunk);color:var(--ink-2);
   border-radius:999px;padding:5px 14px;font-size:14px;cursor:pointer;user-select:none;
@@ -526,7 +528,11 @@ body.mapfull h2{font-size:17px}
     profiles().forEach(function(profile){
       var chip = document.createElement("span");
       chip.className = "prof";
-      chip.dataset.on = (!state.editing && profile.name === state.rules.active) ? "1" : "0";
+      // Filled means the phone judges by this one; the ring means the map is
+      // showing it. Picking the far set to edit changes only the ring.
+      chip.dataset.on = profile.name === state.rules.active ? "1" : "0";
+      chip.dataset.editing =
+        (!state.editing && profile.name === state.rules.active) ? "1" : "0";
       chip.textContent = profile.name;
       chip.addEventListener("click", function(){ switchTo(profile.name); });
       chip.addEventListener("dblclick", function(){
@@ -557,7 +563,9 @@ body.mapfull h2{font-size:17px}
 
     var farChip = document.createElement("span");
     farChip.className = "prof far";
-    farChip.dataset.on = state.editing === FAR ? "1" : "0";
+    // The far set is never "live": it applies to any offer over the threshold,
+    // whichever ordinary set is in force. So it only ever carries the ring.
+    farChip.dataset.editing = state.editing === FAR ? "1" : "0";
     farChip.textContent = FAR;
     farChip.title = far().suburbs.length + " 个区 · 金额超过 $" +
       (far().overDollars || 30) + " 的单改用这一组，删不掉";
