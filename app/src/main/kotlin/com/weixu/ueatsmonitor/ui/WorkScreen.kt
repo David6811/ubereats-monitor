@@ -1,6 +1,7 @@
 package com.weixu.ueatsmonitor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.weixu.ueatsmonitor.action.JobStore
+import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -104,11 +106,13 @@ private fun JobCard(job: Job, onClear: () -> Unit) {
  */
 @Composable
 private fun Stop(title: String, place: String, tint: Color) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(tint.copy(alpha = 0.18f))
+            .clickable { Navigation.driveTo(context, place) }
             .padding(10.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -124,8 +128,15 @@ private fun Stop(title: String, place: String, tint: Color) {
         )
         Text(
             text = place,
-            modifier = Modifier.padding(start = 10.dp),
+            modifier = Modifier.weight(1f).padding(start = 10.dp),
             fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "导航 ›",
+            modifier = Modifier.padding(start = 8.dp),
+            color = tint,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
         )
     }
