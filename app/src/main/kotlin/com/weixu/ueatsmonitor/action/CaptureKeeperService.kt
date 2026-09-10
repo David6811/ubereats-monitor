@@ -13,6 +13,7 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.ui.MainActivity
 
 /**
@@ -90,15 +91,35 @@ class CaptureKeeperService : Service() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification: Notification = Notification.Builder(this, CHANNEL)
+        val builder = Notification.Builder(this, CHANNEL)
             .setContentTitle("派单监控运行中")
             .setContentText("这条通知消失就说明监控停了")
             .setSmallIcon(android.R.drawable.presence_online)
             .setContentIntent(open)
             .setOngoing(true)
-            .build()
+            .addAction(action("打开助手", Intent(this, MainActivity::class.java), 1))
+        // Android 11 hides other packages unless the manifest names them; without
+        // that this comes back null and the button is simply not offered.
+        packageManager.getLaunchIntentForPackage(OfferParser.UBER_DRIVER_PACKAGE)?.let { uber ->
+            builder.addAction(action("回 Uber", uber, 2))
+        }
+        val notification: Notification = builder.build()
         startForeground(NOTIFICATION_ID, notification)
     }
+
+    /** A notification button. The icon is required and never drawn on Android 7+. */
+    private fun action(label: String, target: Intent, requestCode: Int): Notification.Action =
+        Notification.Action.Builder(
+            null,
+            label,
+            PendingIntent.getActivity(
+                this,
+                requestCode,
+                target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+                PendingIntent.FLAG_IMMUTABLE,
+            ),
+        ).build()
 
     companion object {
         private const val TAG = "UEatsMonitor"
