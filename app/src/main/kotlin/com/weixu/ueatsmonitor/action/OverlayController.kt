@@ -1,6 +1,7 @@
 package com.weixu.ueatsmonitor.action
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -14,9 +15,11 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.weixu.ueatsmonitor.domain.OfferCard
+import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.Ruling
 import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
+import com.weixu.ueatsmonitor.ui.MainActivity
 
 /**
  * Action. A small chip beside the payout on the offer card.
@@ -93,8 +96,11 @@ class OverlayController(private val context: Context) {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
+            // Touchable, so the button on it works, but never modal and never
+            // focused: everything outside the chip still reaches Uber. The chip
+            // sits two thirds down and the Accept button is at the very bottom,
+            // so nothing here can come between the driver and that button.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
@@ -132,8 +138,57 @@ class OverlayController(private val context: Context) {
                     }
                 )
             }
+            addView(buttons(face))
         }
     }
+
+    /** Somewhere to go from the chip: this app, or back to the one that sent the offer. */
+    private fun buttons(face: Face): View = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(8) }
+
+        addView(button("打开助手", face) {
+            Intent(context, MainActivity::class.java)
+        })
+        uberIntent()?.let { intent ->
+            addView(button("回 Uber", face) { intent }, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { leftMargin = dp(8) })
+        }
+    }
+
+    private fun button(label: String, face: Face, target: () -> Intent): View =
+        TextView(context).apply {
+            text = label
+            textSize = 14f
+            setTextColor(face.ink)
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(10).toFloat()
+                setStroke(dp(1), face.edge)
+            }
+            setOnClickListener {
+                // A service has no task of its own, and the overlay permission is what
+                // lets this start an activity from the background at all.
+                runCatching {
+                    context.startActivity(
+                        target()
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    )
+                }
+                hide()
+            }
+        }
+
+    /** The driver app as the launcher would start it, or null when it is not installed. */
+    private fun uberIntent(): Intent? =
+        context.packageManager.getLaunchIntentForPackage(OfferParser.UBER_DRIVER_PACKAGE)
 
     private data class Face(
         val title: String,
