@@ -246,6 +246,10 @@ body.mapfull h2{font-size:17px}
       maxZoom: 18, attribution: "© OpenStreetMap"
     }).addTo(map);
 
+    // A scale bar, so the circle can be checked against the map itself rather
+    // than against a feeling about how far five kilometres looks.
+    L.control.scale({ metric: true, imperial: false, maxWidth: 180 }).addTo(map);
+
     fetch("suburbs.geojson").then(function(r){ return r.json(); }).then(function(gj){
       L.geoJSON(gj, {
         style: styleFor,
@@ -318,44 +322,39 @@ body.mapfull h2{font-size:17px}
     counts();
   }
 
+  var anchorSpoke = null, anchorTip = null;
+
   function drawAnchor(){
     var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
     var km = parseFloat($("anchorKm").value) || 15;
-    if (anchorMark) { map.removeLayer(anchorMark); anchorMark = null; }
-    if (anchorRing) { map.removeLayer(anchorRing); anchorRing = null; }
+    [anchorMark, anchorRing, anchorSpoke, anchorTip].forEach(function(layer){
+      if (layer) map.removeLayer(layer);
+    });
+    anchorMark = anchorRing = anchorSpoke = anchorTip = null;
     if (isNaN(lat) || isNaN(lon)) return;
+
     anchorRing = L.circle([lat, lon], {
       radius: km * 1000, color: "#0E5B62", weight: 2, fillOpacity: 0.05,
     }).addTo(map);
+
+    // A spoke of exactly the same length, labelled. Read it against the scale
+    // bar in the corner: if the two disagree, the circle is wrong.
+    var east = lon + (km / (111.320 * Math.cos(lat * Math.PI / 180)));
+    anchorSpoke = L.polyline([[lat, lon], [lat, east]], {
+      color: "#0E5B62", weight: 2, dashArray: "5 5",
+    }).addTo(map);
+    anchorTip = L.marker([lat, east], {
+      icon: L.divIcon({
+        className: "",
+        html: '<div style="background:#0E5B62;color:#fff;padding:1px 7px;' +
+              'border-radius:9px;font:600 12px system-ui;white-space:nowrap">' + km + ' km</div>',
+        iconSize: null,
+      }),
+    }).addTo(map);
+
     anchorMark = L.circleMarker([lat, lon], {
       radius: 6, color: "#0E5B62", fillColor: "#0E5B62", fillOpacity: 1,
     }).addTo(map).bindTooltip("画圈圆心");
-  }
-
-  function drawPlaces(){
-    var pick = $("placePick");
-    pick.textContent = "";
-    (state.places || []).forEach(function(place, index){
-      var option = document.createElement("option");
-      option.value = String(index);
-      option.textContent = place.label;
-      pick.appendChild(option);
-    });
-    var own = document.createElement("option");
-    own.value = "own";
-    own.textContent = "自己输入地址…";
-    pick.appendChild(own);
-    usePlace(0);
-  }
-
-  function usePlace(index){
-    var place = (state.places || [])[index];
-    if (!place) return;
-    $("anchorLat").value = place.lat;
-    $("anchorLon").value = place.lon;
-    $("anchorLabel").value = place.label;
-    drawAnchor();
-    if (map) map.setView([place.lat, place.lon], 12);
   }
 
   $("placePick").addEventListener("change", function(){
