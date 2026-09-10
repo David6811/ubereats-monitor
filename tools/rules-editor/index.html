@@ -137,6 +137,15 @@ textarea{
 #resultRows li span:last-child{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   font-variant-numeric:tabular-nums;text-align:right}
 .resultFoot{display:flex;justify-content:flex-end;padding:16px 24px 20px}
+#jobs{border:none;border-radius:14px;padding:0;max-width:560px;width:calc(100% - 32px);
+  background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+#jobs::backdrop{background:rgba(11,14,17,.42)}
+#jobsList{list-style:none;margin:14px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:14px}
+#jobsList li{border-top:1px solid var(--line);padding-top:12px}
+#jobsList .money{font-weight:600}
+#jobsList a{display:block;margin-top:4px;color:var(--accent);text-decoration:none}
+#jobsList a:hover{text-decoration:underline}
+#jobsList .eyebrow{margin-right:6px}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
 
 #map{
@@ -201,6 +210,7 @@ body.mapfull h2{font-size:17px}
   <span class="spacer"></span>
   <span id="phone">手机：检测中…</span>
   <span id="status"></span>
+  <button class="btn plain" id="pullJobs">取手机上的单</button>
   <button class="btn" id="save">保存并推送到手机</button>
 </header>
 
@@ -268,6 +278,18 @@ body.mapfull h2{font-size:17px}
   </section>
 
 </main>
+
+<dialog id="jobs">
+  <div class="resultTop">
+    <div class="resultMark" data-kind="ok">≡</div>
+    <div>
+      <h2 id="jobsTitle">手机上的单</h2>
+      <p id="jobsSub"></p>
+    </div>
+  </div>
+  <ul id="jobsList"></ul>
+  <div class="resultFoot"><button class="btn" id="jobsClose">关掉</button></div>
+</dialog>
 
 <dialog id="result">
   <div class="resultTop">
@@ -988,6 +1010,56 @@ body.mapfull h2{font-size:17px}
     $("result").showModal();
   }
   $("resultClose").addEventListener("click", function(){ $("result").close(); });
+  $("jobsClose").addEventListener("click", function(){ $("jobs").close(); });
+
+  /** The work area on the phone, so a stop can be opened on a real screen. */
+  $("pullJobs").addEventListener("click", function(){
+    var button = this;
+    button.disabled = true;
+    button.textContent = "取…";
+    fetch("/api/jobs").then(function(r){ return r.json(); }).then(function(data){
+      button.disabled = false;
+      button.textContent = "取手机上的单";
+      drawJobs(data.jobs || [], data.detail);
+      $("jobs").showModal();
+    });
+  });
+
+  function drawJobs(jobs, detail){
+    $("jobsSub").textContent = jobs.length
+      ? jobs.length + " 单，点地址在 Google 地图打开"
+      : (detail || "手机上现在没有单");
+    var list = $("jobsList");
+    list.textContent = "";
+    jobs.forEach(function(job){
+      var li = document.createElement("li");
+      var head = document.createElement("div");
+      head.className = "money";
+      head.textContent = clockOf(job.at) + "  " + (job.payout || "");
+      li.appendChild(head);
+      [["取货", job.pickup], ["送到", job.dropoff]].forEach(function(pair){
+        if (!pair[1]) return;
+        var link = document.createElement("a");
+        link.href = "https://www.google.com/maps/search/?api=1&query=" +
+          encodeURIComponent(pair[1] + ", Victoria, Australia");
+        link.target = "_blank";
+        link.rel = "noopener";
+        var tag = document.createElement("span");
+        tag.className = "eyebrow";
+        tag.textContent = pair[0];
+        link.append(tag, document.createTextNode(pair[1]));
+        li.appendChild(link);
+      });
+      list.appendChild(li);
+    });
+  }
+
+  function clockOf(millis){
+    if (!millis) return "";
+    var when = new Date(millis);
+    return String(when.getHours()).padStart(2, "0") + ":" +
+      String(when.getMinutes()).padStart(2, "0");
+  }
 
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;

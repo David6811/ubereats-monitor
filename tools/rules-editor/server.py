@@ -285,6 +285,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"hit": None, "error": str(error)})
             return self.send_json({"hit": None})
 
+        if self.path == "/api/jobs":
+            # The board lives in the app's own storage, which only run-as reaches.
+            ok, out = adb(
+                "shell", "run-as", "com.weixu.ueatsmonitor", "cat", "files/jobs.json"
+            )
+            if not ok or not out.strip().startswith("["):
+                return self.send_json({"jobs": [], "detail": out.strip() or "手机没插线"})
+            try:
+                return self.send_json({"jobs": json.loads(out)})
+            except Exception as error:
+                return self.send_json({"jobs": [], "detail": str(error)})
+
         if self.path == "/api/phone-location":
             return self.send_json({"location": phone_location()})
         return super().do_GET()
