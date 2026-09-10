@@ -176,13 +176,7 @@ body.mapfull h2{font-size:17px}
   <section class="mapsection">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
     <div class="maptools" id="profileBar"></div>
-    <div class="maptools">
-      <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
-      <button class="btn plain" id="fit">回到选中的区</button>
-      <button class="btn plain" id="clearAll">全部取消</button>
-      <button class="btn plain" id="full">全屏</button>
-      <button class="btn plain" id="circleTool">用圈选区</button>
-    </div>
+    <div class="maptools" id="mapTools"></div>
     <div id="map"></div>
     <div class="legend">
       <span><i style="background:linear-gradient(90deg,#2F7A4F,#0E5B62,#7A3E5E,#3A5A9E)"></i>去（颜色只为分开相邻的区）</span>
@@ -266,6 +260,8 @@ body.mapfull h2{font-size:17px}
     drawDenied();
     drawAlwaysOk();
     counts();
+    drawMapTools();
+    bindMapTools();
     initMap();
     drawPlaces();
     drawProfiles();
@@ -412,6 +408,25 @@ body.mapfull h2{font-size:17px}
       state.rules.active = "默认";
     }
     return state.rules.profiles;
+  }
+
+  /** One row: the sets, then the few things done to the map. */
+  function drawMapTools(){
+    var bar = $("mapTools");
+    if (!bar || bar.dataset.built) return;
+    bar.dataset.built = "1";
+    [
+      ["fit", "回到选中的区"],
+      ["clearAll", "全部取消"],
+      ["full", "全屏"],
+      ["circleTool", "用圈选区"],
+    ].forEach(function(pair){
+      var button = document.createElement("button");
+      button.className = "btn plain";
+      button.id = pair[0];
+      button.textContent = pair[1];
+      bar.appendChild(button);
+    });
   }
 
   function drawProfiles(){
@@ -660,6 +675,7 @@ body.mapfull h2{font-size:17px}
     if (!group.length) return say("一个区都没选", "bad");
     map.fitBounds(L.featureGroup(group).getBounds(), { padding: [30, 30] });
   }
+  function bindMapTools(){
   $("fit").addEventListener("click", fitToChosen);
 
   $("circleTool").addEventListener("click", function(){
@@ -688,6 +704,7 @@ body.mapfull h2{font-size:17px}
     state.rules.suburbs.allow = [];
     repaint();
   });
+  }
 
   $("allInCircle").addEventListener("click", function(){
     var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
