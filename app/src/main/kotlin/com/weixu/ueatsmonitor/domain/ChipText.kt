@@ -9,8 +9,13 @@ package com.weixu.ueatsmonitor.domain
  */
 object ChipText {
 
-    /** "Springvale（快餐） → Mulgrave". Never null: an unknown end names itself. */
-    fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>): String {
+    /** Data. The route line, and which stretch of it names a shop that is hard to park at. */
+    data class Route(val text: String, val warnFrom: Int, val warnTo: Int) {
+        val hasWarning: Boolean get() = warnTo > warnFrom
+    }
+
+    /** "Springvale（快餐·商场） → Mulgrave". Never empty: an unknown end names itself. */
+    fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>): Route {
         val from = suburbOf(card.pickup, suburbs) ?: shorten(card.pickup)
         val to = suburbOf(card.dropoff, suburbs) ?: shorten(card.dropoff)
         val shop = StoreKinds.find(card.pickup, stores)
@@ -18,7 +23,13 @@ object ChipText {
             listOfNotNull(StoreKinds.label(found.kind), StoreKinds.where(found.setting))
                 .joinToString("·", prefix = "（", postfix = "）")
         } ?: ""
-        return from + kind + " → " + to
+        return Route(
+            text = from + kind + " → " + to,
+            // A shopping strip or a mall means no parking at the door, which is the
+            // one thing on this line worth shouting.
+            warnFrom = if (kind.isNotEmpty() && StoreKinds.hardToPark(shop!!.setting)) from.length else 0,
+            warnTo = if (kind.isNotEmpty() && StoreKinds.hardToPark(shop!!.setting)) from.length + kind.length else 0,
+        )
     }
 
     /**

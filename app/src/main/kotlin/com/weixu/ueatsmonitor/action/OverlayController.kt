@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -122,7 +125,22 @@ class OverlayController(private val context: Context) {
                 setStroke(dp(2), face.edge)
             }
             addView(shoulders(face.title, 26f, face.payout, 26f, face.ink))
-            face.route?.let { addView(line(it, 17f, face.ink)) }
+            face.route?.let { route ->
+                addView(
+                    line(route.text, 17f, face.ink).apply {
+                        if (route.hasWarning) {
+                            text = SpannableString(route.text).apply {
+                                setSpan(
+                                    ForegroundColorSpan(WARN),
+                                    route.warnFrom,
+                                    route.warnTo,
+                                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                                )
+                            }
+                        }
+                    }
+                )
+            }
             if (face.distance != null || face.rate != null) {
                 addView(shoulders(face.distance ?: "", 17f, face.rate, 17f, face.ink))
             }
@@ -154,7 +172,7 @@ class OverlayController(private val context: Context) {
     private data class Face(
         val title: String,
         val payout: String?,
-        val route: String?,
+        val route: ChipText.Route?,
         val distance: String?,
         val rate: String?,
     ) {
@@ -202,6 +220,9 @@ class OverlayController(private val context: Context) {
         val FILL: Int = Color.parseColor("#FAFFD400")
         val EDGE: Int = Color.parseColor("#FF8F00")
         val INK: Int = Color.parseColor("#14110A")
+
+        /** For a shop with no car park of its own, on the yellow fill. */
+        val WARN: Int = Color.parseColor("#B00020")
 
         /** Two frames' worth of grace, so a missed frame does not make it flicker. */
         const val TTL_MILLIS = 4_500L

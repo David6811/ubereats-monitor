@@ -35,7 +35,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Springvale（快餐·商场） → Noble Park North", route)
+        assertEquals("Springvale（快餐·商场） → Noble Park North", route.text)
     }
 
     @Test
@@ -47,7 +47,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Springvale（快餐·商场） → Boundary Road…", route)
+        assertEquals("Springvale（快餐·商场） → Boundary Road…", route.text)
     }
 
     @Test
@@ -71,7 +71,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Some Shop → Somewhere Else", route)
+        assertEquals("Some Shop → Somewhere Else", route.text)
     }
 
     @Test
@@ -120,5 +120,37 @@ class ChipTextTest {
 
         // assert
         assertNull(distance)
+    }
+
+    @Test
+    fun `given a shop in a mall, when the route is written, then its bracket is marked for warning`() {
+        // arrange
+        val offer = card
+
+        // act
+        val route = ChipText.route(offer, suburbs, stores)
+
+        // affirm
+        assertEquals(true, route.hasWarning)
+
+        // assert  exactly the bracket, not the suburb before it
+        assertEquals(
+            "（快餐·商场）",
+            route.text.substring(route.warnFrom, route.warnTo),
+        )
+    }
+
+    @Test
+    fun `given a shop with its own car park, when the route is written, then nothing is marked`() {
+        // arrange
+        val parked = StoreKinds.parse(
+            "Guzman y Gomez,-37.94,145.15,fast_food,STANDALONE_PARKING,20,surface,1"
+        )
+
+        // act
+        val route = ChipText.route(card, suburbs, parked)
+
+        // assert
+        assertEquals(false, route.hasWarning)
     }
 }

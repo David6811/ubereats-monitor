@@ -143,6 +143,9 @@ object StoreKinds {
         else -> kind
     }
 
+    /** No car park of its own: you will be circling, or walking. */
+    fun hardToPark(setting: String): Boolean = setting == "MALL" || setting == "STRIP"
+
     /** Where the shop stands, which is where you will be parking. */
     fun where(setting: String): String? = when (setting) {
         "MALL" -> "商场"
