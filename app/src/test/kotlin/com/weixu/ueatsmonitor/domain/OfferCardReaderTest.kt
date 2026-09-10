@@ -400,6 +400,8 @@ class OfferCardReaderTest {
         val card = OfferCardReader.read(MATCH_CARD)!!
         val rules = Rules(
             allowedSuburbs = setOf("Noble Park"),
+            farSuburbs = emptySet(),
+            farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
         )

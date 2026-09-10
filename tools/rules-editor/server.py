@@ -51,6 +51,9 @@ CBD_RADIUS_KM = 0.7
 # left out of the shopping-strip expansion.
 ALWAYS_OK = ["McDonald", "KFC", "Red Rooster", "Coles", "Woolworths", "Aldi"]
 
+# Over this, an offer is judged against the far set instead of the live one.
+FAR_OVER_DOLLARS = 30
+
 STARTER_ALLOW = [
     "Aspendale", "Aspendale Gardens", "Bangholme", "Bonbeach", "Braeside",
     "Carrum", "Chelsea", "Chelsea Heights", "Cheltenham", "Clarinda",
@@ -77,7 +80,12 @@ def load_rules():
     if os.path.exists(RULES):
         try:
             with open(RULES) as handle:
-                return json.load(handle)
+                rules = json.load(handle)
+            # A file written before the far set existed gets one, so the driver
+            # sees the shipped group rather than an empty one.
+            if not rules.get("far", {}).get("suburbs"):
+                rules["far"] = {"overDollars": FAR_OVER_DOLLARS, "suburbs": STARTER_ALLOW}
+            return rules
         except Exception:
             pass
     return {
@@ -85,6 +93,9 @@ def load_rules():
         "profiles": [{"name": "默认", "suburbs": STARTER_ALLOW}],
         "active": "默认",
         "suburbs": {"allow": STARTER_ALLOW, "deny": []},
+        # The set a payout over the threshold unlocks. Shipped with the whole
+        # service area in it, which is wider than any of the working sets.
+        "far": {"overDollars": FAR_OVER_DOLLARS, "suburbs": STARTER_ALLOW},
         "stores": {"deny": [], "cbdDeny": [], "alwaysOk": ALWAYS_OK},
         "addresses": {"deny": []},
     }

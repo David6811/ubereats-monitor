@@ -7,6 +7,13 @@ package com.weixu.ueatsmonitor.domain
  */
 data class Rules(
     val allowedSuburbs: Set<String>,
+    /**
+     * Where a big payout will take him. An offer over [farOverCents] is judged
+     * against these suburbs instead of [allowedSuburbs]: the money is worth the
+     * drive back. Empty means the rule is off.
+     */
+    val farSuburbs: Set<String>,
+    val farOverCents: Cents,
     val deniedStores: List<String>,
     /**
      * Chains that always have their own car park. A pickup matching one of these
@@ -19,7 +26,8 @@ data class Rules(
 /** Data. Sum type: why an offer is or is not worth taking. */
 sealed interface Ruling {
 
-    data class Take(val suburb: String) : Ruling
+    /** [far] when the payout was what let it through, not the ordinary set. */
+    data class Take(val suburb: String, val far: Boolean = false) : Ruling
 
     data class Leave(val reason: Reason) : Ruling
 
@@ -55,18 +63,24 @@ object RuleJudge {
         }
         if (denied != null) return Ruling.Leave(Ruling.Reason.StoreDenied(denied))
 
-        if (rules.allowedSuburbs.isEmpty()) return Ruling.Unknown
+        // Over the threshold the far set applies instead. Not as well as: the
+        // whole point is that a big payout reaches somewhere the ordinary set
+        // will not.
+        val far = rules.farSuburbs.isNotEmpty() &&
+            card.payout.amount > rules.farOverCents.amount
+        val allowed = if (far) rules.farSuburbs else rules.allowedSuburbs
+        if (allowed.isEmpty()) return Ruling.Unknown
 
         val found = SuburbIndex.findAll(card.dropoff, gazetteer)
         if (found.isEmpty()) return Ruling.Unknown
 
         val outside = found.firstOrNull { suburb ->
-            rules.allowedSuburbs.none { it.equals(suburb.name, ignoreCase = true) }
+            allowed.none { it.equals(suburb.name, ignoreCase = true) }
         }
         return if (outside != null) {
             Ruling.Leave(Ruling.Reason.SuburbNotAllowed(outside.name))
         } else {
-            Ruling.Take(found.first().name)
+            Ruling.Take(found.first().name, far = far)
         }
     }
 }
@@ -84,7 +98,7 @@ object RulingText {
     }
 
     fun reason(ruling: Ruling): String = when (ruling) {
-        is Ruling.Take -> ruling.suburb + " 在名单里"
+        is Ruling.Take -> ruling.suburb + if (ruling.far) " 在远区名单里" else " 在名单里"
         is Ruling.Leave -> when (val why = ruling.reason) {
             is Ruling.Reason.SuburbNotAllowed -> why.suburb + " 不在名单里"
             is Ruling.Reason.StoreDenied -> why.store + " 在黑名单里"

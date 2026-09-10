@@ -167,6 +167,8 @@ body.mapfull h2{font-size:17px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
 .btn.armed{background:var(--accent);color:#fff}
+.prof.far{border-style:dashed;border-color:var(--warn);color:var(--warn)}
+.prof.far[data-on="1"]{background:var(--warn);border-style:solid;color:#fff}
 .prof{
   border:1px solid var(--line);background:var(--sunk);color:var(--ink-2);
   border-radius:999px;padding:5px 14px;font-size:14px;cursor:pointer;user-select:none;
@@ -445,6 +447,35 @@ body.mapfull h2{font-size:17px}
    * Named sets of suburbs. The phone only ever reads suburbs.allow, so switching
    * a set copies it there - nothing on the phone has to know these exist.
    */
+  /** The one set that is always there: where a payout over the threshold reaches. */
+  var FAR = "远区 >$30";
+
+  function far(){
+    if (!state.rules.far) state.rules.far = { overDollars: 30, suburbs: [] };
+    if (!state.rules.far.suburbs) state.rules.far.suburbs = [];
+    return state.rules.far;
+  }
+
+  /** Puts what is drawn on the map back into whichever set is being edited. */
+  function stash(){
+    if (state.editing === FAR) {
+      far().suburbs = state.rules.suburbs.allow.slice();
+      return;
+    }
+    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+    if (here) here.suburbs = state.rules.suburbs.allow.slice();
+  }
+
+  function editFar(){
+    stash();
+    state.editing = FAR;
+    state.rules.suburbs.allow = far().suburbs.slice();
+    repaint();
+    drawProfiles();
+    fitToChosen();
+    say("在改「" + FAR + "」，" + far().suburbs.length + " 个区", "ok");
+  }
+
   function profiles(){
     if (!state.rules.profiles) {
       state.rules.profiles = [{ name: "默认", suburbs: state.rules.suburbs.allow.slice() }];
@@ -483,7 +514,7 @@ body.mapfull h2{font-size:17px}
     profiles().forEach(function(profile){
       var chip = document.createElement("span");
       chip.className = "prof";
-      chip.dataset.on = profile.name === state.rules.active ? "1" : "0";
+      chip.dataset.on = (!state.editing && profile.name === state.rules.active) ? "1" : "0";
       chip.textContent = profile.name;
       chip.addEventListener("click", function(){ switchTo(profile.name); });
       chip.addEventListener("dblclick", function(){
@@ -512,6 +543,15 @@ body.mapfull h2{font-size:17px}
       bar.appendChild(chip);
     });
 
+    var farChip = document.createElement("span");
+    farChip.className = "prof far";
+    farChip.dataset.on = state.editing === FAR ? "1" : "0";
+    farChip.textContent = FAR;
+    farChip.title = far().suburbs.length + " 个区 · 金额超过 $" +
+      (far().overDollars || 30) + " 的单改用这一组，删不掉";
+    farChip.addEventListener("click", editFar);
+    bar.appendChild(farChip);
+
     var add = document.createElement("button");
     add.className = "btn plain";
     add.textContent = "把现在的选区另存为…";
@@ -530,8 +570,8 @@ body.mapfull h2{font-size:17px}
 
   /** Keeps the set you are leaving up to date before loading the next one. */
   function switchTo(name){
-    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
-    if (here) here.suburbs = state.rules.suburbs.allow.slice();
+    stash();
+    state.editing = null;
     state.rules.stores.cbdDeny = cbdNames();
     var next = profiles().filter(function(p){ return p.name === name; })[0];
     if (!next) return;
@@ -931,8 +971,11 @@ body.mapfull h2{font-size:17px}
 
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;
+    stash();
+    // What the phone judges by is the live set, whatever the map happens to be
+    // showing: editing the far set must not become the ordinary allow list.
     var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
-    if (here) here.suburbs = state.rules.suburbs.allow.slice();
+    if (here) state.rules.suburbs.allow = here.suburbs.slice();
     state.rules.stores.cbdDeny = cbdNames();
     state.rules.addresses.deny = $("addresses").value.split("\n")
       .map(function(s){ return s.trim(); })

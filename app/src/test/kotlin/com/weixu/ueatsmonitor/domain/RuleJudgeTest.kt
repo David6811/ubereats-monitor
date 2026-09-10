@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptyList(), emptyList()), GAZETTEER)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList()), GAZETTEER)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -138,9 +138,65 @@ class RuleJudgeTest {
         stops = listOf(pickup, dropoff),
     )
 
+    @Test
+    fun `given a payout over the threshold, when judged, then the far set decides`() {
+        // arrange  Dandenong South is not in the ordinary set
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(31.0))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // assert
+        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
+    }
+
+    @Test
+    fun `given a payout at the threshold, when judged, then the ordinary set still decides`() {
+        // arrange  over, not at: thirty dollars exactly is an ordinary offer
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(30.0))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
+    }
+
+    @Test
+    fun `given a big payout to somewhere in neither set, when judged, then it is still refused`() {
+        // arrange
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Somewhere in Keysborough", payout = Cents.ofDollars(45.0))
+
+        // affirm  Keysborough is in the ordinary set, which no longer applies
+        assertEquals(true, RULES.allowedSuburbs.contains("Keysborough"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Keysborough")), ruling)
+    }
+
+    @Test
+    fun `given no far set drawn, when a big payout is judged, then the ordinary set decides`() {
+        // arrange
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(60.0))
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
+    }
+
     private companion object {
         val RULES = Rules(
             allowedSuburbs = setOf("Noble Park", "Keysborough", "Dandenong"),
+            farSuburbs = emptySet(),
+            farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
         )
