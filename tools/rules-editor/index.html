@@ -122,6 +122,11 @@ body.mapfull .hint{display:none}
 body.mapfull h2{font-size:17px}
 #full{margin-left:auto}
 .leaflet-container{font-family:inherit}
+/* The browser draws a rectangular focus ring around a clicked SVG path, which
+   on a map reads as if the suburb itself were a rectangle. Selection is shown
+   by the fill, so the ring only misleads. */
+.leaflet-container path.leaflet-interactive:focus,
+.leaflet-container path.leaflet-interactive:focus-visible{outline:none}
 .maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
@@ -250,7 +255,16 @@ body.mapfull h2{font-size:17px}
           var name = feature.properties.name;
           shapes[name] = layer;
           layer.bindTooltip(name, { sticky: true });
-          layer.on("click", function(){ toggle(name); });
+          layer.on("click", function(event){
+            L.DomEvent.stop(event);
+            toggle(name);
+          });
+          layer.on("mouseover", function(){
+            this.setStyle({ weight: 3, color: "#0E5B62" });
+          });
+          layer.on("mouseout", function(){
+            this.setStyle(styleFor({ properties: { name: name } }));
+          });
         },
       }).addTo(map);
       drawAnchor();
@@ -264,10 +278,13 @@ body.mapfull h2{font-size:17px}
   function styleFor(feature){
     var on = allowed(feature.properties.name);
     return {
-      color: on ? "#2F7A4F" : "#8A9099",
-      weight: on ? 1.6 : 0.7,
+      color: on ? "#1E6B40" : "#8A9099",
+      weight: on ? 2.2 : 0.6,
       fillColor: on ? "#2F7A4F" : "#8A9099",
-      fillOpacity: on ? 0.45 : 0.10,
+      fillOpacity: on ? 0.45 : 0.06,
+      // The shape itself is the selection indicator, so it has to read at a
+      // glance: a chosen suburb gets a solid outline, the rest almost vanish.
+      opacity: on ? 1 : 0.5,
     };
   }
 
