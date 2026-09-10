@@ -39,6 +39,14 @@ PLACES = [
 ]
 PORT = 8777
 
+# The two shopping strips the driver refuses to pick up from: no parking, and a
+# long walk once you find some. Centres taken from the retail cores.
+CBD = [
+    {"key": "springvale", "label": "Springvale 市中心", "lat": -37.9483, "lon": 145.1518},
+    {"key": "dandenong", "label": "Dandenong 市中心", "lat": -37.9820, "lon": 145.2148},
+]
+CBD_RADIUS_KM = 0.7
+
 STARTER_ALLOW = [
     "Aspendale", "Aspendale Gardens", "Bangholme", "Bonbeach", "Braeside",
     "Carrum", "Chelsea", "Chelsea Heights", "Cheltenham", "Clarinda",
@@ -97,10 +105,68 @@ def stores():
     db = sqlite3.connect(STORES_DB)
     db.row_factory = sqlite3.Row
     rows = db.execute(
-        "SELECT name, suburb, kind, setting, mall FROM store ORDER BY name"
+        "SELECT name, suburb, kind, setting, mall, lat, lon FROM store ORDER BY name"
     ).fetchall()
     db.close()
     return [dict(row) for row in rows]
+
+
+def haversine_km(a, b):
+    import math
+
+    radius = 6371.0088
+    lat1, lon1 = map(math.radians, a)
+    lat2, lon2 = map(math.radians, b)
+    h = (math.sin((lat2 - lat1) / 2) ** 2 +
+         math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2)
+    return 2 * radius * math.asin(math.sqrt(h))
+
+
+def cbd_groups():
+    """Stores in each core, split by whether they have their own car park.
+
+    Only the ones that do not are proposed for the deny list - a Coles or a KFC
+    with its own lot is fine to pick up from, and blanket-refusing the whole
+    core would lose those.
+    """
+    everything = stores()
+    counts = {}
+    for row in everything:
+        counts[row["name"]] = counts.get(row["name"], 0) + 1
+
+    out = []
+    for core in CBD:
+        centre = (core["lat"], core["lon"])
+        near = [
+            dict(row, metres=int(haversine_km(centre, (row["lat"], row["lon"])) * 1000))
+            for row in everything
+            if haversine_km(centre, (row["lat"], row["lon"])) <= CBD_RADIUS_KM
+        ]
+        def shape(rows):
+            return sorted(
+                [
+                    {
+                        "name": r["name"],
+                        "kind": r["kind"],
+                        "setting": r["setting"],
+                        "mall": r["mall"],
+                        "metres": r["metres"],
+                        # A name that also exists elsewhere would take those with it.
+                        "elsewhere": counts.get(r["name"], 1) - 1,
+                    }
+                    for r in rows
+                ],
+                key=lambda r: r["metres"],
+            )
+        out.append({
+            "key": core["key"],
+            "label": core["label"],
+            "radiusKm": CBD_RADIUS_KM,
+            "deny": shape([r for r in near if r["setting"] in ("STRIP", "MALL")]),
+            "keep": shape([r for r in near if r["setting"] == "STANDALONE_PARKING"]),
+            "unknown": shape([r for r in near if r["setting"] == "STANDALONE"]),
+        })
+    return out
 
 
 def phone_location():
@@ -151,6 +217,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "phone": attached[0] if attached else None,
                 }
             )
+        if self.path == "/api/cbd":
+            return self.send_json({"cores": cbd_groups()})
+
         if self.path.startswith("/api/geocode"):
             from urllib.parse import urlparse, parse_qs, quote
 

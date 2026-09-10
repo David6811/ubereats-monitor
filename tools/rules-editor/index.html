@@ -141,6 +141,18 @@ body.mapfull h2{font-size:17px}
 }
 .prof[data-on="1"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 .prof .x{margin-left:8px;opacity:.5}
+.core{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px;background:var(--sunk)}
+.core h3{margin:0 0 2px;font-family:"Barlow Condensed",sans-serif;font-size:19px}
+.core .sum{color:var(--ink-2);font-size:13px;margin-bottom:10px}
+.core .acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.core details{margin-top:8px}
+.core summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:600}
+.core .grp{margin:8px 0 0 4px}
+.core .grp b{font-size:12px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.core .items{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:13px}
+.core .items span{color:var(--ink-2)}
+.core .items span.warn{color:var(--warn)}
+.core .items span.kept{color:var(--yes)}
 </style>
 </head>
 <body>
@@ -191,6 +203,15 @@ body.mapfull h2{font-size:17px}
   </section>
 
   <section>
+    <h2>市中心成片拉黑</h2>
+    <p class="hint">
+      这两条商业街停车最难。清单全列出来给你看：自带停车场的<b>不拉黑</b>，
+      名字在别处还有同名店的<b>默认也不拉黑</b>（拉了会连坐）。
+    </p>
+    <div id="cores"></div>
+  </section>
+
+  <section>
     <h2>不接的店<span class="count" id="storeCount"></span></h2>
     <p class="hint">取餐点名字里含有这些字就不接。整个商场可以一次拉黑。</p>
     <div class="row">
@@ -236,6 +257,7 @@ body.mapfull h2{font-size:17px}
     initMap();
     drawPlaces();
     drawProfiles();
+    drawCores();
   }
 
   function counts(){
@@ -448,6 +470,88 @@ body.mapfull h2{font-size:17px}
     drawProfiles();
     fitToChosen();
     say("已切到「" + name + "」，" + next.suburbs.length + " 个区", "ok");
+  }
+
+  /**
+   * The whole core, listed. Nothing is refused silently: what will be denied,
+   * what is kept because it has its own car park, and what shares its name with
+   * shops elsewhere - denying those would take the others with them.
+   */
+  function drawCores(){
+    fetch("/api/cbd").then(function(r){ return r.json(); }).then(function(data){
+      var box = $("cores");
+      box.textContent = "";
+      data.cores.forEach(function(core){
+        var safe = core.deny.filter(function(r){ return r.elsewhere === 0; });
+        var shared = core.deny.filter(function(r){ return r.elsewhere > 0; });
+
+        var el = document.createElement("div");
+        el.className = "core";
+
+        var title = document.createElement("h3");
+        title.textContent = core.label + "（半径 " + core.radiusKm + " km）";
+        var sum = document.createElement("div");
+        sum.className = "sum";
+        sum.textContent = "可拉黑 " + safe.length + " 家 · 同名慎拉 " + shared.length +
+                          " 家 · 自带停车场保留 " + core.keep.length + " 家";
+        el.append(title, sum);
+
+        var acts = document.createElement("div");
+        acts.className = "acts";
+        var addSafe = document.createElement("button");
+        addSafe.className = "btn plain";
+        addSafe.textContent = "拉黑这 " + safe.length + " 家";
+        addSafe.addEventListener("click", function(){
+          safe.forEach(function(r){ deny(r.name); });
+          say(core.label + "：已加入 " + safe.length + " 家", "ok");
+        });
+        var addShared = document.createElement("button");
+        addShared.className = "btn plain";
+        addShared.textContent = "连同名的一起（+" + shared.length + "）";
+        addShared.title = "会连带拉黑别处的同名店";
+        addShared.addEventListener("click", function(){
+          safe.concat(shared).forEach(function(r){ deny(r.name); });
+          say(core.label + "：已加入 " + (safe.length + shared.length) + " 家（含同名）", "ok");
+        });
+        acts.append(addSafe, addShared);
+        el.appendChild(acts);
+
+        el.appendChild(groupBlock("会被拉黑", safe, ""));
+        if (shared.length) el.appendChild(groupBlock("同名店，拉了会连坐", shared, "warn"));
+        el.appendChild(groupBlock("保留：自带停车场", core.keep, "kept"));
+        if (core.unknown.length) el.appendChild(groupBlock("停车场未知", core.unknown, ""));
+
+        box.appendChild(el);
+      });
+    });
+  }
+
+  /** One collapsible block, its rows grouped by what kind of shop they are. */
+  function groupBlock(title, rows, cls){
+    var d = document.createElement("details");
+    var s = document.createElement("summary");
+    s.textContent = title + "（" + rows.length + " 家）";
+    d.appendChild(s);
+    var byKind = {};
+    rows.forEach(function(r){ (byKind[r.kind] = byKind[r.kind] || []).push(r); });
+    Object.keys(byKind).sort().forEach(function(kind){
+      var g = document.createElement("div");
+      g.className = "grp";
+      var b = document.createElement("b");
+      b.textContent = kind + " · " + byKind[kind].length;
+      var items = document.createElement("div");
+      items.className = "items";
+      byKind[kind].forEach(function(r){
+        var span = document.createElement("span");
+        if (cls) span.className = cls;
+        span.textContent = r.name + (r.elsewhere ? " (别处还有" + r.elsewhere + "家)" : "") +
+                           " · " + r.metres + "m";
+        items.appendChild(span);
+      });
+      g.append(b, items);
+      d.appendChild(g);
+    });
+    return d;
   }
 
   function drawPlaces(){
