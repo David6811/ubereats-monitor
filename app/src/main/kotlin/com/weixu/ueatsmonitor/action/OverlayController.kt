@@ -68,6 +68,9 @@ class OverlayController(private val context: Context) {
 
     fun hide() = main.post(::removeNow)
 
+    /** Whether a verdict is up right now, as opposed to nothing or "thinking". */
+    fun showingVerdict(): Boolean = showing.isNotEmpty() && showing != THINKING
+
     private val autoHide = Runnable { removeNow() }
 
     private fun removeNow() {
@@ -78,7 +81,7 @@ class OverlayController(private val context: Context) {
     }
 
     private fun keyOf(state: State): String = when (state) {
-        State.Thinking -> "thinking"
+        State.Thinking -> THINKING
         is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) + RulingText.reason(state.ruling)
     }
 
@@ -118,7 +121,7 @@ class OverlayController(private val context: Context) {
             addView(
                 TextView(context).apply {
                     text = face.title
-                    textSize = 34f
+                    textSize = 26f
                     setTextColor(face.ink)
                     setTypeface(typeface, Typeface.BOLD)
                 }
@@ -127,7 +130,7 @@ class OverlayController(private val context: Context) {
                 addView(
                     TextView(context).apply {
                         text = detail
-                        textSize = 21f
+                        textSize = 17f
                         setTypeface(typeface, Typeface.BOLD)
                         setLineSpacing(0f, 1.15f)
                         setTextColor(face.ink)
@@ -188,7 +191,9 @@ class OverlayController(private val context: Context) {
         const val PAYOUT_ROW = 0.63
 
         /** How much of the screen's width the chip takes. */
-        const val WIDTH = 0.86
+        const val WIDTH = 0.62
+
+        private const val THINKING = "thinking"
 
         /** Two frames' worth of grace, so a missed frame does not make it flicker. */
         const val TTL_MILLIS = 4_500L

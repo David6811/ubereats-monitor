@@ -329,6 +329,11 @@ class UberScreenService : AccessibilityService() {
             when {
                 card != null -> Unit
                 offerShape -> overlay.show(OverlayController.State.Thinking)
+                // A verdict already on screen is left to its deadline. The chip
+                // covers part of the card it was read from, so the next frame
+                // often cannot read that card - hiding on that made it blink once
+                // a second for as long as the card was up.
+                overlay.showingVerdict() -> Unit
                 else -> overlay.hide()
             }
         }
