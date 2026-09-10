@@ -1,7 +1,6 @@
 package com.weixu.ueatsmonitor.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
+import com.weixu.ueatsmonitor.action.StoreTable
+import com.weixu.ueatsmonitor.domain.Store
+import com.weixu.ueatsmonitor.domain.StoreKinds
 import com.weixu.ueatsmonitor.domain.Job
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -49,6 +53,7 @@ import java.util.Locale
 @Composable
 fun WorkScreen() {
     val context = LocalContext.current
+    val stores = remember { StoreTable.all(context) }
     var cleared by remember { mutableStateOf(0) }
     val jobs by produceState(initialValue = JobStore.list(context), cleared) {
         while (true) {
@@ -72,16 +77,19 @@ fun WorkScreen() {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(jobs, key = { it.atMillis }) { job ->
-                JobCard(job) { JobStore.remove(context, job.atMillis); cleared++ }
+                JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
             }
         }
     }
 }
 
 @Composable
-private fun JobCard(job: Job, onClear: () -> Unit) {
+private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
+    val context = LocalContext.current
+    val shop = remember(job.offer.pickup, stores) { StoreKinds.find(job.offer.pickup, stores) }
+
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = CLOCK.format(Date(job.atMillis)) + "  " + job.offer.payout,
@@ -91,8 +99,29 @@ private fun JobCard(job: Job, onClear: () -> Unit) {
                 )
                 TextButton(onClick = onClear) { Text("清掉", fontSize = 16.sp) }
             }
-            Stop("取货", job.offer.pickup, PICKUP)
-            Stop("送到", job.offer.dropoff, DROPOFF)
+            Stop(
+                title = "取货",
+                place = job.offer.pickup,
+                tint = PICKUP,
+                actions = listOfNotNull(
+                    StopAction("导航") { Navigation.driveTo(context, job.offer.pickup) },
+                    // Street View wants a point, and only a shop we know has one.
+                    shop?.let { found ->
+                        StopAction("街景") {
+                            Navigation.streetView(context, found.at.latitude, found.at.longitude)
+                        }
+                    },
+                ),
+            )
+            Stop(
+                title = "送到",
+                place = job.offer.dropoff,
+                tint = DROPOFF,
+                actions = listOf(
+                    StopAction("导航") { Navigation.driveTo(context, job.offer.dropoff) },
+                    StopAction("看地图") { Navigation.showOnMap(context, job.offer.dropoff) },
+                ),
+            )
             job.offer.ruling?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge)
             }
@@ -100,45 +129,59 @@ private fun JobCard(job: Job, onClear: () -> Unit) {
     }
 }
 
+/** One thing that can be done with a stop, as its own tap target. */
+private data class StopAction(val label: String, val run: () -> Unit)
+
 /**
  * One stop, as a block rather than a caption: which of the two it is has to be
- * readable in the half second the driver can spare for it.
+ * readable in the half second the driver can spare for it, and what can be done
+ * with it has to be hittable without looking.
  */
 @Composable
-private fun Stop(title: String, place: String, tint: Color) {
-    val context = LocalContext.current
-    Row(
+private fun Stop(title: String, place: String, tint: Color, actions: List<StopAction>) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(tint.copy(alpha = 0.18f))
-            .clickable { Navigation.driveTo(context, place) }
-            .padding(10.dp),
-        verticalAlignment = Alignment.Top,
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(
-            text = title,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(tint)
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = place,
-            modifier = Modifier.weight(1f).padding(start = 10.dp),
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "导航 ›",
-            modifier = Modifier.padding(start = 8.dp),
-            color = tint,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            Text(
+                text = title,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(tint)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = place,
+                modifier = Modifier.padding(start = 10.dp),
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            actions.forEach { action ->
+                Button(
+                    onClick = action.run,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = tint,
+                        // Without this the label takes the theme's colour, which on
+                        // these two fills is nearly the fill itself.
+                        contentColor = Color.White,
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(action.label, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 

@@ -5,7 +5,12 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** Data. One shop from the bundled table, with the little we say about it. */
-data class Store(val name: String, val kind: String, val setting: String)
+data class Store(
+    val name: String,
+    val kind: String,
+    val setting: String,
+    val at: GeoPoint,
+)
 
 /**
  * Calculation. What kind of shop a pickup line names, and where it stands.
@@ -25,7 +30,10 @@ object StoreKinds {
             if (parts.size < 5) return@mapNotNull null
             val name = parts[0].trim()
             val kind = parts[3].trim()
-            if (name.isEmpty() || kind.isEmpty()) null else Store(name, kind, parts[4].trim())
+            val latitude = parts[1].trim().toDoubleOrNull() ?: return@mapNotNull null
+            val longitude = parts[2].trim().toDoubleOrNull() ?: return@mapNotNull null
+            if (name.isEmpty() || kind.isEmpty()) null
+            else Store(name, kind, parts[4].trim(), GeoPoint(latitude, longitude))
         }
         .toList()
 

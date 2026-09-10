@@ -37,6 +37,35 @@ object Navigation {
         }
     }
 
+    /** Opens the map at a place, without starting a route to it. */
+    fun showOnMap(context: Context, place: String) {
+        start(
+            context,
+            Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(qualify(place)))),
+        )
+    }
+
+    /** Drops the viewer into Street View. Needs a point; an address will not do. */
+    fun streetView(context: Context, latitude: Double, longitude: Double) {
+        start(
+            context,
+            Intent(Intent.ACTION_VIEW, Uri.parse("google.streetview:cbll=$latitude,$longitude"))
+                .setPackage(MAPS),
+            Intent(Intent.ACTION_VIEW, Uri.parse("geo:$latitude,$longitude?z=19")),
+        )
+    }
+
+    private fun start(context: Context, vararg tries: Intent) {
+        for (intent in tries) {
+            try {
+                context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (missing: ActivityNotFoundException) {
+                Log.i("UEatsMonitor", "nav: nothing handles " + intent.data)
+            }
+        }
+    }
+
     /** Calculation. The place as a map should be asked for it. */
     fun qualify(place: String): String {
         val clean = place.replace('(', ' ').replace(')', ' ').trim().replace(Regex("""\s+"""), " ")
