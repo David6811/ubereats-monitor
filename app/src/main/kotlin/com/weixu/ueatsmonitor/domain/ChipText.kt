@@ -9,14 +9,32 @@ package com.weixu.ueatsmonitor.domain
  */
 object ChipText {
 
-    /** "Springvale（快餐） → Mulgrave", or null when neither end was recognised. */
-    fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>): String? {
-        val from = suburbOf(card.pickup, suburbs)
-        val to = suburbOf(card.dropoff, suburbs)
-        if (from == null && to == null) return null
+    /** "Springvale（快餐） → Mulgrave". Never null: an unknown end names itself. */
+    fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>): String {
+        val from = suburbOf(card.pickup, suburbs) ?: shorten(card.pickup)
+        val to = suburbOf(card.dropoff, suburbs) ?: shorten(card.dropoff)
         val kind = StoreKinds.of(card.pickup, stores)?.let { "（" + StoreKinds.label(it) + "）" } ?: ""
-        return (from ?: "?") + kind + " → " + (to ?: "?")
+        return from + kind + " → " + to
     }
+
+    /**
+     * What to call a stop whose suburb we do not know: the shop's own name, as
+     * short as it can be said. OCR leaves a scrap of the icon in front, the
+     * suburb sits in brackets behind, and an address carries on past its first
+     * comma - none of that survives.
+     */
+    fun shorten(place: String): String {
+        val trimmed = place
+            .replace(Regex("""^\S{1,2}\s+"""), "")
+            .substringBefore('(')
+            .substringBefore(',')
+            .trim()
+            .ifEmpty { place.trim() }
+        return if (trimmed.length <= MAX_NAME) trimmed else trimmed.take(MAX_NAME).trimEnd() + "…"
+    }
+
+    /** Longer than this and it stops being readable at a glance anyway. */
+    private const val MAX_NAME = 14
 
     /** "$1.42/公里", or null when the card's distance was unreadable. */
     fun rate(card: OfferCard): String? {

@@ -90,7 +90,7 @@ class OverlayController(private val context: Context) {
             WindowManager.LayoutParams.TYPE_PHONE
         }
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            (context.resources.displayMetrics.widthPixels * WIDTH).toInt(),
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -100,7 +100,7 @@ class OverlayController(private val context: Context) {
         ).apply {
             // Beside the payout: the card's amount sits about two thirds down.
             gravity = Gravity.TOP or Gravity.END
-            x = dp(20)
+            x = dp(10)
             y = (context.resources.displayMetrics.heightPixels * PAYOUT_ROW).toInt()
         }
     }
@@ -109,7 +109,7 @@ class OverlayController(private val context: Context) {
         val face = faceOf(state)
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(10), dp(16), dp(10))
+            setPadding(dp(18), dp(14), dp(18), dp(14))
             background = GradientDrawable().apply {
                 cornerRadius = dp(14).toFloat()
                 setColor(face.fill)
@@ -118,7 +118,7 @@ class OverlayController(private val context: Context) {
             addView(
                 TextView(context).apply {
                     text = face.title
-                    textSize = 22f
+                    textSize = 34f
                     setTextColor(face.ink)
                     setTypeface(typeface, Typeface.BOLD)
                 }
@@ -127,7 +127,9 @@ class OverlayController(private val context: Context) {
                 addView(
                     TextView(context).apply {
                         text = detail
-                        textSize = 13f
+                        textSize = 21f
+                        setTypeface(typeface, Typeface.BOLD)
+                        setLineSpacing(0f, 1.15f)
                         setTextColor(face.ink)
                     }
                 )
@@ -184,6 +186,9 @@ class OverlayController(private val context: Context) {
     private companion object {
         /** Where the payout line sits, as a fraction of screen height. */
         const val PAYOUT_ROW = 0.63
+
+        /** How much of the screen's width the chip takes. */
+        const val WIDTH = 0.86
 
         /** Two frames' worth of grace, so a missed frame does not make it flicker. */
         const val TTL_MILLIS = 4_500L

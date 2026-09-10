@@ -39,19 +39,31 @@ class ChipTextTest {
     }
 
     @Test
-    fun `given a card whose dropoff names no suburb, when the route is written, then that end is a question mark`() {
+    fun `given a card whose dropoff names no suburb, when the route is written, then that end names itself`() {
         // arrange
-        val offer = card.copy(dropoff = "Boundary Road & Wells Road")
+        val offer = card.copy(dropoff = "Boundary Road & Wells Road, Braeside")
 
         // act
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertEquals("Springvale（快餐） → ?", route)
+        assertEquals("Springvale（快餐） → Boundary Road…", route)
     }
 
     @Test
-    fun `given a card naming no suburb at all, when the route is written, then there is no line`() {
+    fun `given a pickup OCR padded with its suburb in brackets, when it is shortened, then only the shop name is left`() {
+        // arrange
+        val pickup = "9 Amritsari Sweets & Snacks (Noble Park)"
+
+        // act
+        val name = ChipText.shorten(pickup)
+
+        // assert
+        assertEquals("Amritsari Swee…", name)
+    }
+
+    @Test
+    fun `given a card naming no suburb at all, when the route is written, then both ends name themselves`() {
         // arrange
         val offer = card.copy(pickup = "Some Shop", dropoff = "Somewhere Else")
 
@@ -59,7 +71,7 @@ class ChipTextTest {
         val route = ChipText.route(offer, suburbs, stores)
 
         // assert
-        assertNull(route)
+        assertEquals("Some Shop → Somewhere Else", route)
     }
 
     @Test
