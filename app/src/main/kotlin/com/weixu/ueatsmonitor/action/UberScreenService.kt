@@ -372,6 +372,19 @@ class UberScreenService : AccessibilityService() {
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
             " ruling=" + (ruling?.let { RulingText.headline(it, card.isMatch) } ?: "-") + " chime=" + chime)
 
+        // One line the laptop can tail. It watches logcat rather than being told,
+        // so the phone needs no network code and nothing breaks when no laptop is
+        // listening - which is most of the time.
+        if (card != null) {
+            Log.i(
+                TAG,
+                "offer| pickup=" + card.pickup +
+                    " | dropoff=" + card.dropoff +
+                    " | payout=" + card.payout +
+                    " | kind=" + (if (card.isMatch) "match" else "accept"),
+            )
+        }
+
         return buildString {
             append("card=").append(card != null).append('\n')
             if (card != null) {
