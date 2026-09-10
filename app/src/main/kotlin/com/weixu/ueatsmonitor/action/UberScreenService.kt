@@ -253,7 +253,6 @@ class UberScreenService : AccessibilityService() {
             // costs a fifth of a second each time and fills the phone with
             // pictures of nothing; the button's green says in microseconds
             // whether this frame is worth either.
-            if (button && !treeHasCard) overlay.show(OverlayController.State.Thinking)
 
             when {
                 treeHasCard ->
@@ -321,6 +320,18 @@ class UberScreenService : AccessibilityService() {
         // a card whose text the accessibility tree does not expose.
         val card = OfferCardReader.read(lines)
         val offerShape = card != null || OfferShape.looksLikeOffer(text)
+
+        // "Thinking" belongs to a screen that really looks like an offer - money
+        // and a distance - not merely to a band of colour along the bottom. A
+        // solid tab bar in any other app satisfied that, and the chip then sat
+        // there for as long as the app was open, refreshed every two seconds.
+        if (LiveSettings.current?.overlayEnabled != false) {
+            when {
+                card != null -> Unit
+                offerShape -> overlay.show(OverlayController.State.Thinking)
+                else -> overlay.hide()
+            }
+        }
 
         // The driver's own rules, and nothing else. The payout floors that used
         // to live here were invented by this app and are gone; the numbers are
