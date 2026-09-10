@@ -82,6 +82,14 @@ class UberScreenService : AccessibilityService() {
     override fun onServiceConnected() {
         Log.i(TAG, "accessibility service connected")
         ServiceJournal.note(this, "读屏已连接")
+        live = this
+        // The node tree is cached by default. Reading it every second returned a
+        // stale snapshot: at the moment an offer card was on screen this service
+        // still saw the map underneath, while a fresh uiautomator dump saw the card.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            runCatching { setCacheEnabled(false) }
+        }
+        CaptureKeeperService.start(this)
         main.removeCallbacks(poll)
         main.post(poll)
         runCatching {
@@ -104,6 +112,7 @@ class UberScreenService : AccessibilityService() {
 
     override fun onDestroy() {
         runCatching { unregisterReceiver(screenWatcher) }
+        live = null
         ServiceJournal.note(this, "读屏被销毁")
         main.removeCallbacks(poll)
         super.onDestroy()
@@ -174,9 +183,8 @@ class UberScreenService : AccessibilityService() {
 
         val onScreen = roots.firstOrNull()?.packageName?.toString() ?: "locked_or_unknown"
         val fix = position.lastKnown()
-        val decision = decide(lines, text, now)
 
-        val header = buildString {
+        val headerHead = buildString {
             append("package=").append(onScreen).append('\n')
             append("windows=").append(roots.size).append('\n')
             append("lines=").append(lines.size).append('\n')
@@ -191,18 +199,56 @@ class UberScreenService : AccessibilityService() {
             } else {
                 append("fix=none\n")
             }
-            append(decision)
         }
-        DecisionLog.note(this, now, onScreen, decision)
+
         capture { screen ->
-            store.write(now, screen, header + "screenshot=" + (screen != null) + "\n---\n" + text)
+            // The tree can be stale; the picture never is. Read the picture whenever
+            // the tree did not already yield a card.
+            val treeHasCard = OfferCardReader.read(lines) != null
+            if (screen != null && !treeHasCard) {
+                ScreenTextReader.read(screen) { ocrLines, millis ->
+                    finish(now, screen, headerHead, lines, text, ocrLines, millis)
+                }
+            } else {
+                finish(now, screen, headerHead, lines, text, emptyList(), -1)
+            }
         }
     }
 
-    /**
-     * Every step of the judgement, written down. A shift is expensive to repeat,
-     * so a capture must explain by itself why it did or did not make a sound.
-     */
+    /** Decides once, on whichever source produced a card, and writes the record. */
+    private fun finish(
+        now: Long,
+        screen: Bitmap?,
+        headerHead: String,
+        treeLines: List<String>,
+        treeText: String,
+        ocrLines: List<String>,
+        ocrMillis: Long,
+    ) {
+        val treeCard = OfferCardReader.read(treeLines)
+        val source = if (treeCard != null) "a11y" else if (ocrLines.isNotEmpty()) "ocr" else "a11y"
+        val lines = if (treeCard != null) treeLines else ocrLines.ifEmpty { treeLines }
+        val text = lines.joinToString("\n")
+
+        val decision = decide(lines, text, now)
+        DecisionLog.note(this, now, source, decision)
+
+        val body = buildString {
+            append(headerHead)
+            append("source=").append(source).append('\n')
+            append("ocr_ms=").append(ocrMillis).append('\n')
+            append("ocr_lines=").append(ocrLines.size).append('\n')
+            append(decision)
+            append("screenshot=").append(screen != null).append('\n')
+            append("---\n")
+            append(text)
+            if (source == "ocr" && treeText.isNotEmpty()) {
+                append("\n=== tree (stale) ===\n").append(treeText)
+            }
+        }
+        store.write(now, screen, body)
+    }
+
     private fun decide(lines: List<String>, text: String, now: Long): String {
         // The card is read by layout, which is far stronger evidence than the
         // money-and-distance heuristic. The heuristic stays as the fallback for
@@ -278,7 +324,10 @@ class UberScreenService : AccessibilityService() {
         val fromWindows = runCatching {
             windows.orEmpty().mapNotNull { it.root }
         }.getOrDefault(emptyList())
-        val candidates = fromWindows.ifEmpty { listOfNotNull(rootInActiveWindow) }
+        // Always consider the active window too: a card can be a window the list
+        // has not caught up with yet.
+        val candidates = (fromWindows + listOfNotNull(rootInActiveWindow)).distinct()
+        candidates.forEach { runCatching { it.refresh() } }
         val uber = candidates.filter { node ->
             OfferParser.isUberPackage(node.packageName?.toString().orEmpty())
         }
@@ -321,7 +370,17 @@ class UberScreenService : AccessibilityService() {
         return wrapped.copy(Bitmap.Config.ARGB_8888, false)
     }
 
-    private companion object {
+    companion object {
+        /** Set while the service is bound, so the keeper's clock can drive it. */
+        @Volatile
+        private var live: UberScreenService? = null
+
+        /** Called once a second by [CaptureKeeperService], off the main thread. */
+        fun pokeFromKeeper() {
+            val service = live ?: return
+            service.main.post { service.look() }
+        }
+
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L
         const val MIN_GAP_MILLIS = 2_000L
