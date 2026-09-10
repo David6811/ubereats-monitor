@@ -357,6 +357,32 @@ body.mapfull h2{font-size:17px}
     }).addTo(map).bindTooltip("画圈圆心");
   }
 
+  function drawPlaces(){
+    var pick = $("placePick");
+    pick.textContent = "";
+    (state.places || []).forEach(function(place, index){
+      var option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = place.label;
+      pick.appendChild(option);
+    });
+    var own = document.createElement("option");
+    own.value = "own";
+    own.textContent = "自己输入地址…";
+    pick.appendChild(own);
+    usePlace(0);
+  }
+
+  function usePlace(index){
+    var place = (state.places || [])[index];
+    if (!place) return;
+    $("anchorLat").value = place.lat;
+    $("anchorLon").value = place.lon;
+    $("anchorLabel").value = place.label;
+    drawAnchor();
+    if (map) map.setView([place.lat, place.lon], 12);
+  }
+
   $("placePick").addEventListener("change", function(){
     var own = this.value === "own";
     $("customWrap").hidden = !own;
