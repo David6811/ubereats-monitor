@@ -147,6 +147,7 @@ body.mapfull h2{font-size:17px}
     </p>
     <div class="maptools">
       <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
+      <button class="btn plain" id="fit">回到选中的区</button>
       <button class="btn plain" id="clearAll">全部取消</button>
       <button class="btn plain" id="full">全屏</button>
     </div>
@@ -254,6 +255,7 @@ body.mapfull h2{font-size:17px}
       }).addTo(map);
       drawAnchor();
       counts();
+      fitToChosen();
     });
   }
 
@@ -303,6 +305,17 @@ body.mapfull h2{font-size:17px}
     this.classList.toggle("armed", armed);
     say(armed ? "在地图上点一下放圆心" : "");
   });
+
+  /** Frames the suburbs that are actually selected - the way back from any zoom. */
+  function fitToChosen(){
+    var group = [];
+    state.rules.suburbs.allow.forEach(function(name){
+      if (shapes[name]) group.push(shapes[name]);
+    });
+    if (!group.length) return say("一个区都没选", "bad");
+    map.fitBounds(L.featureGroup(group).getBounds(), { padding: [30, 30] });
+  }
+  $("fit").addEventListener("click", fitToChosen);
 
   $("full").addEventListener("click", function(){
     var on = document.body.classList.toggle("mapfull");
