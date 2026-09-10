@@ -268,7 +268,86 @@ class OfferCardReaderTest {
         assertTrue(!looksLikeCard)
     }
 
+    @Test
+    fun `given the OCR of a real long haul card, when read, then the payout is read`() {
+        // arrange
+        val lines = REAL_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals(Cents(3545), card!!.payout)
+    }
+
+    @Test
+    fun `given an hour and minutes in the totals, when read, then they add up`() {
+        // arrange
+        val lines = REAL_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals(Minutes(66), card.duration)
+    }
+
+    @Test
+    fun `given fifty three kilometres, when read, then it becomes miles`() {
+        // arrange
+        val lines = REAL_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals(32.93, card.distance!!.value, 0.01)
+    }
+
+    @Test
+    fun `given an address broken over two lines, when read, then it is put back together`() {
+        // arrange
+        val lines = REAL_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("Culverlands Street & Northern Road, Heidelberg West", card.dropoff)
+    }
+
+    @Test
+    fun `given the OCR of a real card, when read, then the status bar is not taken as the pickup`() {
+        // arrange
+        val lines = REAL_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("17/110 Indian Dr, Keysborough VIC 3173, Australia", card.pickup)
+    }
+
     private companion object {
+        /** Exactly what ML Kit read off the screen at 13:13 on 10 Sept. */
+        val REAL_OCR = listOf(
+            "4G", "13:13\u2192", "VO", "Templ\u00e9stowe", "Balwyn", "North",
+            "Blackburn South", "GlenIris", "Glen Waverley", "Rowville", "Mulgrave",
+            "Bentleigh East", "Cheltenham", "hdenong", "10",
+            "Package Exclusive",
+            "\$35.45",
+            "* 4.81 Est. earnings for completed trip",
+            ") lhr6 min (53.0 km) total",
+            "17/110 Indian Dr, Keysborough VIC 3173,",
+            "Australia",
+            "Culverlands Street & Northern Road,",
+            "Heidelberg West",
+            "Accept",
+        )
+
         val REAL_CARD = listOf(
             "Delivery",
             "Exclusive",

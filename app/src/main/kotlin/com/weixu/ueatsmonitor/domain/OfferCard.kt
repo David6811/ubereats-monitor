@@ -40,14 +40,19 @@ object OfferCardReader {
      */
     private val ACCEPT = Regex("""(^|[^a-z])accept([^a-z]|$)""", RegexOption.IGNORE_CASE)
     private val PAYOUT = Regex("""^[$＄]\s*(\d+(?:[.,]\d{1,2})?)$""")
+    /**
+     * "18 min (8.6 km) total", and the long-haul form "1 hr 6 min (53.0 km) total".
+     * Matched anywhere in the line: OCR prefixes it with clock-icon debris such as
+     * ") " and reads the leading 1 of "1 hr" as a lowercase L.
+     */
     private val TOTALS = Regex(
-        """^(\d+)\s*min\s*\(\s*([\d.]+)\s*(km|mi|miles?|kilomet(?:er|re)s?)\s*\)\s*total$""",
+        """(?:(\d+)\s*h(?:r|rs|our|ours)?\.?\s*)?(\d+)\s*min\s*\(\s*([\d.]+)\s*(km|mi|miles?|kilomet(?:er|re)s?)\s*\)\s*total""",
         RegexOption.IGNORE_CASE,
     )
 
     /** Card furniture that is never an address. */
     private val CHROME = listOf(
-        "accept", "decline", "delivery", "exclusive", "batched", "shop",
+        "accept", "decline", "delivery", "exclusive", "batched", "shop", "package",
         "est. earnings", "estimated earnings", "for completed trip", "incl.",
         "verify", "reserved", "scheduled",
     )
@@ -56,7 +61,7 @@ object OfferCardReader {
     fun looksLikeCard(lines: List<String>): Boolean {
         val clean = clean(lines)
         if (clean.none { ACCEPT.containsMatchIn(it) }) return false
-        return clean.any { PAYOUT.matches(it) } || clean.any { TOTALS.matches(it) }
+        return clean.any { PAYOUT.containsMatchIn(it) } || clean.any { TOTALS.containsMatchIn(it) }
     }
 
     fun read(lines: List<String>): OfferCard? {
@@ -64,10 +69,11 @@ object OfferCardReader {
         val acceptAt = clean.indexOfLast { ACCEPT.containsMatchIn(it) }
         val end = if (acceptAt >= 0) acceptAt else clean.size
 
-        val totalsAt = clean.take(end).indexOfLast { TOTALS.matches(it) }
-        val payout = clean.take(if (totalsAt >= 0) totalsAt else end)
-            .asReversed()
-            .firstNotNullOfOrNull { line -> PAYOUT.find(line)?.groupValues?.get(1) }
+        val totalsAt = clean.take(end).indexOfLast { TOTALS.containsMatchIn(it) }
+        val payoutAt = clean.take(if (totalsAt >= 0) totalsAt else end)
+            .indexOfLast { PAYOUT.containsMatchIn(it) }
+        if (payoutAt < 0) return null
+        val payout = PAYOUT.find(clean[payoutAt])?.groupValues?.get(1)
             ?.replace(',', '.')
             ?.toDoubleOrNull()
             ?.let(Cents::ofDollars) ?: return null
@@ -77,13 +83,21 @@ object OfferCardReader {
         if (acceptAt < 0 && totalsAt < 0) return null
 
         val totals = if (totalsAt >= 0) TOTALS.find(clean[totalsAt]) else null
-        val minutes = totals?.groupValues?.get(1)?.toIntOrNull()?.let(::Minutes)
+        val minutes = totals?.let { match ->
+            val hours = match.groupValues[1].toIntOrNull() ?: 0
+            val mins = match.groupValues[2].toIntOrNull() ?: return@let null
+            Minutes(hours * 60 + mins)
+        }
         val distance = totals?.let { match ->
-            val amount = match.groupValues[2].toDoubleOrNull() ?: return@let null
-            if (match.groupValues[3].startsWith("mi", ignoreCase = true)) Miles(amount) else amount.km2mi()
+            val amount = match.groupValues[3].toDoubleOrNull() ?: return@let null
+            if (match.groupValues[4].startsWith("mi", ignoreCase = true)) Miles(amount) else amount.km2mi()
         }
 
-        val stops = clean.subList((totalsAt + 1).coerceAtLeast(0), end).filterNot(::isChrome)
+        // Take the stops from just under the totals line - or under the payout when
+        // OCR mangled it - never from the top of the screen, where the status bar
+        // and every map label live.
+        val stopsFrom = if (totalsAt >= 0) totalsAt + 1 else payoutAt + 1
+        val stops = joinWrapped(clean.subList(stopsFrom.coerceIn(0, end), end)).filterNot(::isChrome)
         if (stops.isEmpty()) return null
 
         return OfferCard(
@@ -106,7 +120,30 @@ object OfferCardReader {
     )
 
     private fun clean(lines: List<String>): List<String> =
-        lines.map { it.trim() }.filter { it.isNotEmpty() }
+        lines.map { normalise(it.trim()) }.filter { it.isNotEmpty() }
+
+    /**
+     * Undo the letter/digit confusions OCR makes inside a totals line, and only
+     * there: a lowercase L or capital I standing in for 1 before "hr" or "min",
+     * and a capital O for 0 between digits.
+     */
+    private fun normalise(line: String): String = line
+        .replace(Regex("""[lI](?=\s*hr)""", RegexOption.IGNORE_CASE), "1")
+        .replace(Regex("""(?<=\d)[Oo](?=\d)"""), "0")
+        .replace(Regex("""^[^\w$＄]+"""), "")
+
+    /** An address that wrapped onto a second line ends with a comma. */
+    private fun joinWrapped(lines: List<String>): List<String> {
+        val joined = mutableListOf<String>()
+        for (line in lines) {
+            if (joined.isNotEmpty() && joined.last().endsWith(",")) {
+                joined[joined.size - 1] = joined.last().trimEnd(',') + ", " + line
+            } else {
+                joined += line
+            }
+        }
+        return joined
+    }
 
     private fun isChrome(line: String): Boolean =
         CHROME.any { line.contains(it, ignoreCase = true) }

@@ -6,6 +6,7 @@ import android.graphics.ColorSpace
 import android.hardware.HardwareBuffer
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -43,7 +44,15 @@ class UberScreenService : AccessibilityService() {
     private val gazetteer: List<Suburb> by lazy { Gazetteer.suburbs(this) }
 
     private val executor = Executors.newSingleThreadExecutor()
-    private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * Everything heavy runs here, never on the service's main thread. Walking the
+     * node tree, compressing a JPEG and taking OCR callbacks on main made Android
+     * unbind this service as unresponsive - which showed up as minute-long holes
+     * in the recording, one of them straight through a real offer.
+     */
+    private val worker = HandlerThread("uber-screen").apply { start() }
+    private val main = Handler(worker.looper)
     private val poll = object : Runnable {
         override fun run() {
             look()
@@ -113,6 +122,7 @@ class UberScreenService : AccessibilityService() {
     override fun onDestroy() {
         runCatching { unregisterReceiver(screenWatcher) }
         live = null
+        worker.quitSafely()
         ServiceJournal.note(this, "读屏被销毁")
         main.removeCallbacks(poll)
         super.onDestroy()
