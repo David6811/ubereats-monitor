@@ -186,7 +186,7 @@ class OverlayController(private val context: Context) {
          * own words landing among that text is what put a suburb where a shop
          * name belonged.
          */
-        const val TOP_ROW = 0.06
+        const val TOP_ROW = 0.037
 
         /** How much of the screen's width the chip takes. */
         const val WIDTH = 0.62
