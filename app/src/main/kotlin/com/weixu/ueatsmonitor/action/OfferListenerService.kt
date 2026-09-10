@@ -21,7 +21,6 @@ import com.weixu.ueatsmonitor.domain.Verdict
  */
 class OfferListenerService : NotificationListenerService() {
 
-    private val overlay: OverlayController by lazy { OverlayController(this) }
 
     override fun onListenerConnected() {
         ListenerStatus.connected.value = true
@@ -49,8 +48,9 @@ class OfferListenerService : NotificationListenerService() {
         OfferLog.add(LoggedEvent(raw = raw, result = result, verdict = verdict))
 
         if (verdict == null) return
-        // Silent by default: during a shift the app only records, it never interrupts.
-        if (settings?.overlayEnabled == true) overlay.show(verdict, subtitleOf(result))
+        // No chip from here. A whole shift of notifications proved they never carry
+        // an offer - only trip progress after one is accepted - so the card on
+        // screen, not this, is what the driver is shown.
         if (settings?.vibrateEnabled == true) vibrate(verdict)
     }
 

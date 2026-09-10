@@ -42,6 +42,7 @@ class UberScreenService : AccessibilityService() {
     private val store: CaptureStore by lazy { CaptureStore(this) }
     private val position: CurrentPosition by lazy { CurrentPosition(this) }
     private val chime: Chime by lazy { Chime() }
+    private val overlay: OverlayController by lazy { OverlayController(this) }
     private val gazetteer: List<Suburb> by lazy { Gazetteer.suburbs(this) }
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -235,6 +236,8 @@ class UberScreenService : AccessibilityService() {
             // costs a fifth of a second each time and fills the phone with
             // pictures of nothing; the button's green says in microseconds
             // whether this frame is worth either.
+            if (button && !treeHasCard) overlay.show(OverlayController.State.Thinking)
+
             when {
                 treeHasCard ->
                     finish(now, screen, headerHead, lines, text, emptyList(), -1, "card", green)
@@ -320,6 +323,15 @@ class UberScreenService : AccessibilityService() {
                     "played_" + call::class.simpleName
                 }
             }
+        }
+
+        if (card != null && verdict != null && LiveSettings.current?.overlayEnabled != false) {
+            overlay.show(
+                OverlayController.State.Decided(
+                    verdict = verdict,
+                    inArea = call is AreaCall.AllInside,
+                )
+            )
         }
 
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +

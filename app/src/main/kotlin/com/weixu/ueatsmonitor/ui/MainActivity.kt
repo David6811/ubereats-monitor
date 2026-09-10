@@ -152,7 +152,7 @@ private fun MonitorScreen(store: SettingsStore) {
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
-                    ToggleRow("弹悬浮窗", current.overlayEnabled) {
+                    ToggleRow("卡片上显示接不接", current.overlayEnabled) {
                         scope.launch { store.setOverlayEnabled(it) }
                     }
                     ToggleRow("震动提示", current.vibrateEnabled) {
@@ -172,9 +172,28 @@ private fun MonitorScreen(store: SettingsStore) {
                     Button(onClick = { chime.play(SAMPLE_OUTSIDE) }) { Text("试听：区外") }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { overlay.show(sampleVerdict(current.thresholds), "McDonald's → Downtown") }) {
-                        Text("试一下悬浮窗")
+                    Button(onClick = { overlay.show(OverlayController.State.Thinking, 6_000L) }) {
+                        Text("试：思考中")
                     }
+                    Button(
+                        onClick = {
+                            overlay.show(
+                                OverlayController.State.Decided(sampleVerdict(current.thresholds), inArea = true),
+                                6_000L,
+                            )
+                        },
+                    ) { Text("试：可以接") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            overlay.show(
+                                OverlayController.State.Decided(sampleVerdict(current.thresholds), inArea = false),
+                                6_000L,
+                            )
+                        },
+                    ) { Text("试：不要接") }
+                    TextButton(onClick = { overlay.hide() }) { Text("收起") }
                     TextButton(onClick = { OfferLog.clear() }) { Text("清空记录") }
                 }
             }

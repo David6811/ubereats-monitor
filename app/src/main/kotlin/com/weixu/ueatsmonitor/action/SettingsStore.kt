@@ -36,7 +36,7 @@ class SettingsStore(private val context: Context) {
                 minPayPerHour = prefs[MIN_PAY_PER_HOUR] ?: Thresholds.STARTER.minPayPerHour,
                 maxDistance = Miles(prefs[MAX_DISTANCE_MILES] ?: Thresholds.STARTER.maxDistance.value),
             ),
-            overlayEnabled = prefs[OVERLAY_ENABLED] ?: false,
+            overlayEnabled = prefs[OVERLAY_ENABLED] ?: true,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
