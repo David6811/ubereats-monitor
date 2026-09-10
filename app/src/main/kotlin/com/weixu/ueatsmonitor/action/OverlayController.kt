@@ -101,10 +101,12 @@ class OverlayController(private val context: Context) {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
-            // Beside the payout: the card's amount sits about two thirds down.
+            // Over the map, above everything the card says. Anywhere on the card
+            // and the chip's own words are read back as part of it: the card's
+            // pickup once came out as the suburb this chip was naming.
             gravity = Gravity.TOP or Gravity.END
             x = dp(10)
-            y = (context.resources.displayMetrics.heightPixels * PAYOUT_ROW).toInt()
+            y = (context.resources.displayMetrics.heightPixels * TOP_ROW).toInt()
         }
     }
 
@@ -192,8 +194,13 @@ class OverlayController(private val context: Context) {
         (value * context.resources.displayMetrics.density).toInt()
 
     private companion object {
-        /** Where the payout line sits, as a fraction of screen height. */
-        const val PAYOUT_ROW = 0.63
+        /**
+         * How far down the chip sits. High enough to be clear of the card, which
+         * starts around halfway down and whose text the reader parses; the chip's
+         * own words landing among that text is what put a suburb where a shop
+         * name belonged.
+         */
+        const val TOP_ROW = 0.06
 
         /** How much of the screen's width the chip takes. */
         const val WIDTH = 0.62
