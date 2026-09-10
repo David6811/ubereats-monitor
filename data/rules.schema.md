@@ -6,12 +6,6 @@ The whole decision, in one file. Edited on the Mac, pushed to the phone with
 ```json
 {
   "version": 1,
-  "anchor": {
-    "lat": -37.9695,
-    "lon": 145.1767,
-    "maxKm": 15.0,
-    "label": "家"
-  },
   "suburbs": {
     "allow": ["Noble Park", "Keysborough", "..."],
     "deny":  ["Heidelberg West"]
@@ -36,6 +30,12 @@ shows.
 | `addresses.deny` | the dropoff contains any denied fragment |
 | `suburbs.deny` | the dropoff's suburb is listed |
 | `suburbs.allow` | the dropoff's suburb is not listed (when the list is non-empty) |
-| `anchor.maxKm` | the dropoff is further than `maxKm` from the anchor |
 
 Nothing about money. The driver reads the payout off the card himself.
+
+There is no radius rule. A radius needs the dropoff's coordinates, and those
+come from recognising its suburb - so anything a radius could decide, the
+suburb list already decides, and running both would just mean the stricter one
+wins while the other looked like it mattered. The circle survives in the editor
+as a drawing tool: drop a centre, drag a radius, fill the suburbs inside it in
+one click, then adjust by hand. Only the resulting list is saved.

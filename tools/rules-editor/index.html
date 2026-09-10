@@ -123,40 +123,32 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
 
 <main>
   <section>
-    <h2>锚点与半径</h2>
-    <p class="hint">送达点离这个位置超过半径就不接。跑单时只看结果，不看这些数字。</p>
-    <div class="row">
-      <label class="field"><span class="eyebrow">名称</span>
-        <input type="text" id="anchorLabel" placeholder="家"></label>
-      <label class="field"><span class="eyebrow">纬度</span>
-        <input type="number" id="anchorLat" step="0.0001" class="mono"></label>
-      <label class="field"><span class="eyebrow">经度</span>
-        <input type="number" id="anchorLon" step="0.0001" class="mono"></label>
-      <button class="btn plain" id="usePhone">用手机当前位置</button>
-    </div>
-    <div class="row" style="margin-top:14px">
-      <label class="field" style="flex:1">
-        <span class="eyebrow">半径 <b class="mono" id="kmLabel">15</b> 公里</span>
-        <input type="range" id="anchorKm" min="2" max="60" step="1">
-      </label>
-    </div>
-  </section>
-
-  <section>
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
-    <p class="hint">点地图上的区块切换去 / 不去。绿色=去。锚点和半径圈也画在同一张图上，一眼看得出哪些区在圈外。</p>
+    <p class="hint">
+      点区块切换去 / 不去，绿色=去。<b>保存的只有这份名单</b> —— 下面那个圈是画图工具，
+      用来一次填满一片区，它本身不是规则。
+    </p>
     <div class="maptools">
       <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
-      <button class="btn plain" id="setAnchor">在地图上点一个锚点</button>
-      <button class="btn plain" id="allInCircle">把圈内的区全选上</button>
       <button class="btn plain" id="clearAll">全部取消</button>
     </div>
     <div id="map"></div>
     <div class="legend">
       <span><i style="background:rgba(47,122,79,.55)"></i>去</span>
       <span><i style="background:rgba(138,144,153,.18);border:1px solid var(--ink-3)"></i>不去</span>
-      <span><i style="background:transparent;border:2px solid var(--accent)"></i>锚点半径</span>
+      <span><i style="background:transparent;border:2px solid var(--accent)"></i>画圈工具</span>
     </div>
+
+    <div class="row" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
+      <button class="btn plain" id="setAnchor">1 · 在地图上点个圆心</button>
+      <label class="field" style="flex:1;min-width:220px">
+        <span class="eyebrow">2 · 半径 <b class="mono" id="kmLabel">15</b> 公里</span>
+        <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
+      </label>
+      <button class="btn plain" id="usePhone">圆心用手机当前位置</button>
+      <button class="btn plain" id="allInCircle">3 · 把圈内的区全选上</button>
+    </div>
+    <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
   </section>
 
   <section>
@@ -199,12 +191,6 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
   });
 
   function fill(){
-    var a = state.rules.anchor || {};
-    $("anchorLabel").value = a.label || "";
-    if (a.lat != null) $("anchorLat").value = a.lat;
-    if (a.lon != null) $("anchorLon").value = a.lon;
-    $("anchorKm").value = a.maxKm || 15;
-    $("kmLabel").textContent = a.maxKm || 15;
     $("addresses").value = (state.rules.addresses.deny || []).join("\n");
     drawStores();
     drawDenied();
@@ -235,7 +221,7 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
       $("anchorLat").value = e.latlng.lat.toFixed(5);
       $("anchorLon").value = e.latlng.lng.toFixed(5);
       drawAnchor();
-      say("锚点已放在地图上", "ok");
+      say("圆心已放好，拖半径，再点「把圈内的区全选上」", "ok");
     });
 
     fetch("suburbs.geojson").then(function(r){ return r.json(); }).then(function(gj){
@@ -291,13 +277,13 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
     }).addTo(map);
     anchorMark = L.circleMarker([lat, lon], {
       radius: 6, color: "#0E5B62", fillColor: "#0E5B62", fillOpacity: 1,
-    }).addTo(map).bindTooltip($("anchorLabel").value || "锚点");
+    }).addTo(map).bindTooltip("画圈圆心");
   }
 
   $("setAnchor").addEventListener("click", function(){
     armed = !armed;
     this.classList.toggle("armed", armed);
-    say(armed ? "在地图上点一下放锚点" : "");
+    say(armed ? "在地图上点一下放圆心" : "");
   });
 
   $("clearAll").addEventListener("click", function(){
@@ -308,7 +294,7 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
   $("allInCircle").addEventListener("click", function(){
     var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
     var km = parseFloat($("anchorKm").value);
-    if (isNaN(lat) || isNaN(lon)) return say("先定锚点", "bad");
+    if (isNaN(lat) || isNaN(lon)) return say("先点一个圆心", "bad");
     var added = 0;
     state.suburbs.forEach(function(s){
       if (haversine(lat, lon, s.lat, s.lon) <= km && !allowed(s.name) && shapes[s.name]) {
@@ -442,18 +428,13 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
   }
 
   $("save").addEventListener("click", function(){
-    state.rules.anchor = {
-      label: $("anchorLabel").value.trim() || "锚点",
-      lat: parseFloat($("anchorLat").value),
-      lon: parseFloat($("anchorLon").value),
-      maxKm: parseFloat($("anchorKm").value),
-    };
+    delete state.rules.anchor;
     state.rules.addresses.deny = $("addresses").value.split("\n")
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
 
-    if (isNaN(state.rules.anchor.lat) || isNaN(state.rules.anchor.lon)) {
-      return say("锚点还没定 —— 填经纬度，或者点「用手机当前位置」", "bad");
+    if (!state.rules.suburbs.allow.length) {
+      return say("一个区都没选，等于哪都不去", "bad");
     }
 
     $("save").disabled = true;
