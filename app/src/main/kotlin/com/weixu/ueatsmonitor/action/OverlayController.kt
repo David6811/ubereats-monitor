@@ -13,10 +13,10 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
 import com.weixu.ueatsmonitor.domain.Ruling
 import com.weixu.ueatsmonitor.domain.RulingText
-import com.weixu.ueatsmonitor.domain.VerdictText
 
 /**
  * Action. A small chip beside the payout on the offer card.
@@ -156,8 +156,13 @@ class OverlayController(private val context: Context) {
             val unsure = state.ruling is Ruling.NoRules || state.ruling is Ruling.Unknown
             Face(
                 title = RulingText.headline(state.ruling, state.card.isMatch),
-                detail = RulingText.reason(state.ruling) + "\n" +
-                    VerdictText.metricsLine(metricsOf(state.card)),
+                // Two lines and no more: where to where, and what it pays a
+                // kilometre. The street names and the raw payout are unreadable
+                // in the second the card gives you.
+                detail = listOfNotNull(
+                    ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
+                    ChipText.rate(state.card),
+                ).joinToString("\n").ifEmpty { null },
                 fill = when {
                     unsure -> Color.parseColor("#F2263238")
                     take -> Color.parseColor("#F21B5E20")
@@ -172,12 +177,6 @@ class OverlayController(private val context: Context) {
             )
         }
     }
-
-    /** The numbers are shown, never judged: the driver reads the money himself. */
-    private fun metricsOf(card: OfferCard) =
-        com.weixu.ueatsmonitor.domain.OfferEvaluator.metricsOf(
-            com.weixu.ueatsmonitor.domain.OfferCardReader.toOffer(card)
-        )
 
     private fun dp(value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
