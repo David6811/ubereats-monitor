@@ -143,7 +143,9 @@ textarea{
 #jobsList{list-style:none;margin:14px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:14px}
 #jobsList li{border-top:1px solid var(--line);padding-top:12px}
 #jobsList .money{font-weight:600}
-#jobsList a{display:block;margin-top:4px;color:var(--accent);text-decoration:none}
+#jobsList a{flex:1;color:var(--accent);text-decoration:none}
+.jobrow{display:flex;align-items:center;gap:10px;margin-top:6px}
+.btn.tiny{padding:3px 10px;font-size:13px;flex:none}
 #jobsList a:hover{text-decoration:underline}
 #jobsList .eyebrow{margin-right:6px}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
@@ -1039,6 +1041,9 @@ body.mapfull h2{font-size:17px}
       li.appendChild(head);
       [["取货", job.pickup], ["送到", job.dropoff]].forEach(function(pair){
         if (!pair[1]) return;
+        var row = document.createElement("div");
+        row.className = "jobrow";
+
         var link = document.createElement("a");
         link.href = "https://www.google.com/maps/search/?api=1&query=" +
           encodeURIComponent(pair[1] + ", Victoria, Australia");
@@ -1048,10 +1053,47 @@ body.mapfull h2{font-size:17px}
         tag.className = "eyebrow";
         tag.textContent = pair[0];
         link.append(tag, document.createTextNode(pair[1]));
-        li.appendChild(link);
+
+        var copy = document.createElement("button");
+        copy.className = "btn plain tiny";
+        copy.textContent = "复制";
+        copy.addEventListener("click", function(){ copyText(pair[1], copy); });
+
+        row.append(link, copy);
+        li.appendChild(row);
       });
       list.appendChild(li);
     });
+  }
+
+  /** The address on the clipboard, with the button saying so for a moment. */
+  function copyText(text, button){
+    var said = function(word){
+      button.textContent = word;
+      setTimeout(function(){ button.textContent = "复制"; }, 1200);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(function(){ said("已复制"); })
+        .catch(function(){ said(fallbackCopy(text) ? "已复制" : "复制不了"); });
+      return;
+    }
+    said(fallbackCopy(text) ? "已复制" : "复制不了");
+  }
+
+  /** For the browsers and contexts the clipboard API is not given to. */
+  function fallbackCopy(text){
+    var box = document.createElement("textarea");
+    box.value = text;
+    box.setAttribute("readonly", "");
+    box.style.position = "fixed";
+    box.style.top = "-1000px";
+    document.body.appendChild(box);
+    box.select();
+    var done = false;
+    try { done = document.execCommand("copy"); } catch (error) { done = false; }
+    document.body.removeChild(box);
+    return done;
   }
 
   function clockOf(millis){
