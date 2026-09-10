@@ -279,7 +279,7 @@ class UberScreenService : AccessibilityService() {
             else -> {
                 val signature = found.map { it.name }.sorted().joinToString(",").ifEmpty { "?" }
                 if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) {
-                    "suppressed_same_within_90s"
+                    "suppressed_same_within_3s"
                 } else {
                     lastRungSignature = signature
                     lastRungAtMillis = now
@@ -395,7 +395,12 @@ class UberScreenService : AccessibilityService() {
         const val POLL_MILLIS = 1_000L
         const val MIN_GAP_MILLIS = 2_000L
         const val FORCED_GAP_MILLIS = 400L
-        const val SAME_CALL_MILLIS = 90_000L
+        /**
+         * How long the same card stays quiet between rings. Short on purpose: the
+         * driver's own alert can bury one beep, and a card sits on screen for half
+         * a minute, so it should sound about ten times, not once.
+         */
+        const val SAME_CALL_MILLIS = 3_000L
         const val HEARTBEAT_MILLIS = 5_000L
 
         /** How long to keep shooting after the screen lights up. */

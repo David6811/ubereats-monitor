@@ -199,7 +199,7 @@ class OfferCardReaderTest {
         val card = OfferCardReader.read(lines)!!
 
         // assert
-        assertEquals("30 Keating Cres, Dandenong", card.dropoff)
+        assertEquals("30 Keating Cres, Dandenong", card.stops.last())
     }
 
     @Test
@@ -331,6 +331,42 @@ class OfferCardReaderTest {
         assertEquals("17/110 Indian Dr, Keysborough VIC 3173, Australia", card.pickup)
     }
 
+    @Test
+    fun `given an address split over two lines with no comma, when read, then it is whole`() {
+        // arrange
+        val lines = GUZMAN_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("Bangholme Road & Mark Anthony Drive, Dandenong South", card.dropoff)
+    }
+
+    @Test
+    fun `given OCR debris beside the button, when read, then it is not taken for an address`() {
+        // arrange
+        val lines = GUZMAN_OCR
+
+        // act
+        val card = OfferCardReader.read(lines)!!
+
+        // assert
+        assertEquals("Guzman y Gomez - Aspendale Gardens", card.pickup)
+    }
+
+    @Test
+    fun `given the guzman card, when evaluated, then the metrics come out`() {
+        // arrange
+        val card = OfferCardReader.read(GUZMAN_OCR)!!
+
+        // act
+        val metrics = OfferEvaluator.metricsOf(OfferCardReader.toOffer(card))
+
+        // assert
+        assertEquals(27.15, metrics.payPerHour!!, 0.02)
+    }
+
     private companion object {
         /** Exactly what ML Kit read off the screen at 13:13 on 10 Sept. */
         val REAL_OCR = listOf(
@@ -345,6 +381,20 @@ class OfferCardReaderTest {
             "Australia",
             "Culverlands Street & Northern Road,",
             "Heidelberg West",
+            "Accept",
+        )
+
+        /** ML Kit's read of the 13:25 card, debris and all. */
+        val GUZMAN_OCR = listOf(
+            "13:25", "Keysborough", "1", "EASTLIlNK", "HUTTON ROAD", "40",
+            "Y? Delivery Exclusive", "X",
+            "\$9.05",
+            "Est. earnings for completed trip",
+            "9 20 min (6.4 km) total",
+            "Guzman y Gomez - Aspendale Gardens",
+            "Bangholme Road & Mark Anthony",
+            "Drive, Dandenong South",
+            "Se",
             "Accept",
         )
 

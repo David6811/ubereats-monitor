@@ -26,8 +26,9 @@ class Chime {
     /** Two quick high beeps. */
     private fun friendly() {
         sequence(
-            Beat(ToneGenerator.TONE_PROP_BEEP, durationMillis = 150, afterMillis = 0),
-            Beat(ToneGenerator.TONE_PROP_BEEP2, durationMillis = 200, afterMillis = 220),
+            Beat(ToneGenerator.TONE_PROP_BEEP, durationMillis = 120, afterMillis = 0),
+            Beat(ToneGenerator.TONE_PROP_BEEP, durationMillis = 120, afterMillis = 160),
+            Beat(ToneGenerator.TONE_PROP_BEEP2, durationMillis = 220, afterMillis = 320),
         )
     }
 
@@ -60,7 +61,7 @@ class Chime {
     }
 
     private companion object {
-        const val VOLUME_PERCENT = 90
+        const val VOLUME_PERCENT = 100
         const val RELEASE_GRACE_MILLIS = 500L
     }
 }

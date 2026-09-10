@@ -97,7 +97,10 @@ object OfferCardReader {
         // OCR mangled it - never from the top of the screen, where the status bar
         // and every map label live.
         val stopsFrom = if (totalsAt >= 0) totalsAt + 1 else payoutAt + 1
-        val stops = joinWrapped(clean.subList(stopsFrom.coerceIn(0, end), end)).filterNot(::isChrome)
+        val stops = joinWrapped(clean.subList(stopsFrom.coerceIn(0, end), end))
+            .filterNot(::isChrome)
+            .filterNot(::looksLikeTotals)
+            .filter { it.length >= MIN_STOP_LENGTH }
         if (stops.isEmpty()) return null
 
         return OfferCard(
@@ -105,7 +108,10 @@ object OfferCardReader {
             duration = minutes,
             distance = distance,
             pickup = stops.first(),
-            dropoff = stops.last(),
+            // An address wraps over two or three lines and OCR keeps none of the
+            // punctuation that would say where it ends, so everything below the
+            // pickup is one destination.
+            dropoff = stops.drop(1).joinToString(" ") { it.trimEnd(',') }.ifEmpty { stops.first() },
             stops = stops,
         )
     }
@@ -132,18 +138,25 @@ object OfferCardReader {
         .replace(Regex("""(?<=\d)[Oo](?=\d)"""), "0")
         .replace(Regex("""^[^\w$＄]+"""), "")
 
-    /** An address that wrapped onto a second line ends with a comma. */
+    /** Shorter than this and OCR is showing us a button edge, not an address. */
+    private const val MIN_STOP_LENGTH = 4
+
+    /** A line ending with a comma carries on into the next one. */
     private fun joinWrapped(lines: List<String>): List<String> {
         val joined = mutableListOf<String>()
         for (line in lines) {
             if (joined.isNotEmpty() && joined.last().endsWith(",")) {
-                joined[joined.size - 1] = joined.last().trimEnd(',') + ", " + line
+                joined[joined.size - 1] = joined.last() + " " + line
             } else {
                 joined += line
             }
         }
         return joined
     }
+
+    /** A totals line OCR mangled past parsing is still not an address. */
+    private fun looksLikeTotals(line: String): Boolean =
+        line.contains("total", ignoreCase = true) || Regex("""min\s*\(""", RegexOption.IGNORE_CASE).containsMatchIn(line)
 
     private fun isChrome(line: String): Boolean =
         CHROME.any { line.contains(it, ignoreCase = true) }

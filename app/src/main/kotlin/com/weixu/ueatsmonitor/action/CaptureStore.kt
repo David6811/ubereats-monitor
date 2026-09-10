@@ -83,7 +83,8 @@ class CaptureStore(context: Context) {
     private var writesSincePrune = 0
 
     private companion object {
-        const val CAPACITY = 8000
+        /** About eleven hours at the two-second cadence; roughly 4 GB. */
+        const val CAPACITY = 20_000
         const val PRUNE_EVERY = 20
         const val JPEG_QUALITY = 70
         val STAMP = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)
