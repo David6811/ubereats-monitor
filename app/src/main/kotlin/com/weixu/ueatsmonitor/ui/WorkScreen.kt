@@ -1,5 +1,6 @@
 package com.weixu.ueatsmonitor.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,8 +89,8 @@ private fun JobCard(job: Job, onClear: () -> Unit) {
                 )
                 TextButton(onClick = onClear) { Text("清掉", fontSize = 16.sp) }
             }
-            Stop("取货", job.offer.pickup)
-            Stop("送到", job.offer.dropoff)
+            Stop("取货", job.offer.pickup, PICKUP)
+            Stop("送到", job.offer.dropoff, DROPOFF)
             job.offer.ruling?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge)
             }
@@ -94,12 +98,40 @@ private fun JobCard(job: Job, onClear: () -> Unit) {
     }
 }
 
+/**
+ * One stop, as a block rather than a caption: which of the two it is has to be
+ * readable in the half second the driver can spare for it.
+ */
 @Composable
-private fun Stop(title: String, place: String) {
-    Column {
-        Text(title, style = MaterialTheme.typography.labelMedium)
-        Text(place, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+private fun Stop(title: String, place: String, tint: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(tint.copy(alpha = 0.18f))
+            .padding(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(tint)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = place,
+            modifier = Modifier.padding(start = 10.dp),
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
+
+private val PICKUP = Color(0xFF00796B)
+private val DROPOFF = Color(0xFF5E35B1)
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
