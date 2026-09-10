@@ -3,6 +3,9 @@ package com.weixu.ueatsmonitor.action
 import android.content.Context
 import android.graphics.Bitmap
 import com.weixu.ueatsmonitor.domain.GeoPoint
+import com.weixu.ueatsmonitor.domain.OfferRecord
+import com.weixu.ueatsmonitor.domain.OfferRecordReader
+import com.weixu.ueatsmonitor.domain.OfferRun
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -25,6 +28,8 @@ class CaptureStore(context: Context) {
         val imagePath: String?,
         val recordedAt: GeoPoint?,
         val fixAgeMillis: Long?,
+        /** The offer on that frame, or null - which is almost every frame. */
+        val offer: OfferRecord?,
     )
 
     /**
@@ -37,21 +42,57 @@ class CaptureStore(context: Context) {
         return texts
             .sortedByDescending { it.name }
             .take(limit)
-            .map { file ->
-                val name = file.nameWithoutExtension
-                val raw = runCatching { file.readText() }.getOrDefault("")
-                val image = File(dir, "$name.jpg").takeIf { it.exists() }
-                Capture(
-                    name = name,
-                    atMillis = CaptureText.millisOf(raw) ?: file.lastModified(),
-                    body = CaptureText.bodyOf(raw),
-                    imagePath = image?.absolutePath,
-                    recordedAt = CaptureText.positionOf(raw),
-                    fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { fixMillis ->
-                        (CaptureText.millisOf(raw) ?: file.lastModified()) - fixMillis
-                    },
-                )
-            }
+            .map(::read)
+    }
+
+    private fun read(file: File): Capture {
+        val name = file.nameWithoutExtension
+        val raw = runCatching { file.readText() }.getOrDefault("")
+        val image = File(dir, "$name.jpg").takeIf { it.exists() }
+        val at = CaptureText.millisOf(raw) ?: file.lastModified()
+        return Capture(
+            name = name,
+            atMillis = at,
+            body = CaptureText.bodyOf(raw),
+            imagePath = image?.absolutePath,
+            recordedAt = CaptureText.positionOf(raw),
+            fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { at - it },
+            offer = OfferRecordReader.read(raw),
+        )
+    }
+
+    /**
+     * The offers, newest first - read through the index rather than by walking the
+     * frames, which are two orders of magnitude more numerous.
+     */
+    fun listOffers(limit: Int = PAGE): List<Capture> {
+        val index = File(dir, INDEX)
+        if (!index.exists()) buildIndex(index)
+        val names = runCatching { index.readLines() }.getOrDefault(emptyList())
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        val frames = names.asReversed()
+            .distinct()
+            .asSequence()
+            .map { File(dir, "$it.txt") }
+            .filter { it.exists() }
+            // Read enough frames to survive collapsing: one offer can hold the
+            // screen for a minute, which is thirty frames of the same card.
+            .take(limit * FRAMES_PER_OFFER)
+            .map(::read)
+            .toList()
+        return OfferRun.collapse(frames, Capture::atMillis, Capture::offer).take(limit)
+    }
+
+    /** Once, for the frames that were already on disk before the index existed. */
+    private fun buildIndex(index: File) {
+        val texts = dir.listFiles { file -> file.name.endsWith(".txt") } ?: return
+        val offers = texts.sortedBy { it.name }.filter { file ->
+            runCatching { OfferRecordReader.read(file.readText()) != null }.getOrDefault(false)
+        }
+        runCatching {
+            index.writeText(offers.joinToString("\n", postfix = "\n") { it.nameWithoutExtension })
+        }
     }
 
     fun deleteAll() {
@@ -61,6 +102,12 @@ class CaptureStore(context: Context) {
     fun write(atMillis: Long, screen: Bitmap?, text: String): File {
         val stamp = STAMP.format(Date(atMillis))
         File(dir, "$stamp.txt").writeText(text)
+        // A shift leaves twenty thousand frames and a handful of offers. Noting the
+        // offers as they happen is what lets the review screen show all of a shift's
+        // offers instead of whatever fell inside the last page of frames.
+        if (OfferRecordReader.read(text) != null) {
+            runCatching { File(dir, INDEX).appendText(stamp + "\n") }
+        }
         screen?.let { bitmap ->
             File(dir, "$stamp.jpg").outputStream().use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
@@ -98,6 +145,10 @@ class CaptureStore(context: Context) {
         const val CAPACITY = 20_000
         const val SLACK = 400
         const val PAGE = 400
+        const val INDEX = "offers.idx"
+
+        /** A card holds the screen for about a minute at the two-second cadence. */
+        const val FRAMES_PER_OFFER = 40
         const val JPEG_QUALITY = 70
         val STAMP = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)
     }

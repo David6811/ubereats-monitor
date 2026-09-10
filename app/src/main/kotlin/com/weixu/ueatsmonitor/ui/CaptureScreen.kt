@@ -57,16 +57,17 @@ fun CaptureScreen() {
     val store = remember { CaptureStore(context) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var reloads by remember { mutableIntStateOf(0) }
-    var moneyOnly by remember { mutableStateOf(false) }
+    var everything by remember { mutableStateOf(false) }
     var openName by remember { mutableStateOf<String?>(null) }
 
     val suburbs = remember { Gazetteer.suburbs(context) }
     val hereNow = remember(reloads) { CurrentPosition(context).lastKnown()?.at }
 
-    val captures by produceState(initialValue = emptyList<CaptureStore.Capture>(), reloads) {
-        value = withContext(Dispatchers.IO) { store.list() }
+    val shown by produceState(initialValue = emptyList<CaptureStore.Capture>(), reloads, everything) {
+        value = withContext(Dispatchers.IO) {
+            if (everything) store.list() else store.listOffers()
+        }
     }
-    val shown = captures.filter { !moneyOnly || CaptureText.hasMoney(it.body) }
 
     val recording = remember(reloads) { Permissions.screenReadingGranted(context) }
     val journal = remember(reloads) { ServiceJournal.read(context) }
@@ -106,15 +107,15 @@ fun CaptureScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("只看含金额的", modifier = Modifier.weight(1f))
-                Switch(checked = moneyOnly, onCheckedChange = { moneyOnly = it })
+                Text("连没识别出派单的画面一起看", modifier = Modifier.weight(1f))
+                Switch(checked = everything, onCheckedChange = { everything = it })
             }
         }
 
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${shown.size} / ${captures.size} 张",
+                    text = if (everything) "" + shown.size + " 张画面" else "" + shown.size + " 单",
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -126,10 +127,10 @@ fun CaptureScreen() {
         if (shown.isEmpty()) {
             item {
                 Text(
-                    text = if (captures.isEmpty()) {
+                    text = if (everything) {
                         "还没有记录。打开 Uber Driver 跑一单，界面变化会自动存下来。"
                     } else {
-                        "这 ${captures.size} 张里没有带金额的，关掉上面的开关看全部。"
+                        "还没有识别到派单。打开上面的开关能看到全部画面。"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -159,7 +160,18 @@ private fun CaptureCard(
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(CLOCK.format(Date(capture.atMillis)), style = MaterialTheme.typography.labelMedium)
-            Text(CaptureText.previewOf(capture.body), fontWeight = FontWeight.Bold)
+            val offer = capture.offer
+            if (offer == null) {
+                Text(CaptureText.previewOf(capture.body), fontWeight = FontWeight.Bold)
+            } else {
+                Text(
+                    text = (offer.ruling ?: "没判") + "  " + offer.payout,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(offer.pickup + "  →  " + offer.dropoff, style = MaterialTheme.typography.bodyMedium)
+                offer.why?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+            }
 
             if (open) {
                 Directions(capture, suburbs, hereNow)
