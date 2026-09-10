@@ -54,11 +54,11 @@ class UberScreenService : AccessibilityService() {
      * in the recording, one of them straight through a real offer.
      */
     private val worker = HandlerThread("uber-screen").apply { start() }
-    private val main = Handler(worker.looper)
+    private val work = Handler(worker.looper)
     private val poll = object : Runnable {
         override fun run() {
             look()
-            main.postDelayed(this, POLL_MILLIS)
+            work.postDelayed(this, POLL_MILLIS)
         }
     }
 
@@ -69,6 +69,7 @@ class UberScreenService : AccessibilityService() {
     private var lastRungAtMillis: Long = 0L
     private var lastHeartbeatAtMillis: Long = 0L
     private var lastRoutineAtMillis: Long = 0L
+    private var lastEventPostAtMillis: Long = 0L
     private var burstUntilMillis: Long = 0L
     private var lastSawUberAtMillis: Long = 0L
 
@@ -84,8 +85,10 @@ class UberScreenService : AccessibilityService() {
                 android.content.Intent.ACTION_SCREEN_ON,
                 android.content.Intent.ACTION_USER_PRESENT -> {
                     burstUntilMillis = System.currentTimeMillis() + BURST_MILLIS
-                    ServiceJournal.note(this@UberScreenService, "屏幕亮起，密集截图 " + (BURST_MILLIS / 1000) + " 秒")
-                    look(force = true)
+                    work.post {
+                        ServiceJournal.note(this@UberScreenService, "屏幕亮起，密集截图 " + (BURST_MILLIS / 1000) + " 秒")
+                        look(force = true)
+                    }
                 }
             }
         }
@@ -102,8 +105,8 @@ class UberScreenService : AccessibilityService() {
             runCatching { setCacheEnabled(false) }
         }
         CaptureKeeperService.start(this)
-        main.removeCallbacks(poll)
-        main.post(poll)
+        work.removeCallbacks(poll)
+        work.post(poll)
         runCatching {
             registerReceiver(
                 screenWatcher,
@@ -118,7 +121,7 @@ class UberScreenService : AccessibilityService() {
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         Log.w(TAG, "accessibility service unbound")
         ServiceJournal.note(this, "读屏被断开")
-        main.removeCallbacks(poll)
+        work.removeCallbacks(poll)
         return super.onUnbind(intent)
     }
 
@@ -127,7 +130,7 @@ class UberScreenService : AccessibilityService() {
         live = null
         worker.quitSafely()
         ServiceJournal.note(this, "读屏被销毁")
-        main.removeCallbacks(poll)
+        work.removeCallbacks(poll)
         super.onDestroy()
     }
 
@@ -141,7 +144,15 @@ class UberScreenService : AccessibilityService() {
         val fromUber = OfferParser.isUberPackage(event.packageName?.toString().orEmpty())
         val appeared = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        look(force = fromUber && appeared)
+        if (!fromUber && !appeared) return
+
+        // This callback runs on the main thread and fires many times a second
+        // across every app on the phone. Walking a node tree, sampling pixels and
+        // taking a screenshot here is what made the app stop responding.
+        val now = System.currentTimeMillis()
+        if (now - lastEventPostAtMillis < EVENT_POST_GAP_MILLIS) return
+        lastEventPostAtMillis = now
+        work.post { look(force = fromUber && appeared) }
     }
 
     override fun onInterrupt() = Unit
@@ -450,7 +461,7 @@ class UberScreenService : AccessibilityService() {
         /** Called once a second by [CaptureKeeperService], off the main thread. */
         fun pokeFromKeeper() {
             val service = live ?: return
-            service.main.post { service.look() }
+            service.work.post { service.look() }
         }
 
         const val TAG = "UEatsMonitor"
@@ -486,6 +497,9 @@ class UberScreenService : AccessibilityService() {
          */
         const val ROUTINE_MILLIS = 10_000L
         const val BAND_SAMPLES = 60
+
+        /** Events arrive in floods; the poll is the real clock. */
+        const val EVENT_POST_GAP_MILLIS = 300L
 
         /** How long to keep shooting after the screen lights up. */
         const val BURST_MILLIS = 60_000L
