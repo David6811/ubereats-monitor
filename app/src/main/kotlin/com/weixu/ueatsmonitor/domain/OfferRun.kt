@@ -33,10 +33,15 @@ object OfferRun {
         return kept
     }
 
+    /**
+     * The pickup is deliberately not part of this. OCR reads the shop name with a
+     * different scrap of the icon beside it from one frame to the next - "9 Guzman
+     * y Gomez" then "p Guzman y Gomez" - which split one offer into two rows. Same
+     * money to the same address within three minutes is the same offer.
+     */
     private fun keyOf(offer: OfferRecord): String = listOf(
         if (offer.isMatch) "match" else "accept",
         offer.payout,
-        offer.pickup,
         offer.dropoff,
     ).joinToString("|")
 }

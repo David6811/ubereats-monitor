@@ -69,6 +69,21 @@ class OfferRunTest {
     }
 
     @Test
+    fun `given OCR reading the shop name differently on two frames, when they are collapsed, then it stays one offer`() {
+        // arrange
+        val frames = listOf(
+            Frame(60_000, pizza.copy(pickup = "9 Mario's Pizza And Pasta")),
+            Frame(58_000, pizza.copy(pickup = "p Mario's Pizza And Pasta")),
+        )
+
+        // act
+        val runs = collapse(frames)
+
+        // assert
+        assertEquals(listOf(frames.first()), runs)
+    }
+
+    @Test
     fun `given a frame with no card between two of the same card, when they are collapsed, then the run is broken`() {
         // arrange
         val frames = listOf(

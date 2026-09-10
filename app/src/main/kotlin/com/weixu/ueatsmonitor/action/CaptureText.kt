@@ -7,11 +7,15 @@ object CaptureText {
 
     private const val SEPARATOR = "\n---\n"
     private val MILLIS = Regex("""^millis=(\d+)$""", RegexOption.MULTILINE)
+    private val PACKAGE = Regex("""^package=(.*)$""", RegexOption.MULTILINE)
     private val FIX_MILLIS = Regex("""^fix_millis=(\d+)$""", RegexOption.MULTILINE)
     private val LATITUDE = Regex("""^lat=(-?\d+(?:\.\d+)?)$""", RegexOption.MULTILINE)
     private val LONGITUDE = Regex("""^lon=(-?\d+(?:\.\d+)?)$""", RegexOption.MULTILINE)
 
     fun millisOf(raw: String): Long? = MILLIS.find(raw)?.groupValues?.get(1)?.toLongOrNull()
+
+    /** Which app was on screen. Test mode records other apps, and those are not offers. */
+    fun packageOf(raw: String): String? = PACKAGE.find(raw)?.groupValues?.get(1)?.trim()
 
     fun fixMillisOf(raw: String): Long? =
         FIX_MILLIS.find(raw)?.groupValues?.get(1)?.toLongOrNull()

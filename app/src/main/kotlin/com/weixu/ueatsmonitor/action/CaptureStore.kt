@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.OfferRecord
 import com.weixu.ueatsmonitor.domain.OfferRecordReader
+import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.OfferRun
 import java.io.File
 import java.text.SimpleDateFormat
@@ -28,6 +29,8 @@ class CaptureStore(context: Context) {
         val imagePath: String?,
         val recordedAt: GeoPoint?,
         val fixAgeMillis: Long?,
+        /** The app the frame came from; test mode records others. */
+        val packageName: String?,
         /** The offer on that frame, or null - which is almost every frame. */
         val offer: OfferRecord?,
     )
@@ -43,6 +46,7 @@ class CaptureStore(context: Context) {
             .sortedByDescending { it.name }
             .take(limit)
             .map(::read)
+            .filter { it.packageName?.let(OfferParser::isUberPackage) != false }
     }
 
     private fun read(file: File): Capture {
@@ -57,6 +61,7 @@ class CaptureStore(context: Context) {
             imagePath = image?.absolutePath,
             recordedAt = CaptureText.positionOf(raw),
             fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { at - it },
+            packageName = CaptureText.packageOf(raw),
             offer = OfferRecordReader.read(raw),
         )
     }
@@ -80,6 +85,7 @@ class CaptureStore(context: Context) {
             // screen for a minute, which is thirty frames of the same card.
             .take(limit * FRAMES_PER_OFFER)
             .map(::read)
+            .filter { it.packageName?.let(OfferParser::isUberPackage) != false }
             .toList()
         return OfferRun.collapse(frames, Capture::atMillis, Capture::offer).take(limit)
     }
