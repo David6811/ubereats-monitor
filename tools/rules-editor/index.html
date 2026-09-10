@@ -103,7 +103,24 @@ textarea{
 #status[data-kind="bad"]{color:var(--no)}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
 
-#map{height:560px;border-radius:10px;border:1px solid var(--line);margin-top:12px;background:var(--sunk)}
+#map{
+  height:72vh; min-height:420px; border-radius:10px;
+  border:1px solid var(--line); margin-top:12px; background:var(--sunk);
+}
+/* Full screen is where this work actually happens: picking forty suburbs out
+   of seven hundred needs the whole window, not a panel. */
+body.mapfull main > section:not(.mapsection){display:none}
+body.mapfull header{display:none}
+body.mapfull footer{display:none}
+body.mapfull main{padding:0;max-width:none;height:100vh;gap:0}
+body.mapfull .mapsection{
+  border:0;border-radius:0;box-shadow:none;height:100vh;
+  display:flex;flex-direction:column;padding:12px 16px;
+}
+body.mapfull #map{height:100%;flex:1;min-height:0;margin-top:10px}
+body.mapfull .hint{display:none}
+body.mapfull h2{font-size:17px}
+#full{margin-left:auto}
 .leaflet-container{font-family:inherit}
 .maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
@@ -122,7 +139,7 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
 </header>
 
 <main>
-  <section>
+  <section class="mapsection">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
     <p class="hint">
       点区块切换去 / 不去，绿色=去。<b>保存的只有这份名单</b> —— 下面那个圈是画图工具，
@@ -131,6 +148,7 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
     <div class="maptools">
       <input type="search" id="suburbSearch" placeholder="搜郊区，回车跳过去…" style="flex:1;min-width:220px">
       <button class="btn plain" id="clearAll">全部取消</button>
+      <button class="btn plain" id="full">全屏</button>
     </div>
     <div id="map"></div>
     <div class="legend">
@@ -284,6 +302,16 @@ footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; 
     armed = !armed;
     this.classList.toggle("armed", armed);
     say(armed ? "在地图上点一下放圆心" : "");
+  });
+
+  $("full").addEventListener("click", function(){
+    var on = document.body.classList.toggle("mapfull");
+    this.textContent = on ? "退出全屏" : "全屏";
+    // Leaflet measures its container once; tell it the container just changed.
+    setTimeout(function(){ if (map) map.invalidateSize(); }, 60);
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && document.body.classList.contains("mapfull")) $("full").click();
   });
 
   $("clearAll").addEventListener("click", function(){
