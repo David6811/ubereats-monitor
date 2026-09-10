@@ -11,4 +11,3 @@ captures/
 *.keystore
 data/rules.json
 data/backup-*/
-data/brief.json

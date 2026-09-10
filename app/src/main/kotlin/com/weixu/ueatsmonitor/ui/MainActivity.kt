@@ -85,13 +85,11 @@ private fun HomeTabs() {
         TabRow(selectedTabIndex = tab) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("跑单记录") })
             Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("用哪套") })
-            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("这一单") })
-            Tab(selected = tab == 3, onClick = { tab = 3 }, text = { Text("设置") })
+            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("设置") })
         }
         when (tab) {
             0 -> CaptureScreen()
             1 -> ProfileScreen()
-            2 -> BriefScreen()
             else -> MonitorScreen(App.instance.settingsStore)
         }
     }
