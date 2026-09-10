@@ -40,6 +40,12 @@ object ChipText {
     /** Longer than this and it stops being readable at a glance anyway. */
     private const val MAX_NAME = 14
 
+    /** "8.1 公里", or null when the card's distance was unreadable. */
+    fun distance(card: OfferCard): String? {
+        val miles = card.distance?.value ?: return null
+        return String.format("%.1f", miles / MILES_PER_KM) + " 公里"
+    }
+
     /** "$1.42/公里", or null when the card's distance was unreadable. */
     fun rate(card: OfferCard): String? {
         val miles = card.distance?.value ?: return null

@@ -97,4 +97,28 @@ class ChipTextTest {
         // assert
         assertNull(rate)
     }
+
+    @Test
+    fun `given a card measured in miles, when the distance is written, then it is said in kilometres`() {
+        // arrange  5.0 miles
+        val offer = card
+
+        // act
+        val distance = ChipText.distance(offer)
+
+        // assert
+        assertEquals("8.0 公里", distance)
+    }
+
+    @Test
+    fun `given a card whose distance was unreadable, when the distance is written, then there is no line`() {
+        // arrange
+        val offer = card.copy(distance = null)
+
+        // act
+        val distance = ChipText.distance(offer)
+
+        // assert
+        assertNull(distance)
+    }
 }

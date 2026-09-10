@@ -121,38 +121,43 @@ class OverlayController(private val context: Context) {
                 setColor(face.fill)
                 setStroke(dp(2), face.edge)
             }
-            addView(
-                TextView(context).apply {
-                    text = face.title
-                    textSize = 26f
-                    setTextColor(face.ink)
-                    setTypeface(typeface, Typeface.BOLD)
-                    // A 26sp line reserves a lot of room above the letters; without
-                    // this the title floats in the middle of its own padding.
-                    includeFontPadding = false
-                }
-            )
-            face.detail?.let { detail ->
-                addView(
-                    TextView(context).apply {
-                        text = detail
-                        textSize = 17f
-                        setTypeface(typeface, Typeface.BOLD)
-                        setLineSpacing(0f, 1.05f)
-                        includeFontPadding = false
-                        setTextColor(face.ink)
-                    }
-                )
+            addView(shoulders(face.title, 26f, face.payout, 26f, face.ink))
+            face.route?.let { addView(line(it, 17f, face.ink)) }
+            if (face.distance != null || face.rate != null) {
+                addView(shoulders(face.distance ?: "", 17f, face.rate, 17f, face.ink))
             }
         }
     }
 
-    /**
-     * One look for every verdict. The words say which it is; changing the colour
-     * as well made four things to recognise instead of one, and the driver reads
-     * this at a glance.
-     */
-    private data class Face(val title: String, val detail: String?) {
+    /** One row with something on each shoulder: the left grows, the right hugs. */
+    private fun shoulders(left: String, leftSize: Float, right: String?, rightSize: Float, ink: Int): View =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(
+                line(left, leftSize, ink),
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            right?.let { addView(line(it, rightSize, ink)) }
+        }
+
+    private fun line(text: String, size: Float, ink: Int): TextView = TextView(context).apply {
+        this.text = text
+        textSize = size
+        setTextColor(ink)
+        setTypeface(typeface, Typeface.BOLD)
+        // A large line reserves a lot of room above its letters; without this the
+        // rows drift apart and the chip grows for nothing.
+        includeFontPadding = false
+        setLineSpacing(0f, 1.05f)
+    }
+
+    private data class Face(
+        val title: String,
+        val payout: String?,
+        val route: String?,
+        val distance: String?,
+        val rate: String?,
+    ) {
         val fill: Int get() = FILL
         val edge: Int get() = EDGE
         val ink: Int get() = INK
@@ -161,20 +166,20 @@ class OverlayController(private val context: Context) {
     private fun faceOf(state: State): Face = when (state) {
         State.Thinking -> Face(
             title = "思考中…",
-            detail = null,
+            payout = null,
+            route = null,
+            distance = null,
+            rate = null,
         )
-        is State.Decided -> {
-            Face(
-                title = RulingText.headline(state.ruling, state.card.isMatch),
-                // Two lines and no more: where to where, and what it pays a
-                // kilometre. The street names and the raw payout are unreadable
-                // in the second the card gives you.
-                detail = listOfNotNull(
-                    ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
-                    ChipText.rate(state.card),
-                ).joinToString("\n").ifEmpty { null },
-            )
-        }
+        is State.Decided -> Face(
+            title = RulingText.headline(state.ruling, state.card.isMatch),
+            payout = state.card.payout.toString(),
+            // Where to where, with the shop's kind and where it stands. The street
+            // names are unreadable in the second the card gives you.
+            route = ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
+            distance = ChipText.distance(state.card),
+            rate = ChipText.rate(state.card),
+        )
     }
 
     private fun dp(value: Int): Int =
