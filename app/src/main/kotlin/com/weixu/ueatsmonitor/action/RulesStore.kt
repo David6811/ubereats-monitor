@@ -27,18 +27,28 @@ object RulesStore {
     @Volatile
     private var readAtMillis: Long = 0
 
+    @Volatile
+    private var readForProfile: String? = null
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
+        // The set picked on the phone is part of what the rules say, so switching
+        // it has to invalidate the same cache a new file does.
+        val profile = Profiles.chosen(context)
         val known = cached
-        if (known != null && stamp == readAtMillis) return known
+        if (known != null && stamp == readAtMillis && profile == readForProfile) return known
 
-        val parsed = parse(file)
+        val parsed = parse(file).let { rules ->
+            val chosen = Profiles.suburbsInForce(context)
+            if (chosen == null) rules else rules.copy(allowedSuburbs = chosen)
+        }
         cached = parsed
         readAtMillis = stamp
+        readForProfile = profile
         Log.i(
             "UEatsMonitor",
-            "rules: " + parsed.allowedSuburbs.size + " suburbs, " +
+            "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
                 parsed.deniedStores.size + " denied stores, " +
                 parsed.alwaysOkStores.size + " always ok",
         )

@@ -1,6 +1,5 @@
 package com.weixu.ueatsmonitor.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.weixu.ueatsmonitor.action.RulesWriter
+import com.weixu.ueatsmonitor.action.Profiles
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -32,7 +31,7 @@ import com.weixu.ueatsmonitor.action.RulesWriter
 @Composable
 fun ProfileScreen() {
     val context = LocalContext.current
-    var profiles by remember { mutableStateOf(RulesWriter.profiles(context)) }
+    var profiles by remember { mutableStateOf(Profiles.list(context)) }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("用哪套选区", fontWeight = FontWeight.Bold)
@@ -43,12 +42,14 @@ fun ProfileScreen() {
             )
         }
         profiles.forEach { profile ->
+            // The Card overload that takes onClick, not a clickable modifier: the
+            // Surface inside a plain Card swallows the touch before it reaches one.
             Card(
-                modifier = Modifier.fillMaxWidth().clickable {
-                    if (RulesWriter.activate(context, profile.name)) {
-                        profiles = RulesWriter.profiles(context)
-                    }
+                onClick = {
+                    Profiles.choose(context, profile.name)
+                    profiles = Profiles.list(context)
                 },
+                modifier = Modifier.fillMaxWidth(),
                 colors = if (profile.active) {
                     CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 } else {
