@@ -11,6 +11,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.weixu.ueatsmonitor.domain.AcceptBand
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.OfferParser
@@ -66,6 +67,7 @@ class UberScreenService : AccessibilityService() {
     private var lastRungSignature: String = ""
     private var lastRungAtMillis: Long = 0L
     private var lastHeartbeatAtMillis: Long = 0L
+    private var lastRoutineAtMillis: Long = 0L
     private var burstUntilMillis: Long = 0L
     private var lastSawUberAtMillis: Long = 0L
 
@@ -212,15 +214,39 @@ class UberScreenService : AccessibilityService() {
         }
 
         capture { screen ->
-            // The tree can be stale; the picture never is. Read the picture whenever
-            // the tree did not already yield a card.
             val treeHasCard = OfferCardReader.read(lines) != null
-            if (screen != null && !treeHasCard) {
-                ScreenTextReader.read(screen) { ocrLines, millis ->
-                    finish(now, screen, headerHead, lines, text, ocrLines, millis)
+            val green = if (screen != null) AcceptBand.greenFraction(sampleBand(screen)) else 0.0
+            val button = AcceptBand.holdsButton(if (screen != null) sampleBand(screen) else IntArray(0))
+            val routine = now - lastRoutineAtMillis >= ROUTINE_MILLIS
+
+            BandLog.note(
+                this,
+                now,
+                green,
+                when {
+                    treeHasCard -> "card"
+                    button -> "ocr"
+                    routine -> "routine"
+                    else -> "skip"
+                },
+            )
+
+            // Ninety-five per cent of what the screen shows is a map. Reading it
+            // costs a fifth of a second each time and fills the phone with
+            // pictures of nothing; the button's green says in microseconds
+            // whether this frame is worth either.
+            when {
+                treeHasCard ->
+                    finish(now, screen, headerHead, lines, text, emptyList(), -1, "card", green)
+                screen != null && button ->
+                    ScreenTextReader.read(screen) { ocrLines, millis ->
+                        finish(now, screen, headerHead, lines, text, ocrLines, millis, "button", green)
+                    }
+                routine -> {
+                    lastRoutineAtMillis = now
+                    finish(now, screen, headerHead, lines, text, emptyList(), -1, "routine", green)
                 }
-            } else {
-                finish(now, screen, headerHead, lines, text, emptyList(), -1)
+                else -> runCatching { screen?.recycle() }
             }
         }
     }
@@ -234,6 +260,8 @@ class UberScreenService : AccessibilityService() {
         treeText: String,
         ocrLines: List<String>,
         ocrMillis: Long,
+        why: String,
+        greenFraction: Double,
     ) {
         val treeCard = OfferCardReader.read(treeLines)
         val source = if (treeCard != null) "a11y" else if (ocrLines.isNotEmpty()) "ocr" else "a11y"
@@ -248,6 +276,8 @@ class UberScreenService : AccessibilityService() {
             append("source=").append(source).append('\n')
             append("ocr_ms=").append(ocrMillis).append('\n')
             append("ocr_lines=").append(ocrLines.size).append('\n')
+            append("kept=").append(why).append('\n')
+            append("green=").append(String.format("%.3f", greenFraction)).append('\n')
             append(decision)
             append("screenshot=").append(screen != null).append('\n')
             append("---\n")
@@ -321,6 +351,23 @@ class UberScreenService : AccessibilityService() {
             ).append('\n')
             append("chime=").append(chime).append('\n')
         }
+    }
+
+    /** The rows of the Accept button, sampled across their width. */
+    private fun sampleBand(screen: Bitmap): IntArray {
+        val samples = ArrayList<Int>(AcceptBand.ROWS.size * BAND_SAMPLES)
+        runCatching {
+            for (fraction in AcceptBand.ROWS) {
+                val y = (screen.height * fraction).toInt().coerceIn(0, screen.height - 1)
+                val step = (screen.width / BAND_SAMPLES).coerceAtLeast(1)
+                var x = step / 2
+                while (x < screen.width) {
+                    samples += screen.getPixel(x, y)
+                    x += step
+                }
+            }
+        }
+        return samples.toIntArray()
     }
 
     /** Says once every few seconds what the service can actually see. */
@@ -405,6 +452,10 @@ class UberScreenService : AccessibilityService() {
          */
         const val SAME_CALL_MILLIS = 3_000L
         const val HEARTBEAT_MILLIS = 5_000L
+
+        /** A frame kept now and then even with no button, so a shift is not blind. */
+        const val ROUTINE_MILLIS = 30_000L
+        const val BAND_SAMPLES = 60
 
         /** How long to keep shooting after the screen lights up. */
         const val BURST_MILLIS = 60_000L
