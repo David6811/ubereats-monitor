@@ -55,30 +55,6 @@ class CaptureTextTest {
         assertEquals("Delivery request\n\$8.25\nKeysborough", body)
     }
 
-    @Test
-    fun `given a body holding a price, when previewed, then the price line is chosen`() {
-        // arrange
-        val body = "Delivery request\n\$8.25\nKeysborough"
-
-        // act
-        val preview = CaptureText.previewOf(body)
-
-        // assert
-        assertEquals("\$8.25", preview)
-    }
-
-    @Test
-    fun `given a body with no price, when previewed, then the first line is chosen`() {
-        // arrange
-        val body = "Home\nFinding trips"
-
-        // act
-        val preview = CaptureText.previewOf(body)
-
-        // assert
-        assertEquals("Home", preview)
-    }
-
     private companion object {
         val CAPTURE_WITH_FIX = """
             package=com.ubercab.driver

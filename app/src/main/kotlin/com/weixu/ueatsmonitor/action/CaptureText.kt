@@ -29,13 +29,5 @@ object CaptureText {
 
     fun bodyOf(raw: String): String = raw.substringAfter(SEPARATOR, raw).trim()
 
-    /** The one line worth showing in a collapsed row: the money, when there is money. */
-    fun previewOf(body: String): String {
-        val lines = body.lines().filter { it.isNotBlank() }
-        return lines.firstOrNull { it.contains('$') }
-            ?: lines.firstOrNull()
-            ?: "(空)"
-    }
-
     fun hasMoney(body: String): Boolean = body.contains('$')
 }

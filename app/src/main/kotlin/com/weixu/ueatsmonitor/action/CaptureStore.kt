@@ -36,37 +36,6 @@ class CaptureStore(context: Context) {
     )
 
     /**
-     * Action. Newest first, capped. A shift leaves tens of thousands of captures
-     * and the review screen only ever shows the recent end of them; reading every
-     * one to draw a list froze the screen.
-     */
-    fun list(limit: Int = PAGE): List<Capture> {
-        val texts = dir.listFiles { file -> file.name.endsWith(".txt") } ?: return emptyList()
-        return texts
-            .sortedByDescending { it.name }
-            .take(limit)
-            .map(::read)
-            .filter { it.packageName?.let(OfferParser::isUberPackage) != false }
-    }
-
-    private fun read(file: File): Capture {
-        val name = file.nameWithoutExtension
-        val raw = runCatching { file.readText() }.getOrDefault("")
-        val image = File(dir, "$name.jpg").takeIf { it.exists() }
-        val at = CaptureText.millisOf(raw) ?: file.lastModified()
-        return Capture(
-            name = name,
-            atMillis = at,
-            body = CaptureText.bodyOf(raw),
-            imagePath = image?.absolutePath,
-            recordedAt = CaptureText.positionOf(raw),
-            fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { at - it },
-            packageName = CaptureText.packageOf(raw),
-            offer = OfferRecordReader.read(raw),
-        )
-    }
-
-    /**
      * The offers, newest first - read through the index rather than by walking the
      * frames, which are two orders of magnitude more numerous.
      */
@@ -88,6 +57,23 @@ class CaptureStore(context: Context) {
             .filter { it.packageName?.let(OfferParser::isUberPackage) != false }
             .toList()
         return OfferRun.collapse(frames, Capture::atMillis, Capture::offer).take(limit)
+    }
+
+    private fun read(file: File): Capture {
+        val name = file.nameWithoutExtension
+        val raw = runCatching { file.readText() }.getOrDefault("")
+        val image = File(dir, "$name.jpg").takeIf { it.exists() }
+        val at = CaptureText.millisOf(raw) ?: file.lastModified()
+        return Capture(
+            name = name,
+            atMillis = at,
+            body = CaptureText.bodyOf(raw),
+            imagePath = image?.absolutePath,
+            recordedAt = CaptureText.positionOf(raw),
+            fixAgeMillis = CaptureText.fixMillisOf(raw)?.let { at - it },
+            packageName = CaptureText.packageOf(raw),
+            offer = OfferRecordReader.read(raw),
+        )
     }
 
     /** Once, for the frames that were already on disk before the index existed. */
