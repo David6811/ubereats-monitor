@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>接单规则</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F6F4F0; --panel:#FFFFFF; --sunk:#EEEBE5; --line:#DCD7CE;
+  --ink:#1B1F24; --ink-2:#5A6169; --ink-3:#8A9099;
+  --accent:#0E5B62; --accent-soft:#DBE9E9;
+  --yes:#2F7A4F; --no:#A9352C; --warn:#A8630B;
+  --shadow:0 1px 2px rgba(27,31,36,.06), 0 10px 28px rgba(27,31,36,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#13171B; --panel:#1B2026; --sunk:#232A31; --line:#2D343C;
+    --ink:#E7EAED; --ink-2:#A3ACB5; --ink-3:#737C85;
+    --accent:#5DC3C9; --accent-soft:#1C3538;
+    --yes:#5FBE87; --no:#E97D73; --warn:#DFA44B;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.32);
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,"PingFang SC",sans-serif; font-size:14px; line-height:1.55;
+}
+h1,h2,.eyebrow,.btn{font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+header{
+  position:sticky; top:0; z-index:20; background:var(--panel);
+  border-bottom:1px solid var(--line); padding:14px 24px;
+  display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+}
+h1{margin:0;font-size:26px;letter-spacing:.01em}
+.sub{color:var(--ink-2);font-size:13px}
+.spacer{flex:1}
+#phone{font-size:13px;color:var(--ink-3)}
+#phone[data-on="1"]{color:var(--yes)}
+.btn{
+  border:1px solid var(--accent); background:var(--accent-soft); color:var(--accent);
+  border-radius:8px; padding:9px 18px; font-size:16px; font-weight:700;
+  letter-spacing:.02em; cursor:pointer;
+}
+.btn.plain{background:var(--sunk);border-color:var(--line);color:var(--ink);font-size:14px;padding:6px 12px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{padding:24px; display:flex; flex-direction:column; gap:20px; max-width:1100px}
+section{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:20px; box-shadow:var(--shadow);
+}
+h2{margin:0 0 4px; font-size:20px}
+.hint{color:var(--ink-2); font-size:13px; margin:0 0 16px; max-width:62ch}
+
+.row{display:flex; gap:12px; flex-wrap:wrap; align-items:end}
+label.field{display:flex; flex-direction:column; gap:4px}
+.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+input[type="text"],input[type="number"],input[type="search"]{
+  padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+  background:var(--sunk); color:var(--ink); font:inherit; font-size:14px; min-width:150px;
+}
+input[type="range"]{width:260px;accent-color:var(--accent)}
+
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+.chip{
+  border:1px solid var(--line); background:var(--sunk); color:var(--ink-2);
+  border-radius:999px; padding:4px 11px; font-size:13px; cursor:pointer; user-select:none;
+}
+.chip[data-on="1"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600}
+.chip.deny[data-on="1"]{background:transparent; border-color:var(--no); color:var(--no)}
+
+.list{
+  margin-top:12px; border:1px solid var(--line); border-radius:8px;
+  max-height:260px; overflow:auto; background:var(--sunk);
+}
+.list div{
+  padding:6px 10px; border-bottom:1px solid var(--line);
+  display:flex; gap:10px; align-items:center; font-size:13px;
+}
+.list div:last-child{border-bottom:0}
+.list .name{flex:1}
+.list .meta{color:var(--ink-3); font-size:12px; white-space:nowrap}
+.tag{border:1px solid; border-radius:999px; padding:0 7px; font-size:11px; font-weight:600}
+.tag.mall{color:var(--no);border-color:var(--no)}
+.tag.strip{color:var(--warn);border-color:var(--warn)}
+.tag.easy{color:var(--yes);border-color:var(--yes)}
+.tag.unknown{color:var(--ink-3);border-color:var(--ink-3)}
+
+textarea{
+  width:100%; min-height:110px; padding:10px; border:1px solid var(--line);
+  border-radius:8px; background:var(--sunk); color:var(--ink);
+  font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; resize:vertical;
+}
+.count{color:var(--ink-3); font-size:12px; margin-left:8px}
+#status{font-size:13px; color:var(--ink-2); min-height:20px}
+#status[data-kind="ok"]{color:var(--yes)}
+#status[data-kind="bad"]{color:var(--no)}
+footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>接单规则</h1>
+  <span class="sub">在这台电脑上改，保存时直接推到手机</span>
+  <span class="spacer"></span>
+  <span id="phone">手机：检测中…</span>
+  <button class="btn" id="save">保存并推送到手机</button>
+</header>
+
+<main>
+  <section>
+    <h2>锚点与半径</h2>
+    <p class="hint">送达点离这个位置超过半径就不接。跑单时只看结果，不看这些数字。</p>
+    <div class="row">
+      <label class="field"><span class="eyebrow">名称</span>
+        <input type="text" id="anchorLabel" placeholder="家"></label>
+      <label class="field"><span class="eyebrow">纬度</span>
+        <input type="number" id="anchorLat" step="0.0001" class="mono"></label>
+      <label class="field"><span class="eyebrow">经度</span>
+        <input type="number" id="anchorLon" step="0.0001" class="mono"></label>
+      <button class="btn plain" id="usePhone">用手机当前位置</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <label class="field" style="flex:1">
+        <span class="eyebrow">半径 <b class="mono" id="kmLabel">15</b> 公里</span>
+        <input type="range" id="anchorKm" min="2" max="60" step="1">
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2>去哪些区<span class="count" id="allowCount"></span></h2>
+    <p class="hint">点亮 = 去。送达点的郊区不在里面就不接。</p>
+    <input type="search" id="suburbSearch" placeholder="搜郊区…">
+    <div class="chips" id="suburbChips"></div>
+  </section>
+
+  <section>
+    <h2>不接的店<span class="count" id="storeCount"></span></h2>
+    <p class="hint">取餐点名字里含有这些字就不接。整个商场可以一次拉黑。</p>
+    <div class="row">
+      <input type="search" id="storeSearch" placeholder="搜店名或商场…" style="flex:1">
+      <button class="btn plain" id="denyShown">把搜到的全部拉黑</button>
+    </div>
+    <div class="list" id="storeList"></div>
+    <div class="chips" id="storeDenied"></div>
+  </section>
+
+  <section>
+    <h2>不接的住址<span class="count" id="addressCount"></span></h2>
+    <p class="hint">送达地址里含有这些字就不接。一行一条，写街名或路口都行。</p>
+    <textarea id="addresses" placeholder="Cnr Springvale and Cheltenham Rds&#10;Tower 3, Docklands"></textarea>
+  </section>
+
+  <div id="status"></div>
+</main>
+
+<footer>
+  规则全部存在 <span class="mono">data/rules.json</span>，保存时用 adb 推到手机的
+  <span class="mono">files/rules.json</span>。手机上不显示任何设置 —— 跑单时只会看到「可以接单 / 不要接单」和一句原因。
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var state = { rules:null, suburbs:[], stores:[], phone:null };
+  var $ = function(id){ return document.getElementById(id); };
+
+  fetch("/api/state").then(function(r){ return r.json(); }).then(function(data){
+    state = data;
+    $("phone").textContent = data.phone ? "手机：" + data.phone : "手机：没插线";
+    $("phone").dataset.on = data.phone ? "1" : "0";
+    fill();
+  });
+
+  function fill(){
+    var a = state.rules.anchor || {};
+    $("anchorLabel").value = a.label || "";
+    if (a.lat != null) $("anchorLat").value = a.lat;
+    if (a.lon != null) $("anchorLon").value = a.lon;
+    $("anchorKm").value = a.maxKm || 15;
+    $("kmLabel").textContent = a.maxKm || 15;
+    $("addresses").value = (state.rules.addresses.deny || []).join("\n");
+    drawSuburbs();
+    drawStores();
+    drawDenied();
+    counts();
+  }
+
+  function counts(){
+    $("allowCount").textContent = "（去 " + state.rules.suburbs.allow.length + " 个）";
+    $("storeCount").textContent = "（" + state.rules.stores.deny.length + " 条）";
+    var lines = $("addresses").value.split("\n").filter(function(s){ return s.trim(); });
+    $("addressCount").textContent = "（" + lines.length + " 条）";
+  }
+
+  /* ---- suburbs ---- */
+  function drawSuburbs(){
+    var q = $("suburbSearch").value.trim().toLowerCase();
+    var allow = state.rules.suburbs.allow;
+    var shown = state.suburbs.filter(function(s){
+      if (q) return s.name.toLowerCase().indexOf(q) >= 0;
+      return allow.indexOf(s.name) >= 0;
+    });
+    var box = $("suburbChips");
+    box.textContent = "";
+    shown.slice(0, 400).forEach(function(s){
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = s.name;
+      chip.dataset.on = allow.indexOf(s.name) >= 0 ? "1" : "0";
+      chip.addEventListener("click", function(){
+        var at = allow.indexOf(s.name);
+        if (at >= 0) allow.splice(at, 1); else allow.push(s.name);
+        drawSuburbs(); counts();
+      });
+      box.appendChild(chip);
+    });
+    if (!shown.length) {
+      var empty = document.createElement("span");
+      empty.className = "hint";
+      empty.textContent = q ? "没有匹配的郊区。" : "一个区都没选，等于哪都不去。";
+      box.appendChild(empty);
+    }
+  }
+  $("suburbSearch").addEventListener("input", drawSuburbs);
+
+  /* ---- stores ---- */
+  var SETTING = { MALL:["mall","商场里"], STRIP:["strip","主街"],
+                  STANDALONE_PARKING:["easy","独立+停车场"], STANDALONE:["unknown","独立·未知"] };
+
+  function matchedStores(){
+    var q = $("storeSearch").value.trim().toLowerCase();
+    if (!q) return [];
+    return state.stores.filter(function(s){
+      return s.name.toLowerCase().indexOf(q) >= 0 ||
+             (s.mall || "").toLowerCase().indexOf(q) >= 0;
+    }).slice(0, 200);
+  }
+
+  function drawStores(){
+    var list = $("storeList");
+    list.textContent = "";
+    var rows = matchedStores();
+    if (!rows.length) {
+      var empty = document.createElement("div");
+      empty.className = "meta";
+      empty.textContent = $("storeSearch").value.trim() ? "没找到。" : "搜一个店名或商场名。";
+      list.appendChild(empty);
+      return;
+    }
+    rows.forEach(function(s){
+      var row = document.createElement("div");
+      var name = document.createElement("span");
+      name.className = "name";
+      name.textContent = s.name + (s.mall ? "  ·  " + s.mall : "");
+      var tag = document.createElement("span");
+      var look = SETTING[s.setting] || ["unknown", s.setting];
+      tag.className = "tag " + look[0];
+      tag.textContent = look[1];
+      var meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = s.suburb;
+      var add = document.createElement("button");
+      add.className = "btn plain";
+      add.textContent = "拉黑";
+      add.addEventListener("click", function(){ deny(s.name); });
+      row.append(name, tag, meta, add);
+      list.appendChild(row);
+    });
+  }
+  $("storeSearch").addEventListener("input", drawStores);
+
+  $("denyShown").addEventListener("click", function(){
+    var names = {};
+    matchedStores().forEach(function(s){ names[s.mall || s.name] = 1; });
+    Object.keys(names).forEach(deny);
+  });
+
+  function deny(name){
+    if (state.rules.stores.deny.indexOf(name) < 0) state.rules.stores.deny.push(name);
+    drawDenied(); counts();
+  }
+
+  function drawDenied(){
+    var box = $("storeDenied");
+    box.textContent = "";
+    state.rules.stores.deny.forEach(function(name){
+      var chip = document.createElement("span");
+      chip.className = "chip deny";
+      chip.dataset.on = "1";
+      chip.textContent = name + "  ×";
+      chip.title = "点一下移除";
+      chip.addEventListener("click", function(){
+        state.rules.stores.deny = state.rules.stores.deny.filter(function(n){ return n !== name; });
+        drawDenied(); counts();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  /* ---- anchor ---- */
+  $("anchorKm").addEventListener("input", function(){ $("kmLabel").textContent = this.value; });
+  $("addresses").addEventListener("input", counts);
+
+  $("usePhone").addEventListener("click", function(){
+    say("正在问手机…");
+    fetch("/api/phone-location").then(function(r){ return r.json(); }).then(function(data){
+      if (data.location) {
+        $("anchorLat").value = data.location.lat;
+        $("anchorLon").value = data.location.lon;
+        say("已用手机当前位置", "ok");
+      } else {
+        say("手机没给出位置 —— 插着线、亮着屏再试一次", "bad");
+      }
+    });
+  });
+
+  /* ---- save ---- */
+  function say(text, kind){
+    $("status").textContent = text;
+    $("status").dataset.kind = kind || "";
+  }
+
+  $("save").addEventListener("click", function(){
+    state.rules.anchor = {
+      label: $("anchorLabel").value.trim() || "锚点",
+      lat: parseFloat($("anchorLat").value),
+      lon: parseFloat($("anchorLon").value),
+      maxKm: parseFloat($("anchorKm").value),
+    };
+    state.rules.addresses.deny = $("addresses").value.split("\n")
+      .map(function(s){ return s.trim(); })
+      .filter(function(s){ return s.length > 0; });
+
+    if (isNaN(state.rules.anchor.lat) || isNaN(state.rules.anchor.lon)) {
+      return say("锚点还没定 —— 填经纬度，或者点「用手机当前位置」", "bad");
+    }
+
+    $("save").disabled = true;
+    say("保存中…");
+    fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.rules),
+    }).then(function(r){ return r.json(); }).then(function(data){
+      $("save").disabled = false;
+      if (data.pushed) say("已保存并推送到手机", "ok");
+      else say("已存在电脑上，但没推到手机：" + (data.detail || "手机没插线"), "bad");
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -108,33 +108,42 @@ private fun MonitorScreen(store: SettingsStore) {
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text("Uber Eats 接单助手", style = MaterialTheme.typography.headlineSmall) }
+        // Only what is broken, and only what the driver actually changes. The
+        // notification path was proven dead, and recording, vibration and the
+        // debug toggles were things nobody asked for.
+        if (!Permissions.screenReadingGranted(context)) {
+            item {
+                PermissionCard(
+                    title = "读屏（无障碍）",
+                    granted = false,
+                    hint = "唯一能看到派单卡片的通道。关掉就什么都记录不到",
+                    onFix = { Permissions.openAccessibilitySettings(context) },
+                )
+            }
+        }
 
-        item {
-            PermissionCard(
-                title = "通知访问",
-                granted = Permissions.notificationAccessGranted(context),
-                hint = "打开后才能读到 Uber Driver 的派单通知",
-                onFix = { Permissions.openNotificationAccessSettings(context) },
-            )
+        if (!Permissions.overlayGranted(context)) {
+            item {
+                PermissionCard(
+                    title = "悬浮窗",
+                    granted = false,
+                    hint = "打开后判断结果会盖在派单卡片上",
+                    onFix = { Permissions.openOverlaySettings(context) },
+                )
+            }
         }
 
         item {
-            PermissionCard(
-                title = "读屏（无障碍）",
-                granted = Permissions.screenReadingGranted(context),
-                hint = "唯一能看到派单卡片的通道。关掉就什么都记录不到",
-                onFix = { Permissions.openAccessibilitySettings(context) },
-            )
-        }
-
-        item {
-            PermissionCard(
-                title = "悬浮窗",
-                granted = Permissions.overlayGranted(context),
-                hint = "打开后判断结果会盖在 Uber 界面上",
-                onFix = { Permissions.openOverlaySettings(context) },
-            )
+            Card {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ToggleRow("卡片上显示接不接", current.overlayEnabled) {
+                        scope.launch { store.setOverlayEnabled(it) }
+                    }
+                    ToggleRow("区域提示音", current.areaSoundEnabled) {
+                        scope.launch { store.setAreaSoundEnabled(it) }
+                    }
+                }
+            }
         }
 
         item {
@@ -143,65 +152,6 @@ private fun MonitorScreen(store: SettingsStore) {
                 onSave = { scope.launch { store.saveThresholds(it) } },
             )
         }
-
-        item { RecordingCard(recording = current.recordScreenEnabled, store = store) }
-
-        item {
-            Card {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ToggleRow("区域提示音", current.areaSoundEnabled) {
-                        scope.launch { store.setAreaSoundEnabled(it) }
-                    }
-                    ToggleRow("卡片上显示接不接", current.overlayEnabled) {
-                        scope.launch { store.setOverlayEnabled(it) }
-                    }
-                    ToggleRow("震动提示", current.vibrateEnabled) {
-                        scope.launch { store.setVibrateEnabled(it) }
-                    }
-                    ToggleRow("记录所有 App 的通知（调参用）", current.logEveryNotification) {
-                        scope.launch { store.setLogEveryNotification(it) }
-                    }
-                }
-            }
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { chime.play(SAMPLE_INSIDE) }) { Text("试听：区内") }
-                    Button(onClick = { chime.play(SAMPLE_OUTSIDE) }) { Text("试听：区外") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { overlay.show(OverlayController.State.Thinking, 6_000L) }) {
-                        Text("试：思考中")
-                    }
-                    Button(
-                        onClick = {
-                            overlay.show(
-                                OverlayController.State.Decided(sampleVerdict(current.thresholds), inArea = true),
-                                6_000L,
-                            )
-                        },
-                    ) { Text("试：可以接") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            overlay.show(
-                                OverlayController.State.Decided(sampleVerdict(current.thresholds), inArea = false),
-                                6_000L,
-                            )
-                        },
-                    ) { Text("试：不要接") }
-                    TextButton(onClick = { overlay.hide() }) { Text("收起") }
-                    TextButton(onClick = { OfferLog.clear() }) { Text("清空记录") }
-                }
-            }
-        }
-
-        item { Text("最近 ${events.size} 条", style = MaterialTheme.typography.titleMedium) }
-
-        items(events) { event -> EventRow(event) }
     }
 }
 
