@@ -109,6 +109,34 @@ textarea{
 #status{font-size:13px;color:var(--ink-2);max-width:34ch;text-align:right;line-height:1.35}
 #status[data-kind="ok"]{color:var(--yes)}
 #status[data-kind="bad"]{color:var(--no)}
+
+/* The save result gets a dialog, not a line of text in the header: pushing to
+   the phone is the one action here with a consequence, and it has to be
+   impossible to miss whether it landed. */
+#result{
+  border:none; border-radius:14px; padding:0; max-width:420px; width:calc(100% - 32px);
+  background:var(--panel); color:var(--ink); box-shadow:var(--shadow);
+}
+#result::backdrop{background:rgba(11,14,17,.42)}
+.resultTop{display:flex;gap:14px;align-items:flex-start;padding:22px 24px 6px}
+.resultMark{
+  flex:none;width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;font-size:21px;color:#fff;line-height:1;
+}
+.resultMark[data-kind="ok"]{background:var(--yes)}
+.resultMark[data-kind="bad"]{background:var(--no)}
+#resultTitle{font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif;
+  font-size:23px;margin:0;letter-spacing:.01em}
+#resultSub{color:var(--ink-2);font-size:13px;margin:2px 0 0}
+#resultRows{list-style:none;margin:14px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:0}
+#resultRows li{
+  display:flex;justify-content:space-between;gap:16px;
+  padding:8px 0;border-top:1px solid var(--line);font-size:13px;
+}
+#resultRows li span:first-child{color:var(--ink-2)}
+#resultRows li span:last-child{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-variant-numeric:tabular-nums;text-align:right}
+.resultFoot{display:flex;justify-content:flex-end;padding:16px 24px 20px}
 footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
 
 #map{
@@ -236,6 +264,19 @@ body.mapfull h2{font-size:17px}
   </section>
 
 </main>
+
+<dialog id="result">
+  <div class="resultTop">
+    <div class="resultMark" id="resultMark"></div>
+    <div>
+      <h2 id="resultTitle"></h2>
+      <p id="resultSub"></p>
+    </div>
+  </div>
+  <ul id="resultRows"></ul>
+  <div class="resultFoot"><button class="btn" id="resultClose">知道了</button></div>
+</dialog>
+
 
 <footer>
   规则全部存在 <span class="mono">data/rules.json</span>，保存时用 adb 推到手机的
@@ -876,6 +917,27 @@ body.mapfull h2{font-size:17px}
     $("status").dataset.kind = kind || "";
   }
 
+  /** The save result, big enough to see from across the desk. */
+  function showResult(kind, title, sub, rows){
+    $("resultMark").dataset.kind = kind;
+    $("resultMark").textContent = kind === "ok" ? "✓" : "✕";
+    $("resultTitle").textContent = title;
+    $("resultSub").textContent = sub;
+    var list = $("resultRows");
+    list.textContent = "";
+    rows.forEach(function(row){
+      var li = document.createElement("li");
+      var left = document.createElement("span");
+      left.textContent = row[0];
+      var right = document.createElement("span");
+      right.textContent = row[1];
+      li.append(left, right);
+      list.appendChild(li);
+    });
+    $("result").showModal();
+  }
+  $("resultClose").addEventListener("click", function(){ $("result").close(); });
+
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;
     var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
@@ -899,11 +961,28 @@ body.mapfull h2{font-size:17px}
     }).then(function(r){ return r.json(); }).then(function(data){
       $("save").disabled = false;
       $("save").textContent = "保存并推送到手机";
-      if (data.pushed) say("已推送：方案「" + state.rules.active + "」" +
-                            state.rules.suburbs.allow.length + " 个区，市中心 " +
-                            (state.rules.stores.cbdDeny || []).length + " 家 + 手动 " +
-                            state.rules.stores.deny.length + " 家", "ok");
-      else say("已存在电脑上，但没推到手机：" + (data.detail || "手机没插线"), "bad");
+      var rows = [
+        ["选区方案", state.rules.active],
+        ["去的区", state.rules.suburbs.allow.length + " 个"],
+        ["市中心不接的店", (state.rules.stores.cbdDeny || []).length + " 家"],
+        ["手动拉黑的店", state.rules.stores.deny.length + " 家"],
+        ["不接的地址", state.rules.addresses.deny.length + " 条"],
+      ];
+      if (data.pushed) {
+        say("已推送", "ok");
+        showResult("ok", "已推到手机", "手机上马上就按这套规则判单", rows);
+      } else {
+        say("没推到手机", "bad");
+        showResult("bad", "没推到手机",
+          "规则已经存在电脑上（data/rules.json），插上线再点一次保存。",
+          rows.concat([["adb 说", (data.detail || "手机没插线").slice(0, 120)]]));
+      }
+    }).catch(function(error){
+      $("save").disabled = false;
+      $("save").textContent = "保存并推送到手机";
+      say("保存失败", "bad");
+      showResult("bad", "没保存成功", "编辑器的服务没应答，规则一个字都没写出去。",
+        [["出错", String(error).slice(0, 120)]]);
     });
   });
 })();
