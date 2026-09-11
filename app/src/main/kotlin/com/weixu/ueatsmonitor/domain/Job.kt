@@ -20,6 +20,9 @@ data class Job(
     val dropUnit: String?,
     /** What the customer wrote about reaching their door. */
     val dropNote: String?,
+    /** The two notes in Chinese, once the phone has translated them. */
+    val noteCn: String?,
+    val dropNoteCn: String?,
 )
 
 /** Data. Which shelf of the work area a job sits on. */

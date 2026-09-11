@@ -46,6 +46,7 @@ object JobStore {
                 atMillis, offer,
                 taken = false, address = null, note = null,
                 dropAddress = null, dropUnit = null, dropNote = null,
+                noteCn = null, dropNoteCn = null,
             ),
         )
         write(context, next)
@@ -56,6 +57,29 @@ object JobStore {
     }
 
     fun clear(context: Context) = write(context, emptyList())
+
+    /**
+     * Puts a Chinese rendering of each note beside the original. Translation is
+     * asynchronous and can take a moment, so the board is read again when the
+     * answer arrives - it may have changed in between.
+     */
+    fun translateNotes(context: Context) {
+        list(context).forEach { job ->
+            val at = job.atMillis
+            if (job.note != null && job.noteCn == null) {
+                Notes.inChinese(job.note) { chinese -> amend(context, at) { it.copy(noteCn = chinese) } }
+            }
+            if (job.dropNote != null && job.dropNoteCn == null) {
+                Notes.inChinese(job.dropNote) { chinese -> amend(context, at) { it.copy(dropNoteCn = chinese) } }
+            }
+        }
+    }
+
+    private fun amend(context: Context, atMillis: Long, change: (Job) -> Job) {
+        val jobs = list(context)
+        val next = jobs.map { if (it.atMillis == atMillis) change(it) else it }
+        if (next != jobs) write(context, next)
+    }
 
     /** The delivery screen appeared: give the job the customer's real address. */
     fun markDelivered(context: Context, dropoff: Dropoff) {
@@ -83,6 +107,8 @@ object JobStore {
                         job.dropAddress?.let { put("dropAddress", JsonPrimitive(it)) }
                         job.dropUnit?.let { put("dropUnit", JsonPrimitive(it)) }
                         job.dropNote?.let { put("dropNote", JsonPrimitive(it)) }
+                        job.noteCn?.let { put("noteCn", JsonPrimitive(it)) }
+                        job.dropNoteCn?.let { put("dropNoteCn", JsonPrimitive(it)) }
                         put("match", JsonPrimitive(job.offer.isMatch))
                         put("payout", JsonPrimitive(job.offer.payout))
                         put("pickup", JsonPrimitive(job.offer.pickup))
@@ -107,6 +133,8 @@ object JobStore {
             dropAddress = entry["dropAddress"]?.jsonPrimitive?.content,
             dropUnit = entry["dropUnit"]?.jsonPrimitive?.content,
             dropNote = entry["dropNote"]?.jsonPrimitive?.content,
+            noteCn = entry["noteCn"]?.jsonPrimitive?.content,
+            dropNoteCn = entry["dropNoteCn"]?.jsonPrimitive?.content,
             offer = OfferRecord(
                 isMatch = entry["match"]?.jsonPrimitive?.content == "true",
                 payout = entry["payout"]!!.jsonPrimitive.content,

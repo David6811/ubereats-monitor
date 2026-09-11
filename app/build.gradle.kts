@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.translate)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

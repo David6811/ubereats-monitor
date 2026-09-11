@@ -314,6 +314,9 @@ class UberScreenService : AccessibilityService() {
             JobStore.markDelivered(this, dropoff)
             Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
+        // Whatever notes are on the board, in Chinese. Does nothing once they are
+        // all done, and nothing at all until the model has been fetched.
+        JobStore.translateNotes(this)
 
         val decision = decide(lines, text, now)
         DecisionLog.note(this, now, source, decision)

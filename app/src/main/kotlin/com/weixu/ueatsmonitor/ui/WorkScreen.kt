@@ -158,34 +158,42 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
                     StopAction("看地图") { Navigation.showOnMap(context, job.offer.dropoff) },
                 ),
             )
-            job.dropNote?.let { note ->
-                // The customer's own words about reaching their door.
-                Text(
-                    text = "客户留言：" + note,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(NOTE_TINT)
-                        .padding(10.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            job.note?.let { note ->
-                // The shop's own words about where to park, which is the one thing
-                // no map or table of ours can tell him.
-                Text(
-                    text = "店家留言：" + note,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(NOTE_TINT)
-                        .padding(10.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            job.dropNote?.let { Note("客户留言", it, job.dropNoteCn) }
+            // The shop's own words about where to park, which is the one thing no
+            // map or table of ours can tell him.
+            job.note?.let { Note("店家留言", it, job.noteCn) }
             job.offer.ruling?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge)
             }
+        }
+    }
+}
+
+/**
+ * A note, in Chinese where the phone has managed it, with the original underneath.
+ * The original stays because it is the authority: a door number or an intercom
+ * code inside a translated sentence is not something to trust blind.
+ */
+@Composable
+private fun Note(title: String, original: String, chinese: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(NOTE_TINT)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title + "：" + (chinese ?: original),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (chinese != null) {
+            Text(
+                text = original,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
