@@ -4,7 +4,34 @@ package com.weixu.ueatsmonitor.domain
 data class Job(
     val atMillis: Long,
     val offer: OfferRecord,
+    /**
+     * True once the offer is known to have been accepted. Nothing on screen says
+     * so yet, so this is false on everything the reader writes today - the shelf
+     * it belongs on exists, and stays empty until the screen can tell us.
+     */
+    val taken: Boolean,
 )
+
+/** Data. Which shelf of the work area a job sits on. */
+enum class Shelf {
+    TAKEN,
+    WORTH_TAKING,
+    NOT_WORTH_TAKING,
+    ;
+
+    companion object {
+        /**
+         * Calculation. A job goes where its verdict puts it, unless it is known to
+         * have been taken - then it belongs with the work in hand whatever the
+         * rules said about it.
+         */
+        fun of(job: Job): Shelf = when {
+            job.taken -> TAKEN
+            job.offer.ruling?.startsWith("可以") == true -> WORTH_TAKING
+            else -> NOT_WORTH_TAKING
+        }
+    }
+}
 
 /**
  * Calculation. What the board holds after an offer appears.

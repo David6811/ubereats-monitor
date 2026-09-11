@@ -16,6 +16,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import com.weixu.ueatsmonitor.action.StoreTable
 import com.weixu.ueatsmonitor.domain.Store
 import com.weixu.ueatsmonitor.domain.StoreKinds
 import com.weixu.ueatsmonitor.domain.Job
+import com.weixu.ueatsmonitor.domain.Shelf
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,7 +65,25 @@ fun WorkScreen() {
         }
     }
 
+    // Taken first, because that is the work in hand; the other two are why it is
+    // there. Nothing can tell yet that an offer was accepted, so the first shelf
+    // stays empty until the screen can say so.
+    val shelves = listOf(Shelf.TAKEN to "已接", Shelf.WORTH_TAKING to "建议接", Shelf.NOT_WORTH_TAKING to "建议不接")
+    var shelf by remember { mutableStateOf(Shelf.TAKEN) }
+    val here = jobs.filter { Shelf.of(it) == shelf }
+
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        TabRow(selectedTabIndex = shelves.indexOfFirst { it.first == shelf }) {
+            shelves.forEach { (which, label) ->
+                val count = jobs.count { Shelf.of(it) == which }
+                Tab(
+                    selected = which == shelf,
+                    onClick = { shelf = which },
+                    text = { Text(if (count > 0) label + " " + count else label) },
+                )
+            }
+        }
+
         Button(
             onClick = { JobStore.clear(context); cleared++ },
             modifier = Modifier.fillMaxWidth().height(64.dp),
@@ -70,13 +91,20 @@ fun WorkScreen() {
             Text("全部清空", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
-        if (jobs.isEmpty()) {
-            Text("现在没有单", style = MaterialTheme.typography.titleMedium)
+        if (here.isEmpty()) {
+            Text(
+                text = when (shelf) {
+                    Shelf.TAKEN -> "还认不出你接了哪一单，这一格先空着"
+                    Shelf.WORTH_TAKING -> "现在没有建议接的单"
+                    Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
+                },
+                style = MaterialTheme.typography.titleMedium,
+            )
             return@Column
         }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(jobs, key = { it.atMillis }) { job ->
+            items(here, key = { it.atMillis }) { job ->
                 JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
             }
         }

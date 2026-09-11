@@ -66,6 +66,11 @@ class CaptureKeeperService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            // Take the notification with it. Leaving the notification up after a
+            // deliberate quit says the monitor is running when it is not.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+            }
             stopSelf()
             return START_NOT_STICKY
         }

@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
 import android.graphics.ColorSpace
 import android.hardware.HardwareBuffer
+import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -543,6 +544,30 @@ class UberScreenService : AccessibilityService() {
             val service = live ?: return
             service.work.post { service.look() }
         }
+
+        /**
+         * Everything down: the overlays go, the keeper goes, and the service
+         * switches itself off. Turning it back on means Settings -> Accessibility,
+         * because nothing in an app can grant itself that permission again.
+         */
+        fun stopEverything(context: Context) {
+            val service = live
+            if (service == null) {
+                CaptureKeeperService.stop(context)
+                return
+            }
+            service.overlay.hide()
+            service.pulse.hide()
+            ServiceJournal.note(service, "读屏已退出")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                runCatching { service.disableSelf() }
+            }
+            // Last, so nothing restarts it on the way out.
+            CaptureKeeperService.stop(context)
+        }
+
+        /** Whether the reader is connected right now. */
+        fun isRunning(): Boolean = live != null
 
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L

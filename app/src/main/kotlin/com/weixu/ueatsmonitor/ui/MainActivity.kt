@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -49,6 +51,7 @@ import com.weixu.ueatsmonitor.action.OfferLog
 import com.weixu.ueatsmonitor.action.OverlayController
 import com.weixu.ueatsmonitor.action.Permissions
 import com.weixu.ueatsmonitor.action.SettingsStore
+import com.weixu.ueatsmonitor.action.UberScreenService
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.GeoPoint
@@ -70,8 +73,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Brings back the keeper notification if it was swiped away.
-        runCatching { CaptureKeeperService.start(this) }
+        // Brings back the keeper notification if it was swiped away - but never
+        // after a deliberate quit, which leaves screen reading off. The keeper
+        // exists to serve the reader; without one there is nothing to keep alive.
+        if (Permissions.screenReadingGranted(this)) {
+            runCatching { CaptureKeeperService.start(this) }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,6 +184,57 @@ private fun MonitorScreen(store: SettingsStore) {
                 }
             }
         }
+        item { QuitCard() }
+    }
+}
+
+/**
+ * Everything off at the end of a shift. Kept to the bottom of the last page and
+ * behind a question, because getting back from it means a trip through the
+ * system's accessibility settings - no app can grant itself that again.
+ */
+@Composable
+private fun QuitCard() {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var asking by remember { mutableStateOf(false) }
+
+    Card {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("退出", fontWeight = FontWeight.Bold)
+            Text(
+                text = "停掉读屏和后台守护。下次要用，得去「系统设置 → 无障碍 → 接单助手」重新打开。",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                onClick = { asking = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+            ) {
+                Text("退出并停止监控")
+            }
+        }
+    }
+
+    if (asking) {
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text("停掉监控？") },
+            text = { Text("派单来了就不会再有判断和记录，直到你在系统的无障碍设置里重新打开。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    UberScreenService.stopEverything(context)
+                    activity?.finish()
+                }) { Text("停掉") }
+            },
+            dismissButton = {
+                TextButton(onClick = { asking = false }) { Text("取消") }
+            },
+        )
     }
 }
 

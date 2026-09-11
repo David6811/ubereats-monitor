@@ -37,7 +37,7 @@ object JobStore {
     }
 
     fun add(context: Context, atMillis: Long, offer: OfferRecord) {
-        val next = JobBoard.add(list(context), Job(atMillis, offer))
+        val next = JobBoard.add(list(context), Job(atMillis, offer, taken = false))
         write(context, next)
     }
 
@@ -53,6 +53,7 @@ object JobStore {
                 add(
                     buildJsonObject {
                         put("at", JsonPrimitive(job.atMillis))
+                        put("taken", JsonPrimitive(job.taken))
                         put("match", JsonPrimitive(job.offer.isMatch))
                         put("payout", JsonPrimitive(job.offer.payout))
                         put("pickup", JsonPrimitive(job.offer.pickup))
@@ -71,6 +72,7 @@ object JobStore {
         val entry = element.jsonObject
         Job(
             atMillis = entry["at"]!!.jsonPrimitive.long,
+            taken = entry["taken"]?.jsonPrimitive?.content == "true",
             offer = OfferRecord(
                 isMatch = entry["match"]?.jsonPrimitive?.content == "true",
                 payout = entry["payout"]!!.jsonPrimitive.content,
