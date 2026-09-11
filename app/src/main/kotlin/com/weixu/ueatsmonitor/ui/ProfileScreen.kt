@@ -1,6 +1,9 @@
 package com.weixu.ueatsmonitor.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +12,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,8 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SuburbShapes
+import com.weixu.ueatsmonitor.domain.Exclusions
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -38,6 +45,7 @@ fun ProfileScreen() {
     var fromPhone by remember { mutableStateOf(Profiles.chosenHere(context)) }
 
     val shapes = remember { SuburbShapes.all(context) }
+    var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -60,7 +68,10 @@ fun ProfileScreen() {
         }
         // Whichever set is live, drawn as shapes so it is obvious which one it is.
         profiles.firstOrNull { it.active }?.let { live ->
-            SuburbMap(chosen = live.suburbs.toSet(), shapes = shapes)
+            SuburbMap(
+                chosen = Exclusions.apply(live.suburbs.toSet(), excluded),
+                shapes = shapes,
+            )
         }
 
         profiles.forEach { profile ->
@@ -71,6 +82,8 @@ fun ProfileScreen() {
                     Profiles.choose(context, profile.name)
                     profiles = Profiles.list(context)
                     fromPhone = Profiles.chosenHere(context)
+                    // Switching sets drops them, and this is what that looks like.
+                    excluded = ExclusionStore.inForce(context)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = if (profile.active) {
@@ -92,6 +105,66 @@ fun ProfileScreen() {
                         )
                     }
                 }
+            }
+        }
+
+        profiles.firstOrNull { it.active }?.let { live ->
+            SuburbTicks(
+                suburbs = live.suburbs.sorted(),
+                excluded = excluded,
+                onToggle = { suburb ->
+                    ExclusionStore.toggle(context, suburb)
+                    excluded = ExclusionStore.inForce(context)
+                },
+                onRestore = {
+                    ExclusionStore.clear(context)
+                    excluded = ExclusionStore.inForce(context)
+                },
+            )
+        }
+    }
+}
+
+/**
+ * The live set's suburbs, each with a tick. Unticking one drops it for this
+ * shift only - it is not written into the laptop's set, and it is forgotten the
+ * moment the set is switched or new rules arrive.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SuburbTicks(
+    suburbs: List<String>,
+    excluded: Set<String>,
+    onToggle: (String) -> Unit,
+    onRestore: () -> Unit,
+) {
+    if (excluded.isNotEmpty()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "去掉了 " + excluded.sorted().joinToString("、"),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            TextButton(onClick = onRestore) { Text("恢复") }
+        }
+    }
+    // Across as well as down: a set of thirty suburbs is a long scroll in one
+    // column, and each name is short enough to sit beside its neighbour.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        suburbs.forEach { suburb ->
+            val on = excluded.none { it.equals(suburb, ignoreCase = true) }
+            Row(
+                modifier = Modifier.clickable { onToggle(suburb) }.padding(end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = on, onCheckedChange = null)
+                Text(
+                    text = suburb,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (on) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

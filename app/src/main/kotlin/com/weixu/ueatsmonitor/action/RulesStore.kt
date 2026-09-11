@@ -3,6 +3,7 @@ package com.weixu.ueatsmonitor.action
 import android.content.Context
 import android.util.Log
 import com.weixu.ueatsmonitor.domain.Cents
+import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.Rules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -34,6 +35,9 @@ object RulesStore {
     @Volatile
     private var readForProfile: String? = null
 
+    @Volatile
+    private var readWithExcluded: Set<String> = emptySet()
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -41,15 +45,28 @@ object RulesStore {
         // it has to invalidate the same cache a new file does.
         val profile = Profiles.chosen(context)
         val known = cached
-        if (known != null && stamp == readAtMillis && profile == readForProfile) return known
+        val excludedNow = ExclusionStore.inForce(context)
+        if (known != null && stamp == readAtMillis && profile == readForProfile &&
+            excludedNow == readWithExcluded
+        ) {
+            return known
+        }
 
+        val excluded = ExclusionStore.inForce(context)
         val parsed = parse(file).let { rules ->
             val chosen = Profiles.suburbsInForce(context)
-            if (chosen == null) rules else rules.copy(allowedSuburbs = chosen)
+            val allow = chosen ?: rules.allowedSuburbs
+            // Ticked off on the phone means not going there - including on the
+            // money that would otherwise reach further.
+            rules.copy(
+                allowedSuburbs = Exclusions.apply(allow, excluded),
+                farSuburbs = Exclusions.apply(rules.farSuburbs, excluded),
+            )
         }
         cached = parsed
         readAtMillis = stamp
         readForProfile = profile
+        readWithExcluded = excluded
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
