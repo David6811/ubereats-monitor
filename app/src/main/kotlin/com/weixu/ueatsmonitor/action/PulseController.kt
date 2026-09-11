@@ -135,9 +135,9 @@ class PulseController(private val context: Context) {
     }
 
     private fun colourOf(mood: Mood): Int = when (mood) {
-        Mood.WATCHING -> Color.parseColor("#2ECC71")
-        Mood.IDLE -> Color.parseColor("#6C7A89")
-        Mood.BROKEN -> Color.parseColor("#E74C3C")
+        Mood.WATCHING -> WATCHING
+        Mood.IDLE -> IDLE
+        Mood.BROKEN -> WRONG
     }
 
     private fun dp(value: Int): Int =
@@ -157,8 +157,15 @@ class PulseController(private val context: Context) {
         /** Longer than this without a beat and the loop is not running. */
         const val QUIET_MILLIS = 10_000L
 
-        /** Amber, dimmer than a resting beat: alive but not reading. */
-        val QUIET: Int = Color.parseColor("#E0A800")
+        // Blue against orange, never green against red: the driver cannot tell
+        // those two apart. Colour is the second signal anyway - whether the dot
+        // beats at all is the first.
+        val WATCHING: Int = Color.parseColor("#0A84FF")
+        val IDLE: Int = Color.parseColor("#9AA0A6")
+        val WRONG: Int = Color.parseColor("#E67E22")
+
+        /** Dimmer than a resting beat: still there, no longer reading. */
+        val QUIET: Int = WRONG
         const val STALLED = 0.30f
 
         val RING: Int = Color.parseColor("#66000000")
