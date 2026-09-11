@@ -149,13 +149,27 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
             )
             Stop(
                 title = "送到",
-                place = job.offer.dropoff,
+                place = listOfNotNull(job.dropAddress ?: job.offer.dropoff, job.dropUnit)
+                    .joinToString("  "),
                 tint = DROPOFF,
+                mark = if (job.dropAddress != null) "已确认" else null,
                 actions = listOf(
                     StopAction("导航") { Navigation.driveTo(context, job.offer.dropoff) },
                     StopAction("看地图") { Navigation.showOnMap(context, job.offer.dropoff) },
                 ),
             )
+            job.dropNote?.let { note ->
+                // The customer's own words about reaching their door.
+                Text(
+                    text = "客户留言：" + note,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(NOTE_TINT)
+                        .padding(10.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             job.note?.let { note ->
                 // The shop's own words about where to park, which is the one thing
                 // no map or table of ours can tell him.

@@ -14,6 +14,12 @@ data class Job(
     val address: String?,
     /** What the shop wrote about finding it - often where to park. */
     val note: String?,
+    /** The customer's full street address, which only the delivery screen carries. */
+    val dropAddress: String?,
+    /** Their unit or floor, when the address has one. */
+    val dropUnit: String?,
+    /** What the customer wrote about reaching their door. */
+    val dropNote: String?,
 )
 
 /** Data. Which shelf of the work area a job sits on. */
@@ -91,7 +97,35 @@ object JobBoard {
     private fun branchOf(pickup: String): String? =
         Regex("""\(([^)]{3,40})\)""").find(pickup)?.groupValues?.get(1)?.trim()
 
+    /**
+     * The delivery screen carries the customer's address but never names the shop
+     * or the money, so the suburb is what ties it to a job. The job it belongs to
+     * is the newest whose destination names that suburb - and one already known
+     * to be taken wins, since that is the one being delivered.
+     */
+    fun delivered(jobs: List<Job>, dropoff: Dropoff, suburb: String?): List<Job> {
+        if (suburb.isNullOrBlank()) return jobs
+        val wanted = fold(suburb)
+        if (wanted.length < MIN_SUBURB) return jobs
+
+        val matches = jobs.indices.filter { at -> fold(jobs[at].offer.dropoff).contains(wanted) }
+        val at = matches.firstOrNull { jobs[it].taken } ?: matches.firstOrNull() ?: return jobs
+
+        return jobs.mapIndexed { index, job ->
+            if (index != at) job
+            else job.copy(
+                taken = true,
+                dropAddress = dropoff.address,
+                dropUnit = dropoff.unit,
+                dropNote = dropoff.note,
+            )
+        }
+    }
+
     private const val MIN_STORE = 4
+
+    /** A suburb name shorter than this would match half of Melbourne by accident. */
+    private const val MIN_SUBURB = 4
 
     private fun fold(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
 

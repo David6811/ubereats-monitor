@@ -18,6 +18,7 @@ import com.weixu.ueatsmonitor.domain.AreaJudge
 import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.OfferCardReader
 import com.weixu.ueatsmonitor.domain.OfferEvaluator
+import com.weixu.ueatsmonitor.domain.DropoffScreen
 import com.weixu.ueatsmonitor.domain.OfferShape
 import com.weixu.ueatsmonitor.domain.PickupScreen
 import com.weixu.ueatsmonitor.domain.RuleJudge
@@ -308,6 +309,10 @@ class UberScreenService : AccessibilityService() {
         PickupScreen.read(treeLines)?.let { pickup ->
             JobStore.markTaken(this, pickup)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
+        }
+        DropoffScreen.read(treeLines)?.let { dropoff ->
+            JobStore.markDelivered(this, dropoff)
+            Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
 
         val decision = decide(lines, text, now)
