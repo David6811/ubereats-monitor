@@ -53,6 +53,7 @@ class UberScreenService : AccessibilityService() {
      * unbind this service as unresponsive - which showed up as minute-long holes
      * in the recording, one of them straight through a real offer.
      */
+    private val pulse by lazy { PulseController(this) }
     private val worker = HandlerThread("uber-screen").apply { start() }
     private val work = Handler(worker.looper)
     private val poll = object : Runnable {
@@ -178,6 +179,17 @@ class UberScreenService : AccessibilityService() {
 
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
+
+        // One beat per pass of the loop, whether or not this pass takes a
+        // screenshot. What it proves is that the loop is still running.
+        pulse.beat(
+            when {
+                !Permissions.screenReadingGranted(this) -> PulseController.Mood.BROKEN
+                all.any { OfferParser.isUberPackage(it.packageName?.toString().orEmpty()) } ->
+                    PulseController.Mood.WATCHING
+                else -> PulseController.Mood.IDLE
+            }
+        )
         if (roots.isEmpty() && !shootBlind) return
 
         // A card that appears half a second after the last capture must not be
@@ -372,6 +384,8 @@ class UberScreenService : AccessibilityService() {
 
         if (card != null && ruling != null && LiveSettings.current?.overlayEnabled != false) {
             overlay.show(OverlayController.State.Decided(ruling = ruling, card = card))
+            // The verdict is the news while it is up; the heartbeat can wait.
+            pulse.hide()
         }
 
         // Onto the board, so the two stops are still there after the card goes.
