@@ -22,6 +22,7 @@ class SettingsStore(private val context: Context) {
     data class Settings(
         val thresholds: Thresholds,
         val overlayEnabled: Boolean,
+        val pulseEnabled: Boolean,
         val vibrateEnabled: Boolean,
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
@@ -38,6 +39,7 @@ class SettingsStore(private val context: Context) {
                 maxDistance = Miles(prefs[MAX_DISTANCE_MILES] ?: Thresholds.STARTER.maxDistance.value),
             ),
             overlayEnabled = prefs[OVERLAY_ENABLED] ?: true,
+            pulseEnabled = prefs[PULSE_ENABLED] ?: true,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
@@ -56,6 +58,8 @@ class SettingsStore(private val context: Context) {
     }
 
     suspend fun setOverlayEnabled(enabled: Boolean) = putBoolean(OVERLAY_ENABLED, enabled)
+
+    suspend fun setPulseEnabled(enabled: Boolean) = putBoolean(PULSE_ENABLED, enabled)
 
     suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
 
@@ -77,6 +81,7 @@ class SettingsStore(private val context: Context) {
         val MIN_PAY_PER_HOUR = doublePreferencesKey("min_pay_per_hour")
         val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
         val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
+        val PULSE_ENABLED = booleanPreferencesKey("pulse_enabled")
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val RECORD_SCREEN = booleanPreferencesKey("record_screen")

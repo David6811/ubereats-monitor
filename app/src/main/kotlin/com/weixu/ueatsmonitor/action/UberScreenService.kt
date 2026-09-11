@@ -182,7 +182,7 @@ class UberScreenService : AccessibilityService() {
 
         // One beat per pass of the loop, whether or not this pass takes a
         // screenshot. What it proves is that the loop is still running.
-        pulse.beat(
+        if (LiveSettings.current?.pulseEnabled == false) pulse.hide() else pulse.beat(
             when {
                 !Permissions.screenReadingGranted(this) -> PulseController.Mood.BROKEN
                 all.any { OfferParser.isUberPackage(it.packageName?.toString().orEmpty()) } ->

@@ -151,6 +151,9 @@ private fun MonitorScreen(store: SettingsStore) {
                     ToggleRow("卡片上显示接不接", current.overlayEnabled) {
                         scope.launch { store.setOverlayEnabled(it) }
                     }
+                    ToggleRow("右上角显示运行状态", current.pulseEnabled) {
+                        scope.launch { store.setPulseEnabled(it) }
+                    }
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
