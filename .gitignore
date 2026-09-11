@@ -12,3 +12,4 @@ captures/
 data/rules.json
 data/backup-*/
 tools/stores/cache/
+data/places.json

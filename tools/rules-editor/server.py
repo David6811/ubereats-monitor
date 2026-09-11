@@ -27,16 +27,24 @@ SUBURBS_CSV = os.path.join(ROOT, "app/src/main/assets/melbourne-suburbs.csv")
 
 PHONE_DIR = "/sdcard/Android/data/com.weixu.ueatsmonitor/files"
 
-# Geocoded once against Nominatim and pinned here, so the two places the driver
-# actually starts from are one click away and work with no network.
-PLACES = [
-    {"label": "Wells Rd, Aspendale Gardens",
-     "full": "317-369 Wells Rd, Aspendale Gardens VIC 3195",
-     "lat": -38.02506, "lon": 145.12873},
-    {"label": "Ambrie Cres, Noble Park",
-     "full": "13 Ambrie Cres, Noble Park VIC 3174",
-     "lat": -37.95370, "lon": 145.17477},
-]
+# The places the driver starts from, one click away and working with no network.
+# Kept out of the repository: they are somebody's home address. Put them in
+# data/places.json, which is not tracked:
+#
+#   [{"label": "Home", "full": "1 Example St, Suburb VIC 3000",
+#     "lat": -37.9, "lon": 145.1}]
+PLACES_FILE = os.path.join(DATA, "places.json")
+
+
+def places():
+    if not os.path.exists(PLACES_FILE):
+        return []
+    try:
+        with open(PLACES_FILE) as handle:
+            return json.load(handle)
+    except Exception:
+        return []
+
 PORT = 8777
 
 # The two shopping strips the driver refuses to pick up from: no parking, and a
@@ -251,7 +259,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "rules": load_rules(),
                     "suburbs": suburbs(),
                     "stores": stores(),
-                    "places": PLACES,
+                    "places": places(),
                     "phone": attached[0] if attached else None,
                     "stamp": stamp_of(RULES),
                 }
