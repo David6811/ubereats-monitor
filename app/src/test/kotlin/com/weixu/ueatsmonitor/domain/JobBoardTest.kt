@@ -129,7 +129,7 @@ class JobBoardTest {
         // arrange
         val board = listOf(
             Job(2_000, kebab, taken = false, address = null, note = null),
-            Job(1_000, pizza.copy(pickup = "9 Guzman y Gomez (Springvale)"), taken = false, address = null, note = null),
+            Job(1_000, pizza.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null),
         )
         val pickup = Pickup(
             store = "Guzman y Gomez",
@@ -161,5 +161,47 @@ class JobBoardTest {
 
         // assert
         assertEquals(board, next)
+    }
+
+    @Test
+    fun `given two offers from one chain, when the pickup names a branch, then the matching branch is taken`() {
+        // arrange  the newer offer is the other branch; the accepted one is older
+        val board = listOf(
+            Job(2_000, pizza.copy(pickup = "Guzman y Gomez (Springvale)"), taken = false, address = null, note = null),
+            Job(1_000, kebab.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null),
+        )
+        val pickup = Pickup(
+            store = "Guzman y Gomez",
+            address = "278 Centre Dandenong Rd, Dingley Village VIC 3172, Australia",
+            note = null,
+        )
+
+        // act
+        val next = JobBoard.taken(board, pickup)
+
+        // affirm  the newer one, from the wrong branch, is left alone
+        assertEquals(false, next[0].taken)
+
+        // assert
+        assertEquals(true, next[1].taken)
+    }
+
+    @Test
+    fun `given a card that names no branch, when the pickup arrives, then the name alone is enough`() {
+        // arrange
+        val board = listOf(
+            Job(1_000, pizza.copy(pickup = "Guzman y Gomez"), taken = false, address = null, note = null),
+        )
+        val pickup = Pickup(
+            store = "Guzman y Gomez",
+            address = "278 Centre Dandenong Rd, Dingley Village VIC 3172, Australia",
+            note = null,
+        )
+
+        // act
+        val next = JobBoard.taken(board, pickup)
+
+        // assert
+        assertEquals(true, next[0].taken)
     }
 }

@@ -67,13 +67,29 @@ object JobBoard {
     fun taken(jobs: List<Job>, pickup: Pickup): List<Job> {
         val wanted = fold(pickup.store)
         if (wanted.length < MIN_STORE) return jobs
-        val at = jobs.indexOfFirst { job -> fold(job.offer.pickup).contains(wanted) }
+        val address = fold(pickup.address)
+
+        val at = jobs.indexOfFirst { job ->
+            val card = fold(job.offer.pickup)
+            if (!card.contains(wanted)) return@indexOfFirst false
+            // Two offers from one chain can sit on the board at once, and taking
+            // the wrong one would put another branch's address on the card the
+            // driver then navigates to. The card usually names the branch's
+            // suburb in brackets and the screen's address always names one, so
+            // when both say a suburb they have to say the same suburb.
+            val branch = branchOf(job.offer.pickup)
+            branch == null || address.contains(fold(branch))
+        }
         if (at < 0) return jobs
         return jobs.mapIndexed { index, job ->
             if (index != at) job
             else job.copy(taken = true, address = pickup.address, note = pickup.note)
         }
     }
+
+    /** What the offer card put in brackets after the shop name, which is its suburb. */
+    private fun branchOf(pickup: String): String? =
+        Regex("""\(([^)]{3,40})\)""").find(pickup)?.groupValues?.get(1)?.trim()
 
     private const val MIN_STORE = 4
 
