@@ -40,6 +40,7 @@ import android.content.Context
 import android.media.projection.MediaProjectionManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.weixu.ueatsmonitor.action.CaptureKeeperService
 import com.weixu.ueatsmonitor.action.Chime
 import com.weixu.ueatsmonitor.action.RecordingStore
 import com.weixu.ueatsmonitor.action.ScreenRecorderService
@@ -66,6 +67,13 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+
+    override fun onResume() {
+        super.onResume()
+        // Brings back the keeper notification if it was swiped away.
+        runCatching { CaptureKeeperService.start(this) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

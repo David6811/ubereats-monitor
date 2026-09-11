@@ -69,6 +69,11 @@ class CaptureKeeperService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // Since Android 13 this notification can be swiped away, and once it is
+        // there is no way back from the phone. Posting it again here means opening
+        // the app brings it back - the driver asking for it, rather than the app
+        // putting back something he dismissed.
+        goForeground()
         return START_STICKY
     }
 
