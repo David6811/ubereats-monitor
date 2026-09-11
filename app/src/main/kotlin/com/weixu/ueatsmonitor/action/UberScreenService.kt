@@ -19,6 +19,7 @@ import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.OfferCardReader
 import com.weixu.ueatsmonitor.domain.OfferEvaluator
 import com.weixu.ueatsmonitor.domain.OfferShape
+import com.weixu.ueatsmonitor.domain.PickupScreen
 import com.weixu.ueatsmonitor.domain.RuleJudge
 import com.weixu.ueatsmonitor.domain.Ruling
 import com.weixu.ueatsmonitor.domain.RulingText
@@ -332,6 +333,14 @@ class UberScreenService : AccessibilityService() {
         // money-and-distance heuristic. The heuristic stays as the fallback for
         // a card whose text the accessibility tree does not expose.
         val card = OfferCardReader.read(lines)
+        // The one screen that says an offer was accepted. The accessibility tree
+        // returns this one in full, unlike the offer card, so it is read from the
+        // text rather than from a screenshot.
+        PickupScreen.read(lines)?.let { pickup ->
+            JobStore.markTaken(this, pickup)
+            Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
+        }
+
         val offerShape = card != null || OfferShape.looksLikeOffer(text)
 
         // "Thinking" belongs to a screen that really looks like an offer - money

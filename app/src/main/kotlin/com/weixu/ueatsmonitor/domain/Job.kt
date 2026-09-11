@@ -10,6 +10,10 @@ data class Job(
      * it belongs on exists, and stays empty until the screen can tell us.
      */
     val taken: Boolean,
+    /** The shop's full street address, which only the pickup screen carries. */
+    val address: String?,
+    /** What the shop wrote about finding it - often where to park. */
+    val note: String?,
 )
 
 /** Data. Which shelf of the work area a job sits on. */
@@ -52,6 +56,28 @@ object JobBoard {
     }
 
     fun remove(jobs: List<Job>, atMillis: Long): List<Job> = jobs.filterNot { it.atMillis == atMillis }
+
+    /**
+     * The pickup screen says a job was taken and carries the shop's full address.
+     * It names the shop, so the newest job whose pickup names the same shop is the
+     * one it belongs to. Nothing matches when the offer was never read - the
+     * screen alone is not enough to build a job from, since it says nothing about
+     * where the food is going or what it pays.
+     */
+    fun taken(jobs: List<Job>, pickup: Pickup): List<Job> {
+        val wanted = fold(pickup.store)
+        if (wanted.length < MIN_STORE) return jobs
+        val at = jobs.indexOfFirst { job -> fold(job.offer.pickup).contains(wanted) }
+        if (at < 0) return jobs
+        return jobs.mapIndexed { index, job ->
+            if (index != at) job
+            else job.copy(taken = true, address = pickup.address, note = pickup.note)
+        }
+    }
+
+    private const val MIN_STORE = 4
+
+    private fun fold(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
 
     /** Same money to the same address is the same job, whatever OCR made of the shop name. */
     private fun sameOffer(job: Job, other: Job): Boolean =

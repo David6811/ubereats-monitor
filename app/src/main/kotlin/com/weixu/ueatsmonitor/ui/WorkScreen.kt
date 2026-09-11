@@ -132,7 +132,9 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
             }
             Stop(
                 title = "取货",
-                place = job.offer.pickup,
+                // Once taken, the pickup screen has given us the full street
+                // address; before that all we have is what OCR read off the card.
+                place = job.address ?: job.offer.pickup,
                 tint = PICKUP,
                 actions = listOfNotNull(
                     StopAction("导航") { Navigation.driveTo(context, job.offer.pickup) },
@@ -153,6 +155,19 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
                     StopAction("看地图") { Navigation.showOnMap(context, job.offer.dropoff) },
                 ),
             )
+            job.note?.let { note ->
+                // The shop's own words about where to park, which is the one thing
+                // no map or table of ours can tell him.
+                Text(
+                    text = "店家留言：" + note,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(NOTE_TINT)
+                        .padding(10.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             job.offer.ruling?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge)
             }
@@ -217,6 +232,7 @@ private fun Stop(title: String, place: String, tint: Color, actions: List<StopAc
 }
 
 private val PICKUP = Color(0xFF00796B)
+private val NOTE_TINT = Color(0x33B38600)
 private val DROPOFF = Color(0xFF5E35B1)
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
