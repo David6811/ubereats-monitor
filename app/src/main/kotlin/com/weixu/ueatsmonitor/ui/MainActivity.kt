@@ -50,6 +50,7 @@ import com.weixu.ueatsmonitor.action.LoggedEvent
 import com.weixu.ueatsmonitor.action.OfferLog
 import com.weixu.ueatsmonitor.action.OverlayController
 import com.weixu.ueatsmonitor.action.Permissions
+import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SettingsStore
 import com.weixu.ueatsmonitor.action.UberScreenService
 import com.weixu.ueatsmonitor.domain.AreaCall
@@ -160,6 +161,14 @@ private fun MonitorScreen(store: SettingsStore) {
                     }
                     ToggleRow("右上角显示运行状态", current.pulseEnabled) {
                         scope.launch { store.setPulseEnabled(it) }
+                    }
+                    // Named with its own numbers, because the threshold and the
+                    // size of the far set are the laptop's, not this app's.
+                    Profiles.far(context)?.let { far ->
+                        ToggleRow(
+                            label = "超过 $" + far.overDollars + " 的单用远区（" + far.suburbs + " 个区）",
+                            checked = current.farEnabled,
+                        ) { scope.launch { store.setFarEnabled(it) } }
                     }
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }

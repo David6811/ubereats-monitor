@@ -68,6 +68,18 @@ object Profiles {
         return all(context).map { it.copy(active = it.name == here) }
     }
 
+    /** Data. The far set as the phone needs to show it. */
+    data class Far(val overDollars: Int, val suburbs: Int)
+
+    /** What the laptop drew for a big payout, for the page to name. */
+    fun far(context: Context): Far? {
+        val far = root(context)?.get("far")?.jsonObject ?: return null
+        val suburbs = far["suburbs"]?.jsonArray?.size ?: 0
+        if (suburbs == 0) return null
+        val over = far["overDollars"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 30.0
+        return Far(over.toInt(), suburbs)
+    }
+
     /** The suburbs of the set in force, or null when there are no sets at all. */
     fun suburbsInForce(context: Context): Set<String>? {
         val name = chosen(context) ?: return null

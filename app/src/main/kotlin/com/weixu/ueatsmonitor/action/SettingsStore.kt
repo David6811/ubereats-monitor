@@ -23,6 +23,8 @@ class SettingsStore(private val context: Context) {
         val thresholds: Thresholds,
         val overlayEnabled: Boolean,
         val pulseEnabled: Boolean,
+        /** Whether an offer over the threshold may use the far set at all. */
+        val farEnabled: Boolean,
         val vibrateEnabled: Boolean,
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
@@ -40,6 +42,7 @@ class SettingsStore(private val context: Context) {
             ),
             overlayEnabled = prefs[OVERLAY_ENABLED] ?: true,
             pulseEnabled = prefs[PULSE_ENABLED] ?: true,
+            farEnabled = prefs[FAR_ENABLED] ?: true,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
@@ -60,6 +63,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setOverlayEnabled(enabled: Boolean) = putBoolean(OVERLAY_ENABLED, enabled)
 
     suspend fun setPulseEnabled(enabled: Boolean) = putBoolean(PULSE_ENABLED, enabled)
+
+    suspend fun setFarEnabled(enabled: Boolean) = putBoolean(FAR_ENABLED, enabled)
 
     suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
 
@@ -82,6 +87,7 @@ class SettingsStore(private val context: Context) {
         val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
         val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
         val PULSE_ENABLED = booleanPreferencesKey("pulse_enabled")
+        val FAR_ENABLED = booleanPreferencesKey("far_enabled")
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val RECORD_SCREEN = booleanPreferencesKey("record_screen")

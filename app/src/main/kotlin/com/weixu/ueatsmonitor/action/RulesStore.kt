@@ -38,6 +38,9 @@ object RulesStore {
     @Volatile
     private var readWithExcluded: Set<String> = emptySet()
 
+    @Volatile
+    private var readWithFar: Boolean = true
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -46,8 +49,9 @@ object RulesStore {
         val profile = Profiles.chosen(context)
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
+        val farNow = LiveSettings.current?.farEnabled != false
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
-            excludedNow == readWithExcluded
+            excludedNow == readWithExcluded && farNow == readWithFar
         ) {
             return known
         }
@@ -58,15 +62,20 @@ object RulesStore {
             val allow = chosen ?: rules.allowedSuburbs
             // Ticked off on the phone means not going there - including on the
             // money that would otherwise reach further.
+            // Switched off, the far set is simply not there, which is what an
+            // empty one already means to the judge.
+            val far = if (LiveSettings.current?.farEnabled == false) emptySet()
+            else Exclusions.apply(rules.farSuburbs, excluded)
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
-                farSuburbs = Exclusions.apply(rules.farSuburbs, excluded),
+                farSuburbs = far,
             )
         }
         cached = parsed
         readAtMillis = stamp
         readForProfile = profile
         readWithExcluded = excluded
+        readWithFar = farNow
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
