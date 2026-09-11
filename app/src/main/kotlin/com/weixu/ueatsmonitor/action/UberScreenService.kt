@@ -301,6 +301,15 @@ class UberScreenService : AccessibilityService() {
         val lines = if (treeCard != null) treeLines else ocrLines.ifEmpty { treeLines }
         val text = lines.joinToString("\n")
 
+        // The one screen that says an offer was accepted, read from the tree
+        // rather than from `lines`: the tree returns this screen in full, and if
+        // the bar at its foot happens to look like a button, `lines` is OCR's
+        // version instead - the same words, wrapped and mangled.
+        PickupScreen.read(treeLines)?.let { pickup ->
+            JobStore.markTaken(this, pickup)
+            Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
+        }
+
         val decision = decide(lines, text, now)
         DecisionLog.note(this, now, source, decision)
 
@@ -333,14 +342,6 @@ class UberScreenService : AccessibilityService() {
         // money-and-distance heuristic. The heuristic stays as the fallback for
         // a card whose text the accessibility tree does not expose.
         val card = OfferCardReader.read(lines)
-        // The one screen that says an offer was accepted. The accessibility tree
-        // returns this one in full, unlike the offer card, so it is read from the
-        // text rather than from a screenshot.
-        PickupScreen.read(lines)?.let { pickup ->
-            JobStore.markTaken(this, pickup)
-            Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
-        }
-
         val offerShape = card != null || OfferShape.looksLikeOffer(text)
 
         // "Thinking" belongs to a screen that really looks like an offer - money
