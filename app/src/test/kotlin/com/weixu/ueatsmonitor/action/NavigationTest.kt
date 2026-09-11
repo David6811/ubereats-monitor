@@ -32,7 +32,7 @@ class NavigationTest {
     @Test
     fun `given an address that already names the state, when it is qualified, then it is left alone`() {
         // arrange
-        val place = "13 Ambrie Cres, Noble Park VIC 3174"
+        val place = "12 Example Cres, Noble Park VIC 3174"
 
         // act
         val asked = Navigation.qualify(place)
