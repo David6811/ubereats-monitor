@@ -135,6 +135,7 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
                 // Once taken, the pickup screen has given us the full street
                 // address; before that all we have is what OCR read off the card.
                 place = job.address ?: job.offer.pickup,
+                mark = if (job.address != null) "已确认" else null,
                 tint = PICKUP,
                 actions = listOfNotNull(
                     StopAction("导航") { Navigation.driveTo(context, job.offer.pickup) },
@@ -184,7 +185,13 @@ private data class StopAction(val label: String, val run: () -> Unit)
  * with it has to be hittable without looking.
  */
 @Composable
-private fun Stop(title: String, place: String, tint: Color, actions: List<StopAction>) {
+private fun Stop(
+    title: String,
+    place: String,
+    tint: Color,
+    actions: List<StopAction>,
+    mark: String? = null,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -204,6 +211,21 @@ private fun Stop(title: String, place: String, tint: Color, actions: List<StopAc
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
             )
+            // Says in words as well as colour that this address came from Uber's
+            // own pickup screen rather than from OCR of the offer card.
+            mark?.let {
+                Text(
+                    text = it,
+                    modifier = Modifier
+                        .padding(start = 6.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(CONFIRMED)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             Text(
                 text = place,
                 modifier = Modifier.padding(start = 10.dp),
@@ -233,6 +255,9 @@ private fun Stop(title: String, place: String, tint: Color, actions: List<StopAc
 
 private val PICKUP = Color(0xFF00796B)
 private val NOTE_TINT = Color(0x33B38600)
+
+/** Blue, never green: the driver cannot tell green from red. */
+private val CONFIRMED = Color(0xFF0A6ECF)
 private val DROPOFF = Color(0xFF5E35B1)
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
