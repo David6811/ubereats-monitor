@@ -84,13 +84,6 @@ fun WorkScreen() {
             }
         }
 
-        Button(
-            onClick = { JobStore.clear(context); cleared++ },
-            modifier = Modifier.fillMaxWidth().height(64.dp),
-        ) {
-            Text("全部清空", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
-
         if (here.isEmpty()) {
             Text(
                 text = when (shelf) {
@@ -98,15 +91,27 @@ fun WorkScreen() {
                     Shelf.WORTH_TAKING -> "现在没有建议接的单"
                     Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
                 },
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
             )
-            return@Column
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(here, key = { it.atMillis }) { job ->
+                    JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
+                }
+            }
         }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(here, key = { it.atMillis }) { job ->
-                JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
-            }
+        // Last, under the jobs: it is the thing done when the work is finished,
+        // and at the top it sat between the driver and what he came to read.
+        Button(
+            onClick = { JobStore.clear(context); cleared++ },
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+        ) {
+            Text("全部清空", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
