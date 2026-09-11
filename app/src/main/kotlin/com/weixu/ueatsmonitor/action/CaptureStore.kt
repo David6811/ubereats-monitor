@@ -2,6 +2,7 @@ package com.weixu.ueatsmonitor.action
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.weixu.ueatsmonitor.domain.CaptureKeep
 import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.OfferRecord
 import com.weixu.ueatsmonitor.domain.OfferRecordReader
@@ -45,11 +46,17 @@ class CaptureStore(context: Context) {
         val names = runCatching { index.readLines() }.getOrDefault(emptyList())
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-        val frames = names.asReversed()
-            .distinct()
+        val alive = names.distinct().filter { File(dir, "$it.txt").exists() }
+        // Names whose frames are gone are dropped here rather than only when the
+        // directory is pruned: below the prune threshold that never runs, and the
+        // index would keep names for frames deleted days ago.
+        if (alive.size != names.distinct().size) {
+            runCatching { index.writeText(alive.joinToString("\n", postfix = "\n")) }
+        }
+
+        val frames = alive.asReversed()
             .asSequence()
             .map { File(dir, "$it.txt") }
-            .filter { it.exists() }
             // Read enough frames to survive collapsing: one offer can hold the
             // screen for a minute, which is thirty frames of the same card.
             .take(limit * FRAMES_PER_OFFER)
@@ -110,8 +117,9 @@ class CaptureStore(context: Context) {
     }
 
     /**
-     * Until one real offer card has been seen, nothing on screen can be called
-     * uninteresting - so keep everything and only cap the total.
+     * A frame holding an offer is the shift's record and is kept; the rest are
+     * only worth having while something is being diagnosed, and a day of them is
+     * most of a gigabyte. Measured on one day: 61 frames of 20025 held a card.
      */
     private fun prune() {
         // Counting in memory, and only walking the directory once the count says
@@ -119,22 +127,43 @@ class CaptureStore(context: Context) {
         // writes cost more than everything else this service does.
         if (known < 0) known = dir.list()?.size ?: 0
         known += 2
-        if (known < CAPACITY * 2 + SLACK) return
+        if (known < (FRAMES + OFFERS) * 2 + SLACK) return
 
-        val texts = dir.listFiles { file -> file.name.endsWith(".txt") }
-            ?.sortedByDescending { it.name } ?: return
-        texts.drop(CAPACITY).forEach { text ->
-            text.delete()
-            File(dir, text.nameWithoutExtension + ".jpg").delete()
+        val names = dir.listFiles { file -> file.name.endsWith(".txt") }
+            ?.sortedByDescending { it.name }
+            ?.map { it.nameWithoutExtension }
+            ?: return
+        val offers = indexNames()
+        val doomed = CaptureKeep.toDelete(names, offers, FRAMES, OFFERS)
+        doomed.forEach { name ->
+            File(dir, "$name.txt").delete()
+            File(dir, "$name.jpg").delete()
+        }
+        // The index is rewritten to what is actually on disk. Subtracting only
+        // what this pass deleted would leave every name an earlier pass took -
+        // which is how it came to hold 1197 frames that had not existed for a day.
+        val left = offers.intersect(names.toSet()) - doomed
+        if (left.size != offers.size) {
+            runCatching {
+                File(dir, INDEX).writeText(left.sorted().joinToString("\n", postfix = "\n"))
+            }
         }
         known = dir.list()?.size ?: 0
     }
 
+    private fun indexNames(): Set<String> = runCatching {
+        File(dir, INDEX).readLines().map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }.getOrDefault(emptySet())
+
     private var known = -1
 
     private companion object {
-        /** About eleven hours at the two-second cadence; roughly 4 GB. */
-        const val CAPACITY = 20_000
+        /** Ordinary frames: about an hour and a half at the two-second cadence. */
+        const val FRAMES = 3_000
+
+        /** Frames holding an offer. At a minute a card, several weeks of work. */
+        const val OFFERS = 4_000
+
         const val SLACK = 400
         const val PAGE = 400
         const val INDEX = "offers.idx"
