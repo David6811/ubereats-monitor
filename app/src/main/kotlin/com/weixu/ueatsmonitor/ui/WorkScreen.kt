@@ -84,34 +84,32 @@ fun WorkScreen() {
             }
         }
 
-        if (here.isEmpty()) {
-            Text(
-                text = when (shelf) {
-                    Shelf.TAKEN -> "还认不出你接了哪一单，这一格先空着"
-                    Shelf.WORTH_TAKING -> "现在没有建议接的单"
-                    Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
-                },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(here, key = { it.atMillis }) { job ->
-                    JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
+        // The clear is the last thing in the list, not a bar pinned over it: it is
+        // done once the work is finished, and it should cost a scroll to reach.
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (here.isEmpty()) {
+                item {
+                    Text(
+                        text = when (shelf) {
+                            Shelf.TAKEN -> "还认不出你接了哪一单，这一格先空着"
+                            Shelf.WORTH_TAKING -> "现在没有建议接的单"
+                            Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                 }
             }
-        }
-
-        // Last, under the jobs: it is the thing done when the work is finished,
-        // and at the top it sat between the driver and what he came to read.
-        Button(
-            onClick = { JobStore.clear(context); cleared++ },
-            modifier = Modifier.fillMaxWidth().height(64.dp),
-        ) {
-            Text("全部清空", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            items(here, key = { it.atMillis }) { job ->
+                JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
+            }
+            item {
+                Button(
+                    onClick = { JobStore.clear(context); cleared++ },
+                    modifier = Modifier.fillMaxWidth().height(64.dp),
+                ) {
+                    Text("全部清空", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
