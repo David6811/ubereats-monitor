@@ -148,15 +148,21 @@ private fun JobCard(job: Job, stores: List<Store>, shelf: Shelf, onClear: () -> 
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onClear) { Text("清掉", fontSize = 16.sp) }
             }
+            // Navigate to what the card shows, not to what the card said. Once a
+            // screen has given us the real street address it is the better
+            // destination in both places, and sending the driver somewhere other
+            // than the line he is reading is how he ends up at the wrong door.
+            val pickup = job.address ?: job.offer.pickup
+            val dropoff = job.dropAddress ?: job.offer.dropoff
             Stop(
                 title = "取货",
                 // Once taken, the pickup screen has given us the full street
                 // address; before that all we have is what OCR read off the card.
-                place = job.address ?: job.offer.pickup,
+                place = pickup,
                 mark = if (job.address != null) "已确认" else null,
                 tint = PICKUP,
                 actions = listOfNotNull(
-                    StopAction("导航") { Navigation.driveTo(context, job.offer.pickup) },
+                    StopAction("导航") { Navigation.driveTo(context, pickup) },
                     // Street View wants a point, and only a shop we know has one.
                     shop?.let { found ->
                         StopAction("街景") {
@@ -167,13 +173,12 @@ private fun JobCard(job: Job, stores: List<Store>, shelf: Shelf, onClear: () -> 
             )
             Stop(
                 title = "送到",
-                place = listOfNotNull(job.dropAddress ?: job.offer.dropoff, job.dropUnit)
-                    .joinToString("  "),
+                place = listOfNotNull(dropoff, job.dropUnit).joinToString("  "),
                 tint = DROPOFF,
                 mark = if (job.dropAddress != null) "已确认" else null,
                 actions = listOf(
-                    StopAction("导航") { Navigation.driveTo(context, job.offer.dropoff) },
-                    StopAction("看地图") { Navigation.showOnMap(context, job.offer.dropoff) },
+                    StopAction("导航") { Navigation.driveTo(context, dropoff) },
+                    StopAction("看地图") { Navigation.showOnMap(context, dropoff) },
                 ),
             )
             job.dropNote?.let { Note("客户留言", it, job.dropNoteCn) }
