@@ -170,6 +170,12 @@ private fun MonitorScreen(store: SettingsStore) {
                             checked = current.farEnabled,
                         ) { scope.launch { store.setFarEnabled(it) } }
                     }
+                    // Two reasons pointing the same way: a lane is the back of a
+                    // shopping strip, so the door is a flat above a shop, and
+                    // stopping on a highway to find a door costs more than the fare.
+                    ToggleRow("送到 Lane / Highway 的不接", current.refuseLanesEnabled) {
+                        scope.launch { store.setRefuseLanesEnabled(it) }
+                    }
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }

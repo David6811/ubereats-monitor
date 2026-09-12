@@ -41,6 +41,9 @@ object RulesStore {
     @Volatile
     private var readWithFar: Boolean = true
 
+    @Volatile
+    private var readWithLanes: Boolean = true
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -50,8 +53,10 @@ object RulesStore {
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
         val farNow = LiveSettings.current?.farEnabled != false
+        val lanesNow = LiveSettings.current?.refuseLanesEnabled != false
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
-            excludedNow == readWithExcluded && farNow == readWithFar
+            excludedNow == readWithExcluded && farNow == readWithFar &&
+            lanesNow == readWithLanes
         ) {
             return known
         }
@@ -69,6 +74,7 @@ object RulesStore {
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
                 farSuburbs = far,
+                refuseLanes = lanesNow,
             )
         }
         cached = parsed
@@ -76,6 +82,7 @@ object RulesStore {
         readForProfile = profile
         readWithExcluded = excluded
         readWithFar = farNow
+        readWithLanes = lanesNow
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
@@ -86,8 +93,15 @@ object RulesStore {
         return parsed
     }
 
-    private fun empty(): Rules =
-        Rules(emptySet(), emptySet(), Cents.ofDollars(DEFAULT_FAR_DOLLARS), emptyList(), emptyList())
+    private fun empty(): Rules = Rules(
+        allowedSuburbs = emptySet(),
+        farSuburbs = emptySet(),
+        farOverCents = Cents.ofDollars(DEFAULT_FAR_DOLLARS),
+        deniedStores = emptyList(),
+        alwaysOkStores = emptyList(),
+        deniedAddresses = emptyList(),
+        refuseLanes = true,
+    )
 
     private fun parse(file: File): Rules {
         if (!file.exists()) return empty()
@@ -107,6 +121,11 @@ object RulesStore {
             val alwaysOk = stores?.get("alwaysOk")?.jsonArray
                 ?.map { it.jsonPrimitive.content }
                 .orEmpty()
+            // Fragments of a destination typed by hand on the laptop.
+            val deniedAddresses = root["addresses"]?.jsonObject?.get("deny")?.jsonArray
+                ?.map { it.jsonPrimitive.content }
+                ?.filter { it.isNotBlank() }
+                .orEmpty()
             // The set a big payout unlocks, and the payout that unlocks it. Absent
             // means the driver never drew one and the rule simply does not fire.
             val far = root["far"]?.jsonObject
@@ -117,7 +136,15 @@ object RulesStore {
             val overDollars = far?.get("overDollars")?.jsonPrimitive?.content?.toDoubleOrNull()
                 ?: DEFAULT_FAR_DOLLARS
 
-            Rules(allow, farSuburbs, Cents.ofDollars(overDollars), deny, alwaysOk)
+            Rules(
+                allowedSuburbs = allow,
+                farSuburbs = farSuburbs,
+                farOverCents = Cents.ofDollars(overDollars),
+                deniedStores = deny,
+                alwaysOkStores = alwaysOk,
+                deniedAddresses = deniedAddresses,
+                refuseLanes = true,
+            )
         }.getOrElse { empty() }
     }
 }

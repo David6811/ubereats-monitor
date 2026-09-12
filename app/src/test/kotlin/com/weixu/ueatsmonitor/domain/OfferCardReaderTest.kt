@@ -404,6 +404,8 @@ class OfferCardReaderTest {
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
+            deniedAddresses = emptyList(),
+            refuseLanes = true,
         )
         val gazetteer = listOf(
             Suburb("Clayton South", GeoPoint(-37.9415, 145.1245)),

@@ -21,6 +21,19 @@ data class Rules(
      * strip is still a McDonald's with a car park.
      */
     val alwaysOkStores: List<String>,
+    /**
+     * Fragments of a destination the driver will not go to, typed by hand on the
+     * laptop: a street, a corner, a block of flats he knows by name. Matched the
+     * way the store list is, by containment, because the card writes an address
+     * a dozen ways.
+     */
+    val deniedAddresses: List<String>,
+    /**
+     * Whether a lane or a highway destination is refused. Set on the phone, and
+     * carried here rather than read at the point of judging so that the judge
+     * stays a calculation over its arguments.
+     */
+    val refuseLanes: Boolean,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -40,6 +53,10 @@ sealed interface Ruling {
     sealed interface Reason {
         data class SuburbNotAllowed(val suburb: String) : Reason
         data class StoreDenied(val store: String) : Reason
+        data class AddressDenied(val fragment: String) : Reason
+
+        /** [road] is the word on the card - "Lane", "Ln", "Highway", "Hwy". */
+        data class RoadRefused(val road: String) : Reason
     }
 }
 
@@ -62,6 +79,18 @@ object RuleJudge {
             name.isNotBlank() && card.pickup.contains(name, ignoreCase = true)
         }
         if (denied != null) return Ruling.Leave(Ruling.Reason.StoreDenied(denied))
+
+        // What he typed himself comes before what any rule worked out, and
+        // before the suburb: these are named because the suburb would allow them.
+        val address = rules.deniedAddresses.firstOrNull { fragment ->
+            fragment.isNotBlank() && card.dropoff.contains(fragment, ignoreCase = true)
+        }
+        if (address != null) return Ruling.Leave(Ruling.Reason.AddressDenied(address))
+
+        // Before the suburb, because a lane inside a suburb he works is exactly
+        // the case this is for: the suburb would let it through.
+        val road = if (rules.refuseLanes) RoadType.refusedIn(card.dropoff) else null
+        if (road != null) return Ruling.Leave(Ruling.Reason.RoadRefused(road))
 
         // Over the threshold the far set applies instead. Not as well as: the
         // whole point is that a big payout reaches somewhere the ordinary set
@@ -102,6 +131,8 @@ object RulingText {
         is Ruling.Leave -> when (val why = ruling.reason) {
             is Ruling.Reason.SuburbNotAllowed -> why.suburb + " 不在名单里"
             is Ruling.Reason.StoreDenied -> why.store + " 在黑名单里"
+            is Ruling.Reason.RoadRefused -> why.road + " 这种路不接"
+            is Ruling.Reason.AddressDenied -> why.fragment + " 在不接的住址里"
         }
         Ruling.NoRules -> "在电脑上设好规则再推过来"
         Ruling.Unknown -> "送达地址里没有认得出的郊区"

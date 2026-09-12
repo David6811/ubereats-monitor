@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList()), GAZETTEER)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), refuseLanes = true), GAZETTEER)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -192,6 +192,52 @@ class RuleJudgeTest {
         assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
     }
 
+    @Test
+    fun `given a lane in a suburb he works, when judged, then the road refuses it before the suburb allows it`() {
+        // arrange
+        val card = card(pickup = "Anything", dropoff = "Chandler Road & Bakers Lane, Noble Park")
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+
+        // affirm  the suburb itself is one he works, so only the road can refuse it
+        assertEquals(true, RULES.allowedSuburbs.contains("Noble Park"))
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.RoadRefused("Lane")), ruling)
+    }
+
+    @Test
+    fun `given the road rule switched off, when a lane is judged, then the suburb decides as before`() {
+        // arrange
+        val card = card(pickup = "Anything", dropoff = "Chandler Road & Bakers Lane, Noble Park")
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(refuseLanes = false), GAZETTEER)
+
+        // assert
+        assertEquals(Ruling.Take("Noble Park"), ruling)
+    }
+
+    @Test
+    fun `given a destination he typed into the not-going list, when judged, then it is refused by name`() {
+        // arrange
+        val card = card(pickup = "Anything", dropoff = "Cnr Springvale and Cheltenham Rds, Keysborough")
+        val rules = RULES.copy(deniedAddresses = listOf("Cnr Springvale and Cheltenham Rds"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+
+        // affirm  the suburb would have let it through
+        assertEquals(true, rules.allowedSuburbs.contains("Keysborough"))
+
+        // assert
+        assertEquals(
+            Ruling.Leave(Ruling.Reason.AddressDenied("Cnr Springvale and Cheltenham Rds")),
+            ruling,
+        )
+    }
+
     private companion object {
         val RULES = Rules(
             allowedSuburbs = setOf("Noble Park", "Keysborough", "Dandenong"),
@@ -199,6 +245,8 @@ class RuleJudgeTest {
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
+            deniedAddresses = emptyList(),
+            refuseLanes = true,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),
