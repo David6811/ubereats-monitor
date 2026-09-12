@@ -112,6 +112,11 @@ class UberScreenService : AccessibilityService() {
             runCatching { setCacheEnabled(false) }
         }
         CaptureKeeperService.start(this)
+        // A megabyte of road table takes a second to read, and reading it when
+        // the first card appears puts that second in front of the first verdict
+        // of the shift. Read it now instead, on the same thread the judging uses,
+        // where nothing is waiting on it.
+        work.post { RoadTable.warm(this) }
         work.removeCallbacks(poll)
         work.post(poll)
         runCatching {
@@ -358,12 +363,18 @@ class UberScreenService : AccessibilityService() {
     private fun fromCentre(card: OfferCard, gazetteer: List<Suburb>): String? {
         val centre = Profiles.centre(this) ?: return null
         val suburb = SuburbIndex.findAll(card.dropoff, gazetteer).firstOrNull() ?: return null
+        val began = System.currentTimeMillis()
         val spot = RoadIndex.find(
             dropoff = card.dropoff,
             suburb = suburb,
             crossings = RoadTable.crossings(this),
             roads = RoadTable.roads(this),
         )
+        // This sits in front of the verdict, so what it costs is what the driver
+        // waits. Logged every time rather than measured once: the cost depends on
+        // the card, and a card that names two long roads is the slow one.
+        Log.i(TAG, "roads: placed in " + (System.currentTimeMillis() - began) + " ms, " +
+            spot::class.simpleName)
         return ChipText.fromCentre(spot, centre)
     }
 

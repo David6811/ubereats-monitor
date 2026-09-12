@@ -24,6 +24,15 @@ object RoadTable {
     @Volatile
     private var loadedRoads: List<Road>? = null
 
+    /**
+     * Reads both tables now, so the first card of a shift does not wait for them.
+     * Safe to call more than once: each is read once and held.
+     */
+    fun warm(context: Context) {
+        crossings(context)
+        roads(context)
+    }
+
     fun crossings(context: Context): List<Crossing> = loadedCrossings ?: synchronized(this) {
         loadedCrossings ?: readCrossings(context).also { loadedCrossings = it }
     }
