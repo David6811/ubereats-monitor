@@ -404,7 +404,6 @@ class OfferCardReaderTest {
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
-            deniedAddresses = emptyList(),
             refuseLanes = true,
         )
         val gazetteer = listOf(

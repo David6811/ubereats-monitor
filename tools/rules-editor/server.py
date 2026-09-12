@@ -117,7 +117,6 @@ def load_rules():
         # expansion is by name and names are not unique, so one of them can be
         # worth more elsewhere than it costs here.
         "stores": {"deny": [], "cbdDeny": [], "cbdKeep": [], "alwaysOk": ALWAYS_OK},
-        "addresses": {"deny": []},
     }
 
 

@@ -99,7 +99,6 @@ object RulesStore {
         farOverCents = Cents.ofDollars(DEFAULT_FAR_DOLLARS),
         deniedStores = emptyList(),
         alwaysOkStores = emptyList(),
-        deniedAddresses = emptyList(),
         refuseLanes = true,
     )
 
@@ -121,11 +120,6 @@ object RulesStore {
             val alwaysOk = stores?.get("alwaysOk")?.jsonArray
                 ?.map { it.jsonPrimitive.content }
                 .orEmpty()
-            // Fragments of a destination typed by hand on the laptop.
-            val deniedAddresses = root["addresses"]?.jsonObject?.get("deny")?.jsonArray
-                ?.map { it.jsonPrimitive.content }
-                ?.filter { it.isNotBlank() }
-                .orEmpty()
             // The set a big payout unlocks, and the payout that unlocks it. Absent
             // means the driver never drew one and the rule simply does not fire.
             val far = root["far"]?.jsonObject
@@ -142,7 +136,6 @@ object RulesStore {
                 farOverCents = Cents.ofDollars(overDollars),
                 deniedStores = deny,
                 alwaysOkStores = alwaysOk,
-                deniedAddresses = deniedAddresses,
                 refuseLanes = true,
             )
         }.getOrElse { empty() }

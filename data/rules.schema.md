@@ -12,9 +12,6 @@ The whole decision, in one file. Edited on the Mac, pushed to the phone with
   },
   "stores": {
     "deny": ["Westfield Southland", "Chadstone"]
-  },
-  "addresses": {
-    "deny": ["Cnr Springvale and Cheltenham Rds"]
   }
 }
 ```
@@ -27,7 +24,7 @@ shows.
 | Rule | Says no when |
 |---|---|
 | `stores.deny` | the pickup contains any denied name |
-| `addresses.deny` | the dropoff contains any denied fragment |
+| `roads` | the dropoff names a lane or a highway, and the switch is on |
 | `suburbs.deny` | the dropoff's suburb is listed |
 | `suburbs.allow` | the dropoff's suburb is not listed (when the list is non-empty) |
 
