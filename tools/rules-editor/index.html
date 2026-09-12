@@ -118,6 +118,19 @@ textarea{
   background:var(--panel); color:var(--ink); box-shadow:var(--shadow);
 }
 #result::backdrop{background:rgba(11,14,17,.42)}
+
+/* Opened with the map still in view and still live, so no backdrop and parked in
+   a corner: watching the circle grow as the slider moves is the whole point.
+   Above Leaflet, whose own panes and controls sit between 400 and 800. */
+#circle, #centre{
+  position:fixed; inset:auto auto 20px 20px; margin:0; z-index:10000;
+  border:1px solid var(--line); border-radius:14px; padding:14px 16px; width:330px;
+  background:var(--panel); color:var(--ink); box-shadow:var(--shadow);
+  flex-direction:column; gap:10px;
+}
+#circle[open], #centre[open]{display:flex}
+#circle h2, #centre h2{margin:0;font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif;font-size:21px}
+#circle .hint, #centre .hint{margin:0}
 .resultTop{display:flex;gap:14px;align-items:flex-start;padding:22px 24px 6px}
 .resultMark{
   flex:none;width:38px;height:38px;border-radius:50%;
@@ -232,18 +245,7 @@ body.mapfull h2{font-size:17px}
       <span><i style="background:transparent;border:1px solid var(--ink-3)"></i>不去（只剩轮廓）</span>
     </div>
 
-    <div class="row" id="circleRow" hidden style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
-      <label class="field"><span class="eyebrow">1 · 圆心</span>
-        <select id="placePick"></select></label>
-      <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
-        <input type="search" id="customAddress" placeholder="街名 + 郊区，回车定位"></label>
-      <label class="field" style="flex:1;min-width:220px">
-        <span class="eyebrow">2 · 半径 <b class="mono" id="kmLabel">15</b> 公里</span>
-        <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
-      </label>
-      <button class="btn plain" id="usePhone">用手机当前位置</button>
-      <button class="btn plain" id="allInCircle">3 · 把圈内的区全选上</button>
-    </div>
+    <input type="hidden" id="pickLat"><input type="hidden" id="pickLon"><input type="hidden" id="pickLabel">
     <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
   </section>
 
@@ -258,9 +260,12 @@ body.mapfull h2{font-size:17px}
 
   <section>
     <h2>不接的店<span class="count" id="storeCount"></span></h2>
-    <p class="hint">取餐点名字里含有这些字就不接。整个商场可以一次拉黑。</p>
+    <p class="hint">
+      取餐点名字里含有这些字就不接。整个商场可以一次拉黑。<b>店库里没有的，直接照派单卡上写的打进去</b> ——
+      只打最有辨识度的那一段，别抄整行：卡片是认出来的，前面常多个「9」「p」这样的字。
+    </p>
     <div class="row">
-      <input type="search" id="storeSearch" placeholder="搜店名或商场…" style="flex:1">
+      <input type="search" id="storeSearch" placeholder="搜店名或商场，或直接打卡片上的店名…" style="flex:1">
       <button class="btn plain" id="denyShown">把搜到的全部拉黑</button>
     </div>
     <div class="list" id="storeList"></div>
@@ -278,6 +283,37 @@ body.mapfull h2{font-size:17px}
 
 
 </main>
+
+<dialog id="circle">
+  <h2>量范围</h2>
+  <label class="field"><span class="eyebrow">圆心 —— 也可以直接在地图上点</span>
+    <select id="placePick"></select></label>
+  <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
+    <input type="search" id="customAddress" placeholder="街名 + 郊区，回车定位"></label>
+  <label class="field">
+    <span class="eyebrow">半径 <b class="mono" id="kmLabel">15</b> 公里</span>
+    <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
+  </label>
+  <div class="row">
+    <button class="btn plain" id="usePhone">手机位置</button>
+    <button class="btn" id="circleClose">收起</button>
+  </div>
+</dialog>
+
+<dialog id="centre">
+  <h2>设中心</h2>
+  <p class="hint" id="centreNow"></p>
+  <span class="eyebrow">选一个位置 —— 或直接在地图上点</span>
+  <div class="row" id="centrePicks"></div>
+  <label class="field"><span class="eyebrow">或者输入地址</span>
+    <input type="search" id="centreAddress" placeholder="街名 + 郊区，回车定位"></label>
+  <p class="hint" id="centrePicked"></p>
+  <div class="row">
+    <button class="btn plain" id="setCentre">设为中心</button>
+    <button class="btn plain" id="centreClear">清掉</button>
+    <button class="btn" id="centreClose">收起</button>
+  </div>
+</dialog>
 
 <dialog id="jobs">
   <div class="resultTop">
@@ -313,6 +349,12 @@ body.mapfull h2{font-size:17px}
 <script>
 (function(){
   "use strict";
+
+  // TEMP: anything the page throws goes to the terminal running the server.
+  window.onerror = function(msg, src, line, col){
+    fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msg: String(msg), line: line, col: col }) });
+  };
   var state = { rules:null, suburbs:[], stores:[], phone:null };
   var $ = function(id){ return document.getElementById(id); };
 
@@ -354,6 +396,17 @@ body.mapfull h2{font-size:17px}
     // than against a feeling about how far five kilometres looks.
     L.control.scale({ metric: true, imperial: false, maxWidth: 180 }).addTo(map);
 
+    // Only while a panel is open. The rest of the time a click on the map is a
+    // click on a suburb, and stealing it would make ticking one a gamble.
+    map.on("click", function(event){
+      if (centreOn) return pickCentre(event.latlng.lat, event.latlng.lng, "");
+      if (!circleOn) return;
+      $("anchorLat").value = event.latlng.lat;
+      $("anchorLon").value = event.latlng.lng;
+      $("anchorLabel").value = "";
+      drawAnchor();
+    });
+
     fetch("suburbs.geojson").then(function(r){ return r.json(); }).then(function(gj){
       L.geoJSON(gj, {
         style: styleFor,
@@ -374,6 +427,7 @@ body.mapfull h2{font-size:17px}
         },
       }).addTo(map);
       drawAnchor();
+      drawCentre();
       counts();
       fitToChosen();
     });
@@ -431,6 +485,43 @@ body.mapfull h2{font-size:17px}
   /** Off unless the circle tool is open: it is scaffolding, not part of the rule. */
   var circleOn = false;
 
+  /** Off unless the centre panel is open, which is when a map click picks one. */
+  var centreOn = false;
+
+  /**
+   * Where a set is worked from, picked by hand.
+   *
+   * Not computed from its suburbs: the middle of a set is a point in a field as
+   * often as not, and what matters is where the driver actually waits between
+   * offers. Stored on the set, so switching sets moves it.
+   */
+  function centreOf(name){
+    var p = profiles().filter(function(x){ return x.name === name; })[0];
+    return p && p.centre ? p.centre : null;
+  }
+
+  var centreMark = null, pickMark = null;
+
+  function drawCentre(){
+    if (centreMark) { map.removeLayer(centreMark); centreMark = null; }
+    var c = centreOf(state.rules.active);
+    if (!c) return;
+    centreMark = L.circleMarker([c.lat, c.lon], {
+      radius: 8, color: "#fff", weight: 3, fillColor: "#B8860B", fillOpacity: 1,
+    }).addTo(map).bindTooltip("「" + state.rules.active + "」的中心" +
+                              (c.label ? "：" + c.label : ""));
+  }
+
+  /** The point the centre panel is holding, before it is committed to the set. */
+  function drawPick(){
+    if (pickMark) { map.removeLayer(pickMark); pickMark = null; }
+    var lat = parseFloat($("pickLat").value), lon = parseFloat($("pickLon").value);
+    if (!centreOn || isNaN(lat) || isNaN(lon)) return;
+    pickMark = L.circleMarker([lat, lon], {
+      radius: 8, color: "#B8860B", weight: 2, fillColor: "#B8860B", fillOpacity: 0.35,
+    }).addTo(map).bindTooltip("按「设为中心」就定在这里");
+  }
+
   function drawAnchor(){
     var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
     var km = parseFloat($("anchorKm").value) || 15;
@@ -486,6 +577,8 @@ body.mapfull h2{font-size:17px}
       if (here) state.rules.suburbs.allow = here.suburbs.slice();
     }
     repaint();
+    drawCentre();
+    sayCentre();
     drawProfiles();
   }
 
@@ -526,7 +619,8 @@ body.mapfull h2{font-size:17px}
       ["fit", "回到选中的区"],
       ["clearAll", "全部取消"],
       ["full", "全屏"],
-      ["circleTool", "用圈选区"],
+      ["circleTool", "量范围"],
+      ["centreTool", "设中心"],
     ].forEach(function(pair){
       var button = document.createElement("button");
       button.className = "btn plain";
@@ -562,7 +656,9 @@ body.mapfull h2{font-size:17px}
         profile.name = name;
         drawProfiles();
       });
-      chip.title = profile.suburbs.length + " 个区 · 双击改名";
+      chip.title = profile.suburbs.length + " 个区 · " +
+        (profile.centre ? "中心：" + (profile.centre.label || "已设") : "没设中心") +
+        " · 双击改名";
       if (profiles().length > 1) {
         var kill = document.createElement("span");
         kill.className = "x";
@@ -617,6 +713,8 @@ body.mapfull h2{font-size:17px}
     state.rules.active = name;
     state.rules.suburbs.allow = next.suburbs.slice();
     repaint();
+    drawCentre();
+    sayCentre();
     drawProfiles();
     fitToChosen();
     say("已切到「" + name + "」，" + next.suburbs.length + " 个区", "ok");
@@ -780,6 +878,7 @@ body.mapfull h2{font-size:17px}
     own.textContent = "自己输入地址…";
     pick.appendChild(own);
     usePlace(0);
+    drawCentrePlaces();
   }
 
   function usePlace(index){
@@ -791,6 +890,113 @@ body.mapfull h2{font-size:17px}
     drawAnchor();
     if (map) map.setView([place.lat, place.lon], 12);
   }
+
+  /**
+   * Buttons rather than a dropdown. A select only speaks when its value changes
+   * and the browser decides when that is; a button says so on the click, which
+   * is the one thing that has to be certain here - a centre that quietly did not
+   * move is worse than no centre at all. And it is one press instead of two.
+   */
+  function showCircle(on){
+    if (on) showCentre(false);
+    circleOn = on;
+    $("circleTool").classList.toggle("armed", on);
+    $("circleTool").textContent = on ? "收起" : "量范围";
+    if (on) $("circle").show(); else $("circle").close();
+    drawAnchor();
+    if (on) {
+      var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
+      if (!isNaN(lat) && !isNaN(lon)) map.setView([lat, lon], 12);
+    }
+  }
+
+  function showCentre(on){
+    if (on) showCircle(false);
+    centreOn = on;
+    $("centreTool").classList.toggle("armed", on);
+    $("centreTool").textContent = on ? "收起" : "设中心";
+    if (on) {
+      $("pickLat").value = ""; $("pickLon").value = ""; $("pickLabel").value = "";
+      $("centrePicked").textContent = "还没选位置。";
+      sayCentre();
+      $("centre").show();
+    } else $("centre").close();
+    drawPick();
+  }
+
+  function sayCentre(){
+    var c = centreOf(state.rules.active);
+    $("centreNow").textContent = "「" + state.rules.active + "」的中心：" +
+      (c ? (c.label || (c.lat.toFixed(4) + ", " + c.lon.toFixed(4))) : "还没设");
+  }
+
+  function pickCentre(lat, lon, label){
+    $("pickLat").value = lat;
+    $("pickLon").value = lon;
+    $("pickLabel").value = label || "";
+    drawPick();
+    $("centrePicked").textContent = "选中了：" +
+      (label || (Number(lat).toFixed(4) + ", " + Number(lon).toFixed(4))) +
+      " —— 按下面的「设为中心」定下来";
+    if (map) map.setView([lat, lon], 12);
+  }
+
+  $("setCentre").addEventListener("click", function(){
+    var lat = parseFloat($("pickLat").value), lon = parseFloat($("pickLon").value);
+    if (isNaN(lat) || isNaN(lon)) return say("先选一个位置", "bad");
+    var p = profiles().filter(function(x){ return x.name === state.rules.active; })[0];
+    if (!p) return;
+    p.centre = { lat: lat, lon: lon, label: $("pickLabel").value || "" };
+    drawCentre(); sayCentre(); drawProfiles();
+    say("「" + state.rules.active + "」的中心设好了", "ok");
+  });
+
+  $("centreClear").addEventListener("click", function(){
+    var p = profiles().filter(function(x){ return x.name === state.rules.active; })[0];
+    if (!p || !p.centre) return;
+    delete p.centre;
+    drawCentre(); sayCentre(); drawProfiles();
+    say("中心清掉了", "ok");
+  });
+
+  function drawCentrePlaces(){
+    var row = $("centrePicks");
+    row.textContent = "";
+    (state.places || []).forEach(function(place){
+      var b = document.createElement("button");
+      b.className = "btn plain";
+      b.textContent = place.label.split(",")[0];
+      b.title = place.label;
+      b.addEventListener("click", function(){ pickCentre(place.lat, place.lon, place.label); });
+      row.appendChild(b);
+    });
+    var phone = document.createElement("button");
+    phone.className = "btn plain";
+    phone.id = "centrePhone";
+    phone.textContent = "手机位置";
+    phone.addEventListener("click", function(){
+      say("正在问手机…");
+      fetch("/api/phone-location").then(function(r){ return r.json(); }).then(function(data){
+        if (!data.location) return say("手机没给出位置 —— 插着线、亮着屏再试一次", "bad");
+        pickCentre(data.location.lat, data.location.lon, "手机当时的位置");
+      });
+    });
+    row.appendChild(phone);
+  }
+
+  $("centreAddress").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var query = this.value.trim();
+    if (!query) return;
+    say("正在定位…");
+    fetch("/api/geocode?q=" + encodeURIComponent(query))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (!data.hit) return say("查不到这个地址，换个写法试试", "bad");
+        pickCentre(data.hit.lat, data.hit.lon, query);
+        say("定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim(), "ok");
+      });
+  });
 
   $("placePick").addEventListener("change", function(){
     var own = this.value === "own";
@@ -829,17 +1035,12 @@ body.mapfull h2{font-size:17px}
   function bindMapTools(){
   $("fit").addEventListener("click", fitToChosen);
 
-  $("circleTool").addEventListener("click", function(){
-    circleOn = !circleOn;
-    this.classList.toggle("armed", circleOn);
-    this.textContent = circleOn ? "收起圈" : "用圈选区";
-    $("circleRow").hidden = !circleOn;
-    drawAnchor();
-    if (circleOn) {
-      var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
-      if (!isNaN(lat) && !isNaN(lon)) map.setView([lat, lon], 12);
-    }
-  });
+  // One at a time: they sit in the same corner and both want the map's click.
+  $("circleTool").addEventListener("click", function(){ showCircle(!circleOn); });
+  $("circleClose").addEventListener("click", function(){ showCircle(false); });
+  $("centreTool").addEventListener("click", function(){ showCentre(!centreOn); });
+  $("centreClose").addEventListener("click", function(){ showCentre(false); });
+
 
   $("full").addEventListener("click", function(){
     var on = document.body.classList.toggle("mapfull");
@@ -855,28 +1056,6 @@ body.mapfull h2{font-size:17px}
     state.rules.suburbs.allow = [];
     repaint();
   });
-  }
-
-  $("allInCircle").addEventListener("click", function(){
-    var lat = parseFloat($("anchorLat").value), lon = parseFloat($("anchorLon").value);
-    var km = parseFloat($("anchorKm").value);
-    if (isNaN(lat) || isNaN(lon)) return say("先点一个圆心", "bad");
-    var added = 0;
-    state.suburbs.forEach(function(s){
-      if (haversine(lat, lon, s.lat, s.lon) <= km && !allowed(s.name) && shapes[s.name]) {
-        state.rules.suburbs.allow.push(s.name); added++;
-      }
-    });
-    repaint();
-    say("圈内新增 " + added + " 个区", "ok");
-  });
-
-  function haversine(la1, lo1, la2, lo2){
-    var R = 6371, r = Math.PI / 180;
-    var dLa = (la2-la1)*r, dLo = (lo2-lo1)*r;
-    var a = Math.sin(dLa/2)*Math.sin(dLa/2) +
-            Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)*Math.sin(dLo/2);
-    return 2*R*Math.asin(Math.sqrt(a));
   }
 
   /* ---- stores ---- */
@@ -895,11 +1074,38 @@ body.mapfull h2{font-size:17px}
   function drawStores(){
     var list = $("storeList");
     list.textContent = "";
+    var typed = $("storeSearch").value.trim();
     var rows = matchedStores();
+
+    // The shop table is built from OpenStreetMap and misses plenty - the bakery
+    // he was refused from all morning is not in it. And the only name that
+    // matters is the one the card writes, which he cannot know until he has been
+    // sent there once. So whatever he types is offered as itself, found or not.
+    if (typed) {
+      var own = document.createElement("div");
+      var what = document.createElement("span");
+      what.className = "name";
+      what.textContent = "「" + typed + "」";
+      var note = document.createElement("span");
+      note.className = "meta";
+      note.textContent = rows.length ? "照你打的字拉黑" : "店库里没有，照你打的字拉黑";
+      var go = document.createElement("button");
+      go.className = "btn plain";
+      go.textContent = "拉黑";
+      go.addEventListener("click", function(){
+        deny(typed);
+        $("storeSearch").value = "";
+        drawStores();
+      });
+      own.append(what, note, go);
+      list.appendChild(own);
+    }
+
     if (!rows.length) {
+      if (typed) return;
       var empty = document.createElement("div");
       empty.className = "meta";
-      empty.textContent = $("storeSearch").value.trim() ? "没找到。" : "搜一个店名或商场名。";
+      empty.textContent = "搜一个店名，或直接打派单卡上写的名字。";
       list.appendChild(empty);
       return;
     }
@@ -924,6 +1130,14 @@ body.mapfull h2{font-size:17px}
     });
   }
   $("storeSearch").addEventListener("input", drawStores);
+  $("storeSearch").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var typed = this.value.trim();
+    if (!typed) return;
+    deny(typed);
+    this.value = "";
+    drawStores();
+  });
 
   $("addAlwaysOk").addEventListener("keydown", function(e){
     if (e.key !== "Enter") return;

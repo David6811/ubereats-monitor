@@ -14,3 +14,4 @@ data/backup-*/
 tools/stores/cache/
 data/places.json
 __pycache__/
+tools/roads/cache/

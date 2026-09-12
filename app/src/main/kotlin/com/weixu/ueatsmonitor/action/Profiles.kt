@@ -3,6 +3,7 @@ package com.weixu.ueatsmonitor.action
 import android.content.Context
 import android.util.Log
 import com.weixu.ueatsmonitor.domain.ActiveSet
+import com.weixu.ueatsmonitor.domain.GeoPoint
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -78,6 +79,23 @@ object Profiles {
         if (suburbs == 0) return null
         val over = far["overDollars"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 30.0
         return Far(over.toInt(), suburbs)
+    }
+
+    /**
+     * Where the set in force is worked from, as marked on the laptop's map.
+     *
+     * Null until the driver marks one. It is his answer, not a computed middle:
+     * the centre of a set's suburbs is a point in a field as often as not.
+     */
+    fun centre(context: Context): GeoPoint? {
+        val name = chosen(context) ?: return null
+        val here = root(context)?.get("profiles")?.jsonArray.orEmpty().firstOrNull { entry ->
+            entry.jsonObject["name"]?.jsonPrimitive?.content == name
+        } ?: return null
+        val centre = here.jsonObject["centre"]?.jsonObject ?: return null
+        val lat = centre["lat"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        val lon = centre["lon"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        return GeoPoint(lat, lon)
     }
 
     /** The suburbs of the set in force, or null when there are no sets at all. */

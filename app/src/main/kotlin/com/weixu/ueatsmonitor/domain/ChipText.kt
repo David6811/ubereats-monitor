@@ -38,6 +38,28 @@ object ChipText {
      * suburb sits in brackets behind, and an address carries on past its first
      * comma - none of that survives.
      */
+    /**
+     * How far the drop is from where this set is worked from, and which way.
+     *
+     * The word in front says how well the place is known, because the three
+     * answers are not the same answer: a junction is a corner, a road is a
+     * street, a suburb is a guess. Saying "6.2 km" for all three would be a lie
+     * for two of them.
+     */
+    fun fromCentre(spot: Spot, centre: GeoPoint?): String? {
+        if (centre == null) return null
+        val heading = Geo.headingTo(centre, spot.at)
+        val km = heading.straightLine.value * MILES_TO_KM
+        return when (spot) {
+            is Spot.AtCrossing -> "离中心 %.1f 公里 %s".format(km, heading.compass.label)
+            is Spot.NearCrossing -> "离中心 约 %.1f 公里 %s".format(km, heading.compass.label)
+            is Spot.OnRoad -> "离中心 约 %.1f 公里 %s".format(km, heading.compass.label)
+            is Spot.InSuburb -> "离中心 大概 %.0f 公里 %s（只认出区）".format(km, heading.compass.label)
+        }
+    }
+
+    private const val MILES_TO_KM = 1.609344
+
     fun shorten(place: String): String {
         val trimmed = place
             .replace(Regex("""^\S{1,2}\s+"""), "")

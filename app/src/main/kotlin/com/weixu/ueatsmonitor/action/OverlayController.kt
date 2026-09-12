@@ -36,7 +36,12 @@ class OverlayController(private val context: Context) {
     /** Data. What the chip is saying right now. */
     sealed interface State {
         data object Thinking : State
-        data class Decided(val ruling: Ruling, val card: OfferCard) : State
+        data class Decided(
+            val ruling: Ruling,
+            val card: OfferCard,
+            /** How far the drop is from this set's centre, when one is marked. */
+            val fromCentre: String?,
+        ) : State
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -92,7 +97,8 @@ class OverlayController(private val context: Context) {
 
     private fun keyOf(state: State): String = when (state) {
         State.Thinking -> THINKING
-        is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) + RulingText.reason(state.ruling)
+        is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) +
+            RulingText.reason(state.ruling) + (state.fromCentre ?: "")
     }
 
     private fun layoutParams(state: State): WindowManager.LayoutParams {
@@ -213,6 +219,7 @@ class OverlayController(private val context: Context) {
             if (face.distance != null || face.rate != null) {
                 addView(shoulders(face.distance ?: "", 17f, face.rate, 17f, face.ink))
             }
+            face.fromCentre?.let { addView(line(it, 16f, face.ink)) }
         }
     }
 
@@ -244,6 +251,7 @@ class OverlayController(private val context: Context) {
         val route: ChipText.Route?,
         val distance: String?,
         val rate: String?,
+        val fromCentre: String?,
     ) {
         val fill: Int get() = FILL
         val edge: Int get() = EDGE
@@ -259,6 +267,7 @@ class OverlayController(private val context: Context) {
             route = ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
             distance = ChipText.distance(state.card),
             rate = ChipText.rate(state.card),
+            fromCentre = fromCentre,
         )
     }
 

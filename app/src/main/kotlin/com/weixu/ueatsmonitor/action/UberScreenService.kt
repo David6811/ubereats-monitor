@@ -26,6 +26,9 @@ import com.weixu.ueatsmonitor.domain.Ruling
 import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
 import com.weixu.ueatsmonitor.domain.Suburb
+import com.weixu.ueatsmonitor.domain.ChipText
+import com.weixu.ueatsmonitor.domain.OfferCard
+import com.weixu.ueatsmonitor.domain.RoadIndex
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import java.util.concurrent.Executors
 
@@ -345,6 +348,25 @@ class UberScreenService : AccessibilityService() {
         runCatching { screen?.recycle() }
     }
 
+    /**
+     * How far the drop is from where the live set is worked from.
+     *
+     * Only as good as the card's own words allow, and [ChipText.fromCentre] says
+     * which of the three that was. Nothing here decides anything - it is a number
+     * for the driver to read while the timer runs.
+     */
+    private fun fromCentre(card: OfferCard, gazetteer: List<Suburb>): String? {
+        val centre = Profiles.centre(this) ?: return null
+        val suburb = SuburbIndex.findAll(card.dropoff, gazetteer).firstOrNull() ?: return null
+        val spot = RoadIndex.find(
+            dropoff = card.dropoff,
+            suburb = suburb,
+            crossings = RoadTable.crossings(this),
+            roads = RoadTable.roads(this),
+        )
+        return ChipText.fromCentre(spot, centre)
+    }
+
     private fun decide(lines: List<String>, text: String, now: Long): String {
         // The card is read by layout, which is far stronger evidence than the
         // money-and-distance heuristic. The heuristic stays as the fallback for
@@ -402,7 +424,13 @@ class UberScreenService : AccessibilityService() {
         }
 
         if (card != null && ruling != null && LiveSettings.current?.overlayEnabled != false) {
-            overlay.show(OverlayController.State.Decided(ruling = ruling, card = card))
+            overlay.show(
+                OverlayController.State.Decided(
+                    ruling = ruling,
+                    card = card,
+                    fromCentre = fromCentre(card, gazetteer),
+                )
+            )
             // The verdict is the news while it is up; the heartbeat can wait.
             pulse.hide()
         }
