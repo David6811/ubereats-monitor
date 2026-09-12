@@ -48,6 +48,30 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a card whose address OCR read differently, when it is added, then the board does not change`() {
+        // arrange
+        val board = listOf(Job(1_789_181_933_388, pizza.copy(dropoff = "a Ashleigh Street & Jean Court, sb Keysborough"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.add(board, Job(1_789_181_938_491, pizza.copy(dropoff = "Ashleigh Street & Jean Court, Keysborough J./KTT|T3.T0"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // assert
+        assertEquals(board, next)
+    }
+
+    @Test
+    fun `given the same money again an hour later, when it is added, then it is a second job`() {
+        // arrange
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.add(board, Job(3_601_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // assert
+        assertEquals(listOf<Long>(3_601_000, 1_000), next.map { it.atMillis })
+    }
+
+    @Test
     fun `given a full board, when one more arrives, then the oldest falls off`() {
         // arrange
         val board = (1..JobBoard.CAPACITY).map { at ->
@@ -65,6 +89,23 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a full board whose oldest job was taken, when one more arrives, then the taken one stays`() {
+        // arrange
+        val board = (1..JobBoard.CAPACITY).map { at ->
+            Job(at.toLong(), pizza.copy(dropoff = "Street $at"), taken = at == 1, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        }.reversed()
+
+        // act
+        val next = JobBoard.add(board, Job(99, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // affirm  the cap still holds the offers to six
+        assertEquals(JobBoard.CAPACITY, next.count { !it.taken })
+
+        // assert  the delivery being driven is still on the board
+        assertEquals(listOf<Long>(99, 6, 5, 4, 3, 2, 1), next.map { it.atMillis })
+    }
+
+    @Test
     fun `given two jobs, when one is cleared, then the other stays`() {
         // arrange
         val board = listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
@@ -77,51 +118,75 @@ class JobBoardTest {
     }
 
     @Test
-    fun `given a job the rules would take, when it is shelved, then it is worth taking`() {
+    fun `given a job the rules would take, when the worth-taking shelf is asked, then it holds it`() {
         // arrange
         val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
 
         // act
-        val shelf = Shelf.of(job)
+        val held = Shelf.WORTH_TAKING.holds(job)
 
         // assert
-        assertEquals(Shelf.WORTH_TAKING, shelf)
+        assertEquals(true, held)
     }
 
     @Test
-    fun `given a job the rules refuse, when it is shelved, then it is not worth taking`() {
+    fun `given a job the rules refuse, when the not-worth-taking shelf is asked, then it holds it`() {
         // arrange
         val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
 
         // act
-        val shelf = Shelf.of(job)
+        val held = Shelf.NOT_WORTH_TAKING.holds(job)
 
         // assert
-        assertEquals(Shelf.NOT_WORTH_TAKING, shelf)
+        assertEquals(true, held)
     }
 
     @Test
-    fun `given a job the rules refused but he took anyway, when it is shelved, then it is on the taken shelf`() {
+    fun `given a job the rules refused but he took anyway, when every shelf is asked, then both the taken and the refused one hold it`() {
         // arrange
         val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
 
         // act
-        val shelf = Shelf.of(job)
+        val held = Shelf.values().filter { it.holds(job) }
 
-        // assert
-        assertEquals(Shelf.TAKEN, shelf)
+        // assert  the advice stays visible beside the fact that he took it
+        assertEquals(listOf(Shelf.TAKEN, Shelf.NOT_WORTH_TAKING), held)
     }
 
     @Test
-    fun `given a job read before the rules ruled, when it is shelved, then it is not worth taking`() {
+    fun `given a job the rules would take and he took, when every shelf is asked, then both the taken and the worth-taking one hold it`() {
+        // arrange
+        val job = Job(1_000, pizza, taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+
+        // act
+        val held = Shelf.values().filter { it.holds(job) }
+
+        // assert
+        assertEquals(listOf(Shelf.TAKEN, Shelf.WORTH_TAKING), held)
+    }
+
+    @Test
+    fun `given a job nobody took, when the taken shelf is asked, then it does not hold it`() {
+        // arrange
+        val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+
+        // act
+        val held = Shelf.TAKEN.holds(job)
+
+        // assert
+        assertEquals(false, held)
+    }
+
+    @Test
+    fun `given a job read before the rules ruled, when the not-worth-taking shelf is asked, then it holds it`() {
         // arrange
         val job = Job(1_000, pizza.copy(ruling = null), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
 
         // act
-        val shelf = Shelf.of(job)
+        val held = Shelf.NOT_WORTH_TAKING.holds(job)
 
         // assert
-        assertEquals(Shelf.NOT_WORTH_TAKING, shelf)
+        assertEquals(true, held)
     }
 
     @Test

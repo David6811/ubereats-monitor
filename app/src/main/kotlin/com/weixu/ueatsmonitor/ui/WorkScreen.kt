@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,16 +67,17 @@ fun WorkScreen() {
     }
 
     // Taken first, because that is the work in hand; the other two are why it is
-    // there. Nothing can tell yet that an offer was accepted, so the first shelf
-    // stays empty until the screen can say so.
+    // there. A job sits on every shelf that is true of it: what the rules advised
+    // and what the driver did are separate facts, so one taken against the advice
+    // shows up in both places. The counts add up to more than the board holds.
     val shelves = listOf(Shelf.TAKEN to "已接", Shelf.WORTH_TAKING to "建议接", Shelf.NOT_WORTH_TAKING to "建议不接")
     var shelf by remember { mutableStateOf(Shelf.TAKEN) }
-    val here = jobs.filter { Shelf.of(it) == shelf }
+    val here = jobs.filter { shelf.holds(it) }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TabRow(selectedTabIndex = shelves.indexOfFirst { it.first == shelf }) {
             shelves.forEach { (which, label) ->
-                val count = jobs.count { Shelf.of(it) == which }
+                val count = jobs.count { which.holds(it) }
                 Tab(
                     selected = which == shelf,
                     onClick = { shelf = which },
@@ -91,7 +93,7 @@ fun WorkScreen() {
                 item {
                     Text(
                         text = when (shelf) {
-                            Shelf.TAKEN -> "还认不出你接了哪一单，这一格先空着"
+                            Shelf.TAKEN -> "现在没有已接的单"
                             Shelf.WORTH_TAKING -> "现在没有建议接的单"
                             Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
                         },
@@ -100,7 +102,7 @@ fun WorkScreen() {
                 }
             }
             items(here, key = { it.atMillis }) { job ->
-                JobCard(job, stores) { JobStore.remove(context, job.atMillis); cleared++ }
+                JobCard(job, stores, shelf) { JobStore.remove(context, job.atMillis); cleared++ }
             }
             item {
                 Button(
@@ -115,7 +117,7 @@ fun WorkScreen() {
 }
 
 @Composable
-private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
+private fun JobCard(job: Job, stores: List<Store>, shelf: Shelf, onClear: () -> Unit) {
     val context = LocalContext.current
     val shop = remember(job.offer.pickup, stores) { StoreKinds.find(job.offer.pickup, stores) }
 
@@ -124,10 +126,26 @@ private fun JobCard(job: Job, stores: List<Store>, onClear: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = CLOCK.format(Date(job.atMillis)) + "  " + job.offer.payout,
-                    modifier = Modifier.weight(1f),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                 )
+                // On the two advice shelves the card cannot say whether he went, and
+                // that is the one thing worth reading back off them. On the taken
+                // shelf every card would say the same word, so it is left off.
+                if (shelf != Shelf.TAKEN) {
+                    Text(
+                        text = if (job.taken) "已接" else "没接",
+                        modifier = Modifier
+                            .padding(start = 10.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (job.taken) TAKEN_MARK else UNTAKEN_MARK)
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onClear) { Text("清掉", fontSize = 16.sp) }
             }
             Stop(
@@ -280,6 +298,10 @@ private val NOTE_TINT = Color(0x33B38600)
 
 /** Blue, never green: the driver cannot tell green from red. */
 private val CONFIRMED = Color(0xFF0A6ECF)
+
+/** Went / did not go. Green and grey rather than green and red: not going is not a fault. */
+private val TAKEN_MARK = Color(0xFF2E7D32)
+private val UNTAKEN_MARK = Color(0xFF757575)
 private val DROPOFF = Color(0xFF5E35B1)
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)

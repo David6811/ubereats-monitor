@@ -1,5 +1,7 @@
 package com.weixu.ueatsmonitor.domain
 
+import kotlin.math.abs
+
 /** Data. One job on the board: an offer that appeared, with when it appeared. */
 data class Job(
     val atMillis: Long,
@@ -25,24 +27,39 @@ data class Job(
     val dropNoteCn: String?,
 )
 
-/** Data. Which shelf of the work area a job sits on. */
+/** Data. What the rules said about an offer. The machine's opinion, and only that. */
+enum class Advice {
+    WORTH_TAKING,
+    NOT_WORTH_TAKING,
+    ;
+
+    companion object {
+        /** Calculation. The headline the judge wrote, read back as the two cases it has. */
+        fun of(offer: OfferRecord): Advice =
+            if (offer.ruling?.startsWith("可以") == true) WORTH_TAKING else NOT_WORTH_TAKING
+    }
+}
+
+/**
+ * Data. One of the three lists in the work area.
+ *
+ * Not a classification: a job belongs to every shelf that is true of it, so one
+ * taken job appears twice. What the rules advised and what the driver did are
+ * separate facts about it, and collapsing them hid the single most useful row
+ * on the board - the job taken against the advice, which vanished from the
+ * shelf that advised against it the moment it was accepted.
+ */
 enum class Shelf {
     TAKEN,
     WORTH_TAKING,
     NOT_WORTH_TAKING,
     ;
 
-    companion object {
-        /**
-         * Calculation. A job goes where its verdict puts it, unless it is known to
-         * have been taken - then it belongs with the work in hand whatever the
-         * rules said about it.
-         */
-        fun of(job: Job): Shelf = when {
-            job.taken -> TAKEN
-            job.offer.ruling?.startsWith("可以") == true -> WORTH_TAKING
-            else -> NOT_WORTH_TAKING
-        }
+    /** Calculation. Whether this shelf shows that job. */
+    fun holds(job: Job): Boolean = when (this) {
+        TAKEN -> job.taken
+        WORTH_TAKING -> Advice.of(job.offer) == Advice.WORTH_TAKING
+        NOT_WORTH_TAKING -> Advice.of(job.offer) == Advice.NOT_WORTH_TAKING
     }
 }
 
@@ -61,7 +78,12 @@ object JobBoard {
 
     fun add(jobs: List<Job>, job: Job): List<Job> {
         if (jobs.any { sameOffer(it, job) }) return jobs
-        return (listOf(job) + jobs).take(CAPACITY)
+        val next = listOf(job) + jobs
+        // The cap is about how many offers are worth still looking at. A job in
+        // hand is not an offer any more, so it does not compete for the room -
+        // a busy half hour used to push the delivery being driven off the board.
+        val kept = next.filterNot { it.taken }.take(CAPACITY).map { it.atMillis }.toSet()
+        return next.filter { it.taken || it.atMillis in kept }
     }
 
     fun remove(jobs: List<Job>, atMillis: Long): List<Job> = jobs.filterNot { it.atMillis == atMillis }
@@ -132,9 +154,20 @@ object JobBoard {
 
     private fun fold(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
 
-    /** Same money to the same address is the same job, whatever OCR made of the shop name. */
+    /** How long one card can go on being read. It sits on screen for about a minute. */
+    private const val SAME_OFFER_MILLIS = 90_000L
+
+    /**
+     * The same card, read again. The text cannot be what decides: OCR reads the
+     * card every couple of seconds and rarely twice the same way - "ar Ashleigh
+     * Street & Jean Court, Keysborough" and "a Ashleigh Street & Jean Court, sb
+     * Keysborough" were one offer, and counting them apart filled four of the six
+     * places with it. The money is read from large digits and comes out stable,
+     * and a card is only on screen for about a minute, so money within a window
+     * is what says the same offer.
+     */
     private fun sameOffer(job: Job, other: Job): Boolean =
         job.offer.payout == other.offer.payout &&
-            job.offer.dropoff == other.offer.dropoff &&
-            job.offer.isMatch == other.offer.isMatch
+            job.offer.isMatch == other.offer.isMatch &&
+            abs(job.atMillis - other.atMillis) <= SAME_OFFER_MILLIS
 }
