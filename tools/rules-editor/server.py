@@ -270,9 +270,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "stamp": stamp_of(RULES),
                 }
             )
-        if self.path == "/api/log":
-            return self.send_json({"ok": True})
-
         if self.path == "/api/cbd":
             return self.send_json({"cores": cbd_groups(), "alwaysOk": ALWAYS_OK})
 
@@ -341,10 +338,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_json(
                 {"saved": True, "pushed": ok, "detail": out, "stamp": stamp_of(RULES)}
             )
-
-        if self.path == "/api/log":
-            print("PAGE:", json.dumps(body, ensure_ascii=False)[:600], flush=True)
-            return self.send_json({"ok": True})
 
         return self.send_json({"error": "unknown"}, status=404)
 

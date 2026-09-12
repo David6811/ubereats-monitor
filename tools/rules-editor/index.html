@@ -350,11 +350,6 @@ body.mapfull h2{font-size:17px}
 (function(){
   "use strict";
 
-  // TEMP: anything the page throws goes to the terminal running the server.
-  window.onerror = function(msg, src, line, col){
-    fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ msg: String(msg), line: line, col: col }) });
-  };
   var state = { rules:null, suburbs:[], stores:[], phone:null };
   var $ = function(id){ return document.getElementById(id); };
 
