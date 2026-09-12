@@ -200,6 +200,9 @@ body.mapfull h2{font-size:17px}
 .core .items span{color:var(--ink-2)}
 .core .items span.warn{color:var(--warn)}
 .core .items span.kept{color:var(--yes)}
+.core .items span.pick{cursor:pointer}
+.core .items span.pick:hover{text-decoration:underline}
+.core .items span.spared{color:var(--ink-2);opacity:.55;text-decoration:line-through}
 .checkline{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);cursor:pointer}
 .core .acts .checkline{border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:var(--panel)}
 </style>
@@ -248,7 +251,7 @@ body.mapfull h2{font-size:17px}
     <h2>市中心成片拉黑</h2>
     <p class="hint">
       这两条商业街停车最难。清单全列出来给你看：自带停车场的<b>不拉黑</b>，
-      名字在别处还有同名店的<b>默认也不拉黑</b>（拉了会连坐）。
+      名字在别处还有同名店的<b>默认也不拉黑</b>（拉了会连坐）。<b>点一下店名可以放过它</b>，这个决定会一直留着。
     </p>
     <div id="cores"></div>
   </section>
@@ -648,8 +651,10 @@ body.mapfull h2{font-size:17px}
         title.textContent = core.label + "（半径 " + core.radiusKm + " km）";
         var sum = document.createElement("div");
         sum.className = "sum";
+        var let_off = core.deny.filter(function(r){ return spared(r.name); }).length;
         sum.textContent = "可拉黑 " + safe.length + " 家 · 同名慎拉 " + shared.length +
-                          " 家 · 自带停车场保留 " + core.keep.length + " 家";
+                          " 家 · 自带停车场保留 " + core.keep.length + " 家" +
+                          (let_off ? " · 你放过 " + let_off + " 家" : "");
         el.append(title, sum);
 
         // A switch, not a button: this is a standing rule that travels with every
@@ -668,10 +673,10 @@ body.mapfull h2{font-size:17px}
         ));
         el.appendChild(acts);
 
-        el.appendChild(groupBlock("会被拉黑", safe, ""));
-        if (shared.length) el.appendChild(groupBlock("同名店，拉了会连坐", shared, "warn"));
-        el.appendChild(groupBlock("保留：自带停车场", core.keep, "kept"));
-        if (core.unknown.length) el.appendChild(groupBlock("停车场未知", core.unknown, ""));
+        el.appendChild(groupBlock("会被拉黑", safe, "", true));
+        if (shared.length) el.appendChild(groupBlock("同名店，拉了会连坐", shared, "warn", true));
+        el.appendChild(groupBlock("保留：自带停车场", core.keep, "kept", false));
+        if (core.unknown.length) el.appendChild(groupBlock("停车场未知", core.unknown, "", false));
 
         box.appendChild(el);
       });
@@ -685,6 +690,28 @@ body.mapfull h2{font-size:17px}
     return state.rules.cbd;
   }
 
+  /**
+   * Names the expansion must never take, however the switches stand.
+   *
+   * A core is chosen by where its shops are but applied by their names, and a
+   * name is not unique: "Villa" refuses Pizza Villa in Chelsea Heights and every
+   * Village in the service area. Sparing one is a standing decision, so it lives
+   * in the rules file and survives the next save rather than being deleted from
+   * the expanded list by hand each time.
+   */
+  function cbdKeep(){
+    if (!state.rules.stores.cbdKeep) state.rules.stores.cbdKeep = [];
+    return state.rules.stores.cbdKeep;
+  }
+
+  function spared(name){ return cbdKeep().indexOf(name) >= 0; }
+
+  function spare(name){
+    var at = cbdKeep().indexOf(name);
+    if (at >= 0) cbdKeep().splice(at, 1); else cbdKeep().push(name);
+    drawCores();
+  }
+
   /** The cores as they stand right now, expanded into names for the phone. */
   var coreData = [];
   function cbdNames(){
@@ -695,7 +722,7 @@ body.mapfull h2{font-size:17px}
         var whitelisted = alwaysOk().some(function(ok){
           return r.name.toLowerCase().indexOf(ok.toLowerCase()) >= 0;
         });
-        if (whitelisted) return;
+        if (whitelisted || spared(r.name)) return;
         if (r.elsewhere === 0 || cbdSetting().includeShared) names[r.name] = 1;
       });
     });
@@ -715,7 +742,7 @@ body.mapfull h2{font-size:17px}
     return wrap;
   }
 
-  function groupBlock(title, rows, cls){
+  function groupBlock(title, rows, cls, toggle){
     var d = document.createElement("details");
     var s = document.createElement("summary");
     s.textContent = title + "（" + rows.length + " 家）";
@@ -731,9 +758,14 @@ body.mapfull h2{font-size:17px}
       items.className = "items";
       byKind[kind].forEach(function(r){
         var span = document.createElement("span");
-        if (cls) span.className = cls;
+        var off = toggle && spared(r.name);
+        span.className = off ? "spared" : (cls || "") + (toggle ? " pick" : "");
         span.textContent = r.name + (r.elsewhere ? " (别处还有" + r.elsewhere + "家)" : "") +
-                           " · " + r.metres + "m";
+                           " · " + r.metres + "m" + (off ? " · 放过" : "");
+        if (toggle) {
+          span.title = off ? "点一下改回拉黑" : "点一下放过这家，以后保存也不会再拉黑";
+          span.addEventListener("click", function(){ spare(r.name); });
+        }
         items.appendChild(span);
       });
       g.append(b, items);

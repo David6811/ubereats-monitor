@@ -47,10 +47,14 @@ def places():
 
 PORT = 8777
 
-# The two shopping strips the driver refuses to pick up from: no parking, and a
-# long walk once you find some. Centres taken from the retail cores.
+# The shopping strip the driver refuses to pick up from: no parking, and a long
+# walk once you find some. Centre taken from the retail core.
+#
+# Springvale was here too and is gone. Blanket-refusing it cost more than it
+# saved: the list is applied by name and the names are not unique, so a bakery
+# in Keysborough was refused because a shop of the same name stands in
+# Springvale South. Its 126 shops are picked up from again.
 CBD = [
-    {"key": "springvale", "label": "Springvale 市中心", "lat": -37.9483, "lon": 145.1518},
     {"key": "dandenong", "label": "Dandenong 市中心", "lat": -37.9820, "lon": 145.2148},
 ]
 CBD_RADIUS_KM = 0.7
@@ -109,7 +113,10 @@ def load_rules():
         # The set a payout over the threshold unlocks. Shipped with the whole
         # service area in it, which is wider than any of the working sets.
         "far": {"overDollars": FAR_OVER_DOLLARS, "suburbs": STARTER_ALLOW},
-        "stores": {"deny": [], "cbdDeny": [], "alwaysOk": ALWAYS_OK},
+        # cbdKeep: shops inside the core the driver has spared by hand. The
+        # expansion is by name and names are not unique, so one of them can be
+        # worth more elsewhere than it costs here.
+        "stores": {"deny": [], "cbdDeny": [], "cbdKeep": [], "alwaysOk": ALWAYS_OK},
         "addresses": {"deny": []},
     }
 
