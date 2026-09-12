@@ -37,6 +37,22 @@ object Navigation {
         }
     }
 
+    /**
+     * Opens Maps at an address in aerial view, with its own pin on the building
+     * and its street view photo underneath. The address alone is enough - Maps
+     * resolves it, which is why no table of house numbers is shipped here.
+     */
+    fun showPlace(context: Context, place: String) {
+        start(
+            context,
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://www.google.com/maps/place/" +
+                    Uri.encode(qualify(place)) + "/data=!3m1!1e3"),
+            ).setPackage(MAPS),
+        )
+    }
+
     /** Opens the map at a place, without starting a route to it. */
     fun showOnMap(context: Context, place: String) {
         start(
