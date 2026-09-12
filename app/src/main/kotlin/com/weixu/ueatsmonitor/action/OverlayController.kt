@@ -1,5 +1,7 @@
 package com.weixu.ueatsmonitor.action
 
+import android.animation.Animator
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
@@ -42,6 +44,9 @@ class OverlayController(private val context: Context) {
     private var shown: View? = null
     private var showing: String = ""
 
+    /** Kept so the beat stops when its dots leave the screen. */
+    private var beating: List<Animator> = emptyList()
+
     fun canDraw(): Boolean = Settings.canDrawOverlays(context)
 
     /**
@@ -61,7 +66,7 @@ class OverlayController(private val context: Context) {
             if (key != showing || shown == null) {
                 removeNow()
                 val chip = buildChip(state)
-                runCatching { windowManager.addView(chip, layoutParams()) }
+                runCatching { windowManager.addView(chip, layoutParams(state)) }
                     .onSuccess { shown = chip; showing = key }
             }
             main.removeCallbacks(autoHide)
@@ -80,6 +85,8 @@ class OverlayController(private val context: Context) {
         val chip = shown ?: return
         shown = null
         showing = ""
+        beating.forEach { it.cancel() }
+        beating = emptyList()
         runCatching { windowManager.removeView(chip) }
     }
 
@@ -88,15 +95,20 @@ class OverlayController(private val context: Context) {
         is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) + RulingText.reason(state.ruling)
     }
 
-    private fun layoutParams(): WindowManager.LayoutParams {
+    private fun layoutParams(state: State): WindowManager.LayoutParams {
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
+        val verdict = state is State.Decided
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            if (verdict) {
+                WindowManager.LayoutParams.MATCH_PARENT
+            } else {
+                WindowManager.LayoutParams.WRAP_CONTENT
+            },
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -108,14 +120,71 @@ class OverlayController(private val context: Context) {
             // Over the map, above everything the card says. Anywhere on the card
             // and the chip's own words are read back as part of it: the card's
             // pickup once came out as the suburb this chip was naming.
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            x = 0
+            if (verdict) {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                x = 0
+            } else {
+                // Off in the corner beside the heartbeat, which owns the very edge.
+                // Nothing here is worth a band across the screen: the state says
+                // only that a card may be arriving, and the driver is looking at
+                // the card, not at us.
+                gravity = Gravity.TOP or Gravity.END
+                x = dp(DOTS_FROM_EDGE_DP)
+            }
             y = TOP_PIXELS
         }
     }
 
-    private fun buildChip(state: State): View {
-        val face = faceOf(state)
+    private fun buildChip(state: State): View = when (state) {
+        State.Thinking -> thinkingDots()
+        is State.Decided -> verdictBar(faceOf(state))
+    }
+
+    /**
+     * Three dots, and not one word.
+     *
+     * Every word this window draws lands on a screen the reader is about to read,
+     * and comes back as part of what it thinks the card says - a shop name once
+     * came out as the suburb this chip was naming. Dots cannot be read back. They
+     * also say everything this state knows, which is only that something is being
+     * looked at.
+     */
+    private fun thinkingDots(): View = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(dp(10), dp(7), dp(10), dp(7))
+        background = GradientDrawable().apply {
+            cornerRadius = dp(11).toFloat()
+            setColor(FILL)
+            setStroke(dp(2), EDGE)
+        }
+        // Each dot swells and fades a third of a cycle behind the one before it,
+        // which is the wave everything else on a phone uses to say "working". A
+        // still row of dots reads as a decoration; this reads as a wait.
+        beating = (0 until 3).map { at ->
+            val dot = View(context).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(INK)
+                }
+                alpha = DOT_DIM
+            }
+            addView(
+                dot,
+                LinearLayout.LayoutParams(dp(6), dp(6)).apply {
+                    if (at > 0) marginStart = dp(5)
+                },
+            )
+            ObjectAnimator.ofFloat(dot, View.ALPHA, DOT_DIM, 1f, DOT_DIM).apply {
+                duration = BEAT_MILLIS
+                startDelay = at * (BEAT_MILLIS / 3)
+                repeatCount = ObjectAnimator.INFINITE
+                start()
+            }
+        }
+    }
+
+    private fun verdictBar(face: Face): View {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(8), dp(18), dp(10))
@@ -181,16 +250,9 @@ class OverlayController(private val context: Context) {
         val ink: Int get() = INK
     }
 
-    private fun faceOf(state: State): Face = when (state) {
-        State.Thinking -> Face(
-            title = "思考中…",
-            payout = null,
-            route = null,
-            distance = null,
-            rate = null,
-        )
-        is State.Decided -> Face(
-            title = RulingText.headline(state.ruling, state.card.isMatch),
+    private fun faceOf(state: State.Decided): Face = with(state) {
+        Face(
+            title = RulingText.headline(ruling, card.isMatch),
             payout = state.card.payout.toString(),
             // Where to where, with the shop's kind and where it stands. The street
             // names are unreadable in the second the card gives you.
@@ -211,6 +273,13 @@ class OverlayController(private val context: Context) {
          * text is what once put a suburb where a shop name belonged.
          */
         const val TOP_PIXELS = 20
+
+        /** Far enough in from the edge to clear the heartbeat dot's own window. */
+        const val DOTS_FROM_EDGE_DP = 44
+
+        /** One dot's swell and fade, and how dim it sits between them. */
+        const val BEAT_MILLIS = 900L
+        const val DOT_DIM = 0.25f
 
         private const val THINKING = "thinking"
 
