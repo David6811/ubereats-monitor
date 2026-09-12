@@ -252,6 +252,49 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a shop the card names by its shopping centre, when the pickup arrives, then that job is taken`() {
+        // arrange  the centre is Parkmore; the street it stands on is in Keysborough
+        val card = pizza.copy(pickup = "Pizza Hut (Parkmore)", dropoff = "Bevan Avenue, Clayton South")
+        val board = listOf(Job(1_000, card, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.taken(
+            board,
+            Pickup(
+                store = "Pizza Hut",
+                address = "317 Cheltenham Rd, Keysborough VIC 3173, Australia",
+                note = null,
+            ),
+        )
+
+        // affirm  the shop's real address is on the job now
+        assertEquals("317 Cheltenham Rd, Keysborough VIC 3173, Australia", next.first().address)
+
+        // assert
+        assertEquals(true, next.first().taken)
+    }
+
+    @Test
+    fun `given two branches of one chain and an address naming neither, when the pickup arrives, then nothing is claimed`() {
+        // arrange
+        val here = pizza.copy(pickup = "Pizza Hut (Parkmore)", dropoff = "Bevan Avenue, Clayton South")
+        val there = pizza.copy(pickup = "Pizza Hut (Southland)", dropoff = "Como Parade, Mentone")
+        val board = listOf(
+            Job(2_000, here, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(1_000, there, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+        )
+
+        // act
+        val next = JobBoard.taken(
+            board,
+            Pickup(store = "Pizza Hut", address = "9 Smith St, Cheltenham VIC 3192, Australia", note = null),
+        )
+
+        // assert  guessing would send him to the wrong branch
+        assertEquals(board, next)
+    }
+
+    @Test
     fun `given a card that names no branch, when the pickup arrives, then the name alone is enough`() {
         // arrange
         val board = listOf(

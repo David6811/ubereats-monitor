@@ -29,6 +29,24 @@ class PickupScreenTest {
         "Safety Toolkit",
     )
 
+    /**
+     * The same shop as Uber renders it elsewhere: suburb and postcode, no state.
+     * Read off the phone at 11:55 on 12 Sept.
+     */
+    private val withoutState = listOf(
+        "Home",
+        "${'$'}10.38",
+        "Search for places",
+        "Safety Toolkit",
+        "Navigate",
+        "Coles - Keysborough",
+        "317 Cheltenham Rd, Keysborough 3173",
+        "Unable to go offline",
+        "Preferences",
+        "Pick up 1 order",
+        "Complete pickup",
+    )
+
     private val waiting = listOf("Home", "You're online", "Earnings", "Trip planner")
 
     @Test
@@ -99,5 +117,20 @@ class PickupScreenTest {
 
         // assert
         assertNull(pickup)
+    }
+
+    @Test
+    fun `given an address with no state, when the screen is read, then it is still the address`() {
+        // arrange
+        val lines = withoutState
+
+        // act
+        val pickup = PickupScreen.read(lines)
+
+        // affirm  the shop above it is named too
+        assertEquals("Coles - Keysborough", pickup?.store)
+
+        // assert
+        assertEquals("317 Cheltenham Rd, Keysborough 3173", pickup?.address)
     }
 }

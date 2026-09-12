@@ -26,8 +26,16 @@ object PickupScreen {
         Regex("""^complete pickup$""", RegexOption.IGNORE_CASE),
     )
 
-    /** An Australian address ends in its state and postcode. */
-    private val ADDRESS = Regex("""\b(VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\s+\d{4}\b""")
+    /**
+     * An Australian address ends in its suburb and postcode, with the state
+     * between them or missing. Uber renders the same shop both ways on the same
+     * screen - "Keysborough VIC 3173, Australia" beside "Keysborough 3173" - and
+     * requiring the state read the second as no address at all, which is how
+     * nearly half of the pickups went unclaimed.
+     */
+    private val ADDRESS = Regex(
+        """\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:(?:VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\s+)?\d{4}\b"""
+    )
 
     private val NOTE = Regex("""^merchant note:\s*(.+)$""", RegexOption.IGNORE_CASE)
 

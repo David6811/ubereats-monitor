@@ -100,18 +100,29 @@ object JobBoard {
         if (wanted.length < MIN_STORE) return jobs
         val address = fold(pickup.address)
 
-        val at = jobs.indexOfFirst { job ->
-            val card = fold(job.offer.pickup)
-            if (!card.contains(wanted)) return@indexOfFirst false
-            // Two offers from one chain can sit on the board at once, and taking
-            // the wrong one would put another branch's address on the card the
-            // driver then navigates to. The card usually names the branch's
-            // suburb in brackets and the screen's address always names one, so
-            // when both say a suburb they have to say the same suburb.
-            val branch = branchOf(job.offer.pickup)
-            branch == null || address.contains(fold(branch))
+        val named = jobs.indices.filter { fold(jobs[it].offer.pickup).contains(wanted) }
+        if (named.isEmpty()) return jobs
+
+        // The bracket after a chain's name tells two of its branches apart, and
+        // that is the only thing it is good for. It is not always a suburb: as
+        // often it is the shopping centre, and a centre's name never appears in
+        // the street address it stands on - "Pizza Hut (Parkmore)" is picked up
+        // at 317 Cheltenham Rd, Keysborough. Asking the address to agree with it
+        // therefore refused every pickup from a centre, and the job kept the
+        // card's address instead of the real one.
+        //
+        // So it is asked only when there is something to decide. One job naming
+        // the chain is that job. Two, with neither branch in the address, is a
+        // question this screen cannot answer - and answering it wrong sends the
+        // driver to another branch, so nothing is claimed at all.
+        val at = if (named.size == 1) {
+            named.first()
+        } else {
+            named.firstOrNull { index ->
+                val branch = branchOf(jobs[index].offer.pickup)
+                branch != null && address.contains(fold(branch))
+            } ?: return jobs
         }
-        if (at < 0) return jobs
         return jobs.mapIndexed { index, job ->
             if (index != at) job
             else job.copy(taken = true, address = pickup.address, note = pickup.note)
