@@ -216,6 +216,38 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a card whose shop name OCR cut short, when the full name's pickup arrives, then that job is taken`() {
+        // arrange  the card and pickup screen of 13 Sept 18:56
+        val board = listOf(
+            Job(1_000, pizza.copy(pickup = "Chemist2u) Pharmacy 4 Less"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+        )
+        val pickup = Pickup(
+            store = "(Chemist2U) Pharmacy 4 Less Parkmore",
+            address = "Shop J01, 317-321 Cheltenham Road, Keysborough South, APAC 3173",
+            note = null,
+        )
+
+        // act
+        val next = JobBoard.taken(board, pickup)
+
+        // assert
+        assertEquals(true, next[0].taken)
+    }
+
+    @Test
+    fun `given a short shop name on a card, when a longer name containing it is picked up, then nothing is claimed`() {
+        // arrange
+        val board = listOf(Job(1_000, pizza.copy(pickup = "KFC"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val pickup = Pickup(store = "Nashville KFC Style Chicken", address = "1 High St, Braeside VIC 3195", note = null)
+
+        // act
+        val next = JobBoard.taken(board, pickup)
+
+        // assert
+        assertEquals(board, next)
+    }
+
+    @Test
     fun `given a pickup for a shop not on the board, when it is applied, then nothing changes`() {
         // arrange
         val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))

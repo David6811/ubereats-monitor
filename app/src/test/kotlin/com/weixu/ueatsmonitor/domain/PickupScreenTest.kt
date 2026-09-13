@@ -47,6 +47,27 @@ class PickupScreenTest {
         "Complete pickup",
     )
 
+    /** A pharmacy's pickup screen, read off the phone at 18:57 on 13 Sept. */
+    private val apac = listOf(
+        "Home",
+        "1 | 3",
+        "Search for places",
+        "Unable to go offline",
+        "Preferences",
+        "1 min",
+        "0.2 km",
+        "(Chemist2U) Pharmacy 4 Less Parkmore",
+        "Trip planner",
+        "Agenda",
+        "Merchant logo",
+        "Shop J01, 317-321 Cheltenham Road, Keysborough South, APAC 3173",
+        "Merchant Note:  Pharmacy 4 Less Parkmore. Located in Parkmore Shopping Centre on " +
+            "Cheltenham Road, Corner of Cheltenham rd and Kingsclere Ave. Parking available in carpark.",
+        "Pick up 1 order",
+        "Help and support",
+        "Complete pickup",
+    )
+
     private val waiting = listOf("Home", "You're online", "Earnings", "Trip planner")
 
     @Test
@@ -132,5 +153,29 @@ class PickupScreenTest {
 
         // assert
         assertEquals("317 Cheltenham Rd, Keysborough 3173", pickup?.address)
+    }
+
+    @Test
+    fun `given an address written with APAC, when the screen is read, then it is still the address`() {
+        // arrange
+        val lines = apac
+
+        // act
+        val pickup = PickupScreen.read(lines)
+
+        // assert
+        assertEquals("Shop J01, 317-321 Cheltenham Road, Keysborough South, APAC 3173", pickup?.address)
+    }
+
+    @Test
+    fun `given Uber's labels between the shop and its address, when the screen is read, then the shop is named`() {
+        // arrange
+        val lines = apac
+
+        // act
+        val pickup = PickupScreen.read(lines)
+
+        // assert
+        assertEquals("(Chemist2U) Pharmacy 4 Less Parkmore", pickup?.store)
     }
 }

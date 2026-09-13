@@ -100,7 +100,12 @@ object JobBoard {
         if (wanted.length < MIN_STORE) return jobs
         val address = fold(pickup.address)
 
-        val named = jobs.indices.filter { fold(jobs[it].offer.pickup).contains(wanted) }
+        // Either name can be the longer one. OCR cuts the card's short: the card
+        // said "Chemist2u) Pharmacy 4 Less" for "(Chemist2U) Pharmacy 4 Less Parkmore".
+        val named = jobs.indices.filter { index ->
+            val onCard = fold(jobs[index].offer.pickup)
+            onCard.contains(wanted) || (onCard.length >= MIN_CARD_STORE && wanted.contains(onCard))
+        }
         if (named.isEmpty()) return jobs
 
         // The bracket after a chain's name tells two of its branches apart, and
@@ -159,6 +164,9 @@ object JobBoard {
     }
 
     private const val MIN_STORE = 4
+
+    /** A card's shop name this short, "KFC", would sit inside too many other names. */
+    private const val MIN_CARD_STORE = 8
 
     /** A suburb name shorter than this would match half of Melbourne by accident. */
     private const val MIN_SUBURB = 4

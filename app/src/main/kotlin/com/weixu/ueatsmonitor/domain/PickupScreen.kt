@@ -32,10 +32,19 @@ object PickupScreen {
      * screen - "Keysborough VIC 3173, Australia" beside "Keysborough 3173" - and
      * requiring the state read the second as no address at all, which is how
      * nearly half of the pickups went unclaimed.
+     *
+     * A third form puts a comma after the suburb and "APAC" where the state goes:
+     * "Keysborough South, APAC 3173", read off a pharmacy on 13 Sept.
      */
     private val ADDRESS = Regex(
-        """\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:(?:VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\s+)?\d{4}\b"""
+        """\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,?\s+(?:(?:VIC|NSW|QLD|SA|WA|TAS|NT|ACT|APAC)\s+)?\d{4}\b"""
     )
+
+    /**
+     * Uber's own labels between the shop's name and its address. Only "Merchant
+     * logo" used to be skipped; with the name further up, "Agenda" was taken for it.
+     */
+    private val NOT_A_NAME = setOf("merchant logo", "agenda", "trip planner")
 
     private val NOTE = Regex("""^merchant note:\s*(.+)$""", RegexOption.IGNORE_CASE)
 
@@ -51,10 +60,10 @@ object PickupScreen {
         val addressAt = clean.indexOfFirst { ADDRESS.containsMatchIn(it) }
         if (addressAt < 0) return null
 
-        // The shop's name is the line above its address. "Merchant logo" is the
-        // content description of the picture beside it, never the name.
+        // The shop's name is the nearest line above its address that is not one
+        // of Uber's labels. "Merchant logo" is the picture beside it, never the name.
         val store = clean.take(addressAt)
-            .lastOrNull { it.length >= MIN_NAME && !it.equals("Merchant logo", ignoreCase = true) }
+            .lastOrNull { it.length >= MIN_NAME && it.lowercase() !in NOT_A_NAME }
             ?: return null
 
         return Pickup(
