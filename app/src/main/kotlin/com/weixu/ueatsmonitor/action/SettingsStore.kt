@@ -25,8 +25,6 @@ class SettingsStore(private val context: Context) {
         val pulseEnabled: Boolean,
         /** Whether an offer over the threshold may use the far set at all. */
         val farEnabled: Boolean,
-        /** Whether a lane or a highway destination is refused outright. */
-        val refuseLanesEnabled: Boolean,
         val vibrateEnabled: Boolean,
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
@@ -47,7 +45,6 @@ class SettingsStore(private val context: Context) {
             overlayEnabled = prefs[OVERLAY_ENABLED] ?: true,
             pulseEnabled = prefs[PULSE_ENABLED] ?: true,
             farEnabled = prefs[FAR_ENABLED] ?: true,
-            refuseLanesEnabled = prefs[REFUSE_LANES] ?: true,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
@@ -71,8 +68,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setPulseEnabled(enabled: Boolean) = putBoolean(PULSE_ENABLED, enabled)
 
     suspend fun setFarEnabled(enabled: Boolean) = putBoolean(FAR_ENABLED, enabled)
-
-    suspend fun setRefuseLanesEnabled(enabled: Boolean) = putBoolean(REFUSE_LANES, enabled)
 
     suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
 
@@ -98,7 +93,6 @@ class SettingsStore(private val context: Context) {
         val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
         val PULSE_ENABLED = booleanPreferencesKey("pulse_enabled")
         val FAR_ENABLED = booleanPreferencesKey("far_enabled")
-        val REFUSE_LANES = booleanPreferencesKey("refuse_lanes")
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val RECORD_SCREEN = booleanPreferencesKey("record_screen")

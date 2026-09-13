@@ -41,9 +41,6 @@ object RulesStore {
     @Volatile
     private var readWithFar: Boolean = true
 
-    @Volatile
-    private var readWithLanes: Boolean = true
-
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -53,10 +50,8 @@ object RulesStore {
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
         val farNow = LiveSettings.current?.farEnabled != false
-        val lanesNow = LiveSettings.current?.refuseLanesEnabled != false
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
-            excludedNow == readWithExcluded && farNow == readWithFar &&
-            lanesNow == readWithLanes
+            excludedNow == readWithExcluded && farNow == readWithFar
         ) {
             return known
         }
@@ -74,7 +69,6 @@ object RulesStore {
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
                 farSuburbs = far,
-                refuseLanes = lanesNow,
             )
         }
         cached = parsed
@@ -82,7 +76,6 @@ object RulesStore {
         readForProfile = profile
         readWithExcluded = excluded
         readWithFar = farNow
-        readWithLanes = lanesNow
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
@@ -99,7 +92,6 @@ object RulesStore {
         farOverCents = Cents.ofDollars(DEFAULT_FAR_DOLLARS),
         deniedStores = emptyList(),
         alwaysOkStores = emptyList(),
-        refuseLanes = true,
     )
 
     private fun parse(file: File): Rules {
@@ -136,7 +128,6 @@ object RulesStore {
                 farOverCents = Cents.ofDollars(overDollars),
                 deniedStores = deny,
                 alwaysOkStores = alwaysOk,
-                refuseLanes = true,
             )
         }.getOrElse { empty() }
     }

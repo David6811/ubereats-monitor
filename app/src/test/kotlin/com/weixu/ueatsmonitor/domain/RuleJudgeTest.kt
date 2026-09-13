@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), refuseLanes = true), GAZETTEER)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList()), GAZETTEER)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -193,30 +193,15 @@ class RuleJudgeTest {
     }
 
     @Test
-    fun `given a lane in a suburb he works, when judged, then the road refuses it before the suburb allows it`() {
-        // arrange
-        val card = card(pickup = "Anything", dropoff = "Chandler Road & Bakers Lane, Noble Park")
+    fun `given a Lane on the card in a suburb he works, when judged, then the suburb alone decides`() {
+        // arrange  the card of 13 Sep 18:50 - Bowman Lane there is an ordinary rural road
+        val card = card(pickup = "Woolworths Keysborough", dropoff = "Bowman Lane & Keys Road, Keysborough")
 
         // act
         val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
 
-        // affirm  the suburb itself is one he works, so only the road can refuse it
-        assertEquals(true, RULES.allowedSuburbs.contains("Noble Park"))
-
         // assert
-        assertEquals(Ruling.Leave(Ruling.Reason.RoadRefused("Lane")), ruling)
-    }
-
-    @Test
-    fun `given the road rule switched off, when a lane is judged, then the suburb decides as before`() {
-        // arrange
-        val card = card(pickup = "Anything", dropoff = "Chandler Road & Bakers Lane, Noble Park")
-
-        // act
-        val ruling = RuleJudge.judge(card, RULES.copy(refuseLanes = false), GAZETTEER)
-
-        // assert
-        assertEquals(Ruling.Take("Noble Park"), ruling)
+        assertEquals(Ruling.Take("Keysborough"), ruling)
     }
 
     private companion object {
@@ -226,7 +211,6 @@ class RuleJudgeTest {
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
-            refuseLanes = true,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),
