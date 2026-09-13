@@ -24,8 +24,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.MutableState
-import java.io.File
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,12 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.weixu.ueatsmonitor.action.JobStore
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import com.weixu.ueatsmonitor.action.MapShot
-import com.weixu.ueatsmonitor.action.UberScreenService
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
 import com.weixu.ueatsmonitor.domain.Shelf
@@ -123,9 +115,6 @@ fun WorkScreen() {
 @Composable
 private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
     val context = LocalContext.current
-    val pickupShots = rememberShots(job, MapShot.Stop.PICKUP)
-    val dropShots = rememberShots(job, MapShot.Stop.DROPOFF)
-
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,19 +156,21 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
                 place = listOfNotNull(job.offer.pickup, job.address).joinToString("\n"),
                 mark = if (job.address != null) "已确认" else null,
                 tint = PICKUP,
-                actions = listOf(StopAction("导航") { Navigation.driveTo(context, pickup) }) +
-                    shotActions(context, pickup, job.atMillis, MapShot.Stop.PICKUP, pickupShots),
+                actions = listOf(
+                    StopAction("导航") { Navigation.driveTo(context, pickup) },
+                    StopAction("看地图") { Navigation.showPlace(context, pickup) },
+                ),
             )
-            Pictures(pickupShots)
             Stop(
                 title = "送到",
                 place = listOfNotNull(dropoff, job.dropUnit).joinToString("  "),
                 tint = DROPOFF,
                 mark = if (job.dropAddress != null) "已确认" else null,
-                actions = listOf(StopAction("导航") { Navigation.driveTo(context, dropoff) }) +
-                    shotActions(context, dropoff, job.atMillis, MapShot.Stop.DROPOFF, dropShots),
+                actions = listOf(
+                    StopAction("导航") { Navigation.driveTo(context, dropoff) },
+                    StopAction("看地图") { Navigation.showPlace(context, dropoff) },
+                ),
             )
-            Pictures(dropShots)
             job.dropNote?.let { Note("客户留言", it, job.dropNoteCn) }
             // The shop's own words about where to park, which is the one thing no
             // map or table of ours can tell him.
@@ -187,81 +178,6 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             job.offer.ruling?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge)
             }
-        }
-    }
-}
-
-/**
- * The two pictures of one end of a job, and whether they are showing.
- *
- * Kept per end and per job, because the aerial of a shop and the aerial of a
- * door are different questions and he asks them at different moments.
- */
-private class Shots(
-    val files: MutableState<List<File>>,
-    val fetching: MutableState<Boolean>,
-    val open: MutableState<Boolean>,
-)
-
-@Composable
-private fun rememberShots(job: Job, stop: MapShot.Stop): Shots {
-    val context = LocalContext.current
-    return remember(job.atMillis, stop) {
-        Shots(
-            files = mutableStateOf(MapShot.taken(context, job.atMillis, stop)),
-            fetching = mutableStateOf(false),
-            open = mutableStateOf(false),
-        )
-    }
-}
-
-/**
- * Fetch, show, hide, fetch again. Two full screens of Google's furniture is most
- * of a card, so they stay shut except right after the trip that got them - which
- * is the moment he asked to look.
- */
-private fun shotActions(
-    context: android.content.Context,
-    address: String,
-    atMillis: Long,
-    stop: MapShot.Stop,
-    shots: Shots,
-): List<StopAction> {
-    val go = {
-        shots.fetching.value = true
-        UberScreenService.shootMap(context, address, atMillis, stop) {
-            shots.fetching.value = false
-            shots.files.value = MapShot.taken(context, atMillis, stop)
-            shots.open.value = shots.files.value.isNotEmpty()
-        }
-    }
-    val first = StopAction(
-        when {
-            shots.fetching.value -> "取图中…"
-            shots.files.value.isEmpty() -> "看地图"
-            shots.open.value -> "收起图"
-            else -> "看图"
-        }
-    ) {
-        if (shots.fetching.value) return@StopAction
-        if (shots.files.value.isNotEmpty()) shots.open.value = !shots.open.value else go()
-    }
-    if (shots.files.value.isEmpty()) return listOf(first)
-    return listOf(first, StopAction("重取") { if (!shots.fetching.value) go() })
-}
-
-@Composable
-private fun Pictures(shots: Shots) {
-    if (!shots.open.value) return
-    shots.files.value.forEach { file ->
-        val bitmap = remember(file.path, file.lastModified()) { BitmapFactory.decodeFile(file.path) }
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.FillWidth,
-            )
         }
     }
 }

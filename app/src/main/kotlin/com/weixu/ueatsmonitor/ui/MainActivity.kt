@@ -72,19 +72,6 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        /** Back to the card, after the trip to Maps. */
-        fun bringBack(context: android.content.Context) {
-            context.startActivity(
-                android.content.Intent(context, MainActivity::class.java).addFlags(
-                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                        android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                )
-            )
-        }
-    }
-
-
     override fun onResume() {
         super.onResume()
         // Brings back the keeper notification if it was swiped away - but never

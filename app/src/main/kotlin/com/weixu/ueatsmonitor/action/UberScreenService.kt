@@ -26,7 +26,6 @@ import com.weixu.ueatsmonitor.domain.Ruling
 import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
 import com.weixu.ueatsmonitor.domain.Suburb
-import com.weixu.ueatsmonitor.ui.MainActivity
 import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
 import com.weixu.ueatsmonitor.domain.RoadIndex
@@ -64,20 +63,6 @@ class UberScreenService : AccessibilityService() {
     private val worker = HandlerThread("uber-screen").apply { start() }
     private val work = Handler(worker.looper)
 
-    /** For the trip to Maps and back, which has to run where the screen does. */
-    internal val main = Handler(Looper.getMainLooper())
-
-    /**
-     * Set while the trip to Maps is running.
-     *
-     * Android allows one screenshot a second per app, and this service is
-     * already taking one every two seconds for its own reading. Both asking at
-     * once means whichever is second is refused - and the refused one was the
-     * picture the driver asked for. The reading pauses instead; a few seconds
-     * blind while he is looking at a map costs nothing.
-     */
-    @Volatile
-    internal var shooting = false
     private val poll = object : Runnable {
         override fun run() {
             look()
@@ -186,7 +171,6 @@ class UberScreenService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun look(force: Boolean = false) {
-        if (shooting) return
         val bursting = System.currentTimeMillis() < burstUntilMillis
         val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
         // During a burst take whatever windows are there - on the lock screen that
@@ -617,60 +601,6 @@ class UberScreenService : AccessibilityService() {
         /** Set while the service is bound, so the keeper's clock can drive it. */
         @Volatile
         private var live: UberScreenService? = null
-
-        /**
-         * Goes to Maps for the two pictures of a delivery and comes back.
-         *
-         * Only the accessibility service can do this: it is the one thing on the
-         * phone that can take a screenshot of another app and send a pinch to it.
-         * The waits are fixed because there is nothing honest to wait on - Maps
-         * gives no signal that its tiles have landed.
-         */
-        fun shootMap(
-            context: Context,
-            address: String,
-            atMillis: Long,
-            stop: MapShot.Stop,
-            onDone: (Boolean) -> Unit,
-        ) {
-            val service = live
-            if (service == null) {
-                onDone(false)
-                return
-            }
-            service.shooting = true
-            Navigation.showPlace(context, address)
-            service.main.postDelayed({
-                MapShot.pinchOut(service, PINCHES) {
-                    service.main.postDelayed({
-                        service.capture { aerial ->
-                            MapShot.save(aerial, MapShot.aerialFile(service, atMillis, stop))
-                            val (x, y) = MapShot.streetViewSpot(service)
-                            MapShot.tap(service, x, y) {
-                                service.main.postDelayed({
-                                    service.capture { street ->
-                                        MapShot.save(street, MapShot.streetFile(service, atMillis, stop))
-                                        MainActivity.bringBack(context)
-                                        service.shooting = false
-                                        onDone(true)
-                                    }
-                                }, STREET_WAIT_MILLIS)
-                            }
-                        }
-                    }, SETTLE_MILLIS)
-                }
-            }, MAPS_WAIT_MILLIS)
-        }
-
-        /**
-         * How many spreads to take. Three puts one roof across the screen and
-         * loses the neighbours' numbers, which are half of how a house is found.
-         */
-        private const val PINCHES = 2
-
-        private const val MAPS_WAIT_MILLIS = 9_000L
-        private const val SETTLE_MILLIS = 1_500L
-        private const val STREET_WAIT_MILLIS = 7_000L
 
         /** Called once a second by [CaptureKeeperService], off the main thread. */
         fun pokeFromKeeper() {
