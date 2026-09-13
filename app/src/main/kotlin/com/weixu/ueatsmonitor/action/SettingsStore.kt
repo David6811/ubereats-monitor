@@ -31,6 +31,8 @@ class SettingsStore(private val context: Context) {
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
         val testModeEnabled: Boolean,
+        /** Whether the reader shoots every two seconds, or only when an Uber window appears. */
+        val timedCaptureEnabled: Boolean,
         val logEveryNotification: Boolean,
     )
 
@@ -50,6 +52,7 @@ class SettingsStore(private val context: Context) {
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
             testModeEnabled = prefs[TEST_MODE] ?: false,
+            timedCaptureEnabled = prefs[TIMED_CAPTURE] ?: true,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
         )
     }
@@ -77,6 +80,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setTestModeEnabled(enabled: Boolean) = putBoolean(TEST_MODE, enabled)
 
+    suspend fun setTimedCaptureEnabled(enabled: Boolean) = putBoolean(TIMED_CAPTURE, enabled)
+
     suspend fun setRecordScreenEnabled(enabled: Boolean) = putBoolean(RECORD_SCREEN, enabled)
 
     suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
@@ -98,6 +103,7 @@ class SettingsStore(private val context: Context) {
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         val RECORD_SCREEN = booleanPreferencesKey("record_screen")
         val TEST_MODE = booleanPreferencesKey("test_mode")
+        val TIMED_CAPTURE = booleanPreferencesKey("timed_capture")
         val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
     }
 }
