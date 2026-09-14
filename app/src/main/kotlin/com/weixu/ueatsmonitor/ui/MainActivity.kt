@@ -170,7 +170,7 @@ private fun MonitorScreen(store: SettingsStore) {
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
-                    ToggleRow("每 2 秒定时截屏（关掉只在 Uber 弹窗时截）", current.timedCaptureEnabled) {
+                    ToggleRow("每 2 秒截屏（关掉就完全不截，也不判断派单）", current.timedCaptureEnabled) {
                         scope.launch { store.setTimedCaptureEnabled(it) }
                     }
                     ToggleRow("测试模式（任何 App 的画面都识别）", current.testModeEnabled) {

@@ -28,7 +28,7 @@ class SettingsStore(private val context: Context) {
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
         val testModeEnabled: Boolean,
-        /** Whether the reader shoots every two seconds, or only when an Uber window appears. */
+        /** Whether the reader takes screenshots at all. Off, no offer card is read. */
         val timedCaptureEnabled: Boolean,
         val logEveryNotification: Boolean,
     )

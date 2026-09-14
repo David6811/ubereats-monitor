@@ -204,10 +204,9 @@ class UberScreenService : AccessibilityService() {
         )
         if (roots.isEmpty() && !shootBlind) return
 
-        // With the timer off, only an Uber window appearing earns a screenshot.
-        // The clock and the screen-lit burst would otherwise keep shooting over
-        // whatever other app the driver has open.
-        if (LiveSettings.current?.timedCaptureEnabled == false && !force) return
+        // Off means off: no screenshot at all, Uber in front or not. The offer card
+        // is only ever read off a screenshot, so with this off no card is judged.
+        if (LiveSettings.current?.timedCaptureEnabled == false) return
 
         // A card that appears half a second after the last capture must not be
         // swallowed by the throttle that exists to stop a moving map spamming files.
