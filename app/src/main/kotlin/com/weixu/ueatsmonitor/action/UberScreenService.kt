@@ -192,9 +192,9 @@ class UberScreenService : AccessibilityService() {
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
 
-        // One beat per pass of the loop, whether or not this pass takes a
-        // screenshot. What it proves is that the loop is still running.
-        if (LiveSettings.current?.pulseEnabled == false) pulse.hide() else pulse.beat(
+        // One beat per pass of the loop, while screenshots are on. With them off
+        // the dot goes too: a dot still beating would say the app is watching.
+        if (LiveSettings.current?.timedCaptureEnabled == false) pulse.hide() else pulse.beat(
             when {
                 !Permissions.screenReadingGranted(this) -> PulseController.Mood.BROKEN
                 all.any { OfferParser.isUberPackage(it.packageName?.toString().orEmpty()) } ->

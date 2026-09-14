@@ -156,9 +156,6 @@ private fun MonitorScreen(store: SettingsStore) {
         item {
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ToggleRow("右上角显示运行状态", current.pulseEnabled) {
-                        scope.launch { store.setPulseEnabled(it) }
-                    }
                     // Named with its own numbers, because the threshold and the
                     // size of the far set are the laptop's, not this app's.
                     Profiles.far(context)?.let { far ->

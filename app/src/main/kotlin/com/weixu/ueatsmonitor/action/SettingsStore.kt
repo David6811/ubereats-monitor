@@ -21,7 +21,6 @@ class SettingsStore(private val context: Context) {
 
     data class Settings(
         val thresholds: Thresholds,
-        val pulseEnabled: Boolean,
         /** Whether an offer over the threshold may use the far set at all. */
         val farEnabled: Boolean,
         val vibrateEnabled: Boolean,
@@ -41,7 +40,6 @@ class SettingsStore(private val context: Context) {
                 minPayPerHour = prefs[MIN_PAY_PER_HOUR] ?: Thresholds.STARTER.minPayPerHour,
                 maxDistance = Miles(prefs[MAX_DISTANCE_MILES] ?: Thresholds.STARTER.maxDistance.value),
             ),
-            pulseEnabled = prefs[PULSE_ENABLED] ?: true,
             farEnabled = prefs[FAR_ENABLED] ?: true,
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
@@ -60,8 +58,6 @@ class SettingsStore(private val context: Context) {
             prefs[MAX_DISTANCE_MILES] = thresholds.maxDistance.value
         }
     }
-
-    suspend fun setPulseEnabled(enabled: Boolean) = putBoolean(PULSE_ENABLED, enabled)
 
     suspend fun setFarEnabled(enabled: Boolean) = putBoolean(FAR_ENABLED, enabled)
 
@@ -86,7 +82,6 @@ class SettingsStore(private val context: Context) {
         val MIN_PAY_PER_MILE = doublePreferencesKey("min_pay_per_mile")
         val MIN_PAY_PER_HOUR = doublePreferencesKey("min_pay_per_hour")
         val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
-        val PULSE_ENABLED = booleanPreferencesKey("pulse_enabled")
         val FAR_ENABLED = booleanPreferencesKey("far_enabled")
         val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
