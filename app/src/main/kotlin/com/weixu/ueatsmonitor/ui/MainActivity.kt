@@ -170,7 +170,7 @@ private fun MonitorScreen(store: SettingsStore) {
                     ToggleRow("区域提示音", current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
-                    ToggleRow("每 2 秒截屏（关掉就完全不截，也不判断派单）", current.timedCaptureEnabled) {
+                    ToggleRow("每 2 秒截屏", current.timedCaptureEnabled) {
                         scope.launch { store.setTimedCaptureEnabled(it) }
                     }
                     ToggleRow("测试模式（任何 App 的画面都识别）", current.testModeEnabled) {
@@ -180,19 +180,6 @@ private fun MonitorScreen(store: SettingsStore) {
             }
         }
 
-        item {
-            Card {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("规则在电脑上设", fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "不接哪些店在电脑的规则编辑器里改，保存时推到这台手机。" +
-                            "上面那一页可以换用哪一套选区。",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text(rulesSummary(context), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
         item { QuitCard() }
     }
 }
@@ -310,15 +297,6 @@ private fun megabytes(bytes: Long): String =
     } else {
         String.format("%.0f MB", bytes / 1024.0 / 1024.0)
     }
-
-/** What the phone is actually running, straight from the pushed file. */
-private fun rulesSummary(context: android.content.Context): String {
-    val rules = com.weixu.ueatsmonitor.action.RulesStore.current(context)
-    if (rules.allowedSuburbs.isEmpty() && rules.deniedStores.isEmpty()) {
-        return "还没收到规则文件"
-    }
-    return "去 " + rules.allowedSuburbs.size + " 个区 · 拉黑 " + rules.deniedStores.size + " 家店"
-}
 
 @Composable
 private fun PermissionCard(title: String, granted: Boolean, hint: String, onFix: () -> Unit) {
