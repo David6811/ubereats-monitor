@@ -156,9 +156,6 @@ private fun MonitorScreen(store: SettingsStore) {
         item {
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ToggleRow("卡片上显示接不接", current.overlayEnabled) {
-                        scope.launch { store.setOverlayEnabled(it) }
-                    }
                     ToggleRow("右上角显示运行状态", current.pulseEnabled) {
                         scope.launch { store.setPulseEnabled(it) }
                     }

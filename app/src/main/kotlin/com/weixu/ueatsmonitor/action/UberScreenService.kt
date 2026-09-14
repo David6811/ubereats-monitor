@@ -395,17 +395,15 @@ class UberScreenService : AccessibilityService() {
         // and a distance - not merely to a band of colour along the bottom. A
         // solid tab bar in any other app satisfied that, and the chip then sat
         // there for as long as the app was open, refreshed every two seconds.
-        if (LiveSettings.current?.overlayEnabled != false) {
-            when {
-                card != null -> Unit
-                offerShape -> overlay.show(OverlayController.State.Thinking)
-                // A verdict already on screen is left to its deadline. The chip
-                // covers part of the card it was read from, so the next frame
-                // often cannot read that card - hiding on that made it blink once
-                // a second for as long as the card was up.
-                overlay.showingVerdict() -> Unit
-                else -> overlay.hide()
-            }
+        when {
+            card != null -> Unit
+            offerShape -> overlay.show(OverlayController.State.Thinking)
+            // A verdict already on screen is left to its deadline. The chip
+            // covers part of the card it was read from, so the next frame
+            // often cannot read that card - hiding on that made it blink once
+            // a second for as long as the card was up.
+            overlay.showingVerdict() -> Unit
+            else -> overlay.hide()
         }
 
         // The driver's own rules, and nothing else. The payout floors that used
@@ -440,7 +438,7 @@ class UberScreenService : AccessibilityService() {
             }
         }
 
-        if (card != null && ruling != null && LiveSettings.current?.overlayEnabled != false) {
+        if (card != null && ruling != null) {
             overlay.show(
                 OverlayController.State.Decided(
                     ruling = ruling,
