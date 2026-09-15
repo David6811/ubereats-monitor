@@ -38,17 +38,19 @@ object Navigation {
     }
 
     /**
-     * Opens Maps at an address in aerial view, with its own pin on the building
-     * and its street view photo underneath. The address alone is enough - Maps
-     * resolves it, which is why no table of house numbers is shipped here.
+     * Opens Maps searching for an address, with its pin on the building and its
+     * street view photos underneath. The address alone is enough - Maps resolves
+     * it, which is why no table of house numbers is shipped here.
+     *
+     * The search form of the Maps URL, not the /maps/place/ one: the app took a
+     * place URL as text for its search box and left it there unsearched.
      */
     fun showPlace(context: Context, place: String) {
         start(
             context,
             Intent(
                 Intent.ACTION_VIEW,
-                Uri.parse("https://www.google.com/maps/place/" +
-                    Uri.encode(qualify(place)) + "/data=!3m1!1e3"),
+                Uri.parse("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(qualify(place))),
             ).setPackage(MAPS),
         )
     }
