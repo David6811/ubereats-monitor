@@ -23,6 +23,7 @@ import android.util.Log
 import android.widget.Toast
 import com.weixu.ueatsmonitor.domain.VoiceCommand
 import com.weixu.ueatsmonitor.domain.VoiceCommands
+import com.weixu.ueatsmonitor.domain.SpokenLanguage
 
 /**
  * Action. Keeps the microphone open for the length of a shift and acts on what
@@ -64,9 +65,10 @@ class VoiceService : Service() {
         askForOfflineChinese()
         speech = TextToSpeech(this) { status ->
             val tts = speech ?: return@TextToSpeech
-            val language = if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.SIMPLIFIED_CHINESE) else -1
-            speechReady = language >= TextToSpeech.LANG_AVAILABLE
-            if (!speechReady) Log.w(TAG, "voice: no Chinese speech, confirming with a tone")
+            // Ready means the engine started; each confirmation sets its own language
+            // and falls back to a tone when the phone has no voice for it.
+            speechReady = status == TextToSpeech.SUCCESS
+            if (!speechReady) Log.w(TAG, "voice: no speech engine, confirming with a tone")
             tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) = Unit
                 override fun onDone(utteranceId: String?) { main.post { again(NEXT_MILLIS) } }
@@ -236,11 +238,14 @@ class VoiceService : Service() {
     }
 
     private fun confirm(command: VoiceCommand) {
+        val english = command.language == SpokenLanguage.ENGLISH
         val words = when (command) {
-            is VoiceCommand.SwitchTo -> command.target.confirm
+            is VoiceCommand.SwitchTo -> if (english) command.target.confirmEnglish else command.target.confirmChinese
         }
         val tts = speech
-        if (speechReady && tts != null) {
+        val voiced = speechReady && tts != null &&
+            tts.setLanguage(if (english) ENGLISH else Locale.SIMPLIFIED_CHINESE) >= TextToSpeech.LANG_AVAILABLE
+        if (voiced && tts != null) {
             val params = Bundle().apply { putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC) }
             val queued = tts.speak(words, TextToSpeech.QUEUE_FLUSH, params, "confirm-" + System.currentTimeMillis())
             if (queued == TextToSpeech.SUCCESS) return
@@ -285,7 +290,7 @@ class VoiceService : Service() {
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("语音命令在听")
-            .setContentText("说「地图」「送餐」「应用」或 map / uber eats / application")
+            .setContentText("说「地图」「送餐」「应用」或 switch to map / uber eats / application")
             .setOngoing(true)
             .build()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -311,6 +316,8 @@ class VoiceService : Service() {
 
         /** Every language a command may be said in, the one listened for first at its head. */
         private val LANGUAGES = listOf(LANGUAGE, "en-AU")
+
+        private val ENGLISH: Locale = Locale("en", "AU")
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, VoiceService::class.java))

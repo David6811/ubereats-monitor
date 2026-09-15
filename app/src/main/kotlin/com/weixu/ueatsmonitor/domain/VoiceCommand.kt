@@ -2,18 +2,29 @@ package com.weixu.ueatsmonitor.domain
 
 /**
  * Data. The apps a spoken command can name. [spoken] is written on screen;
- * [confirm] is said aloud the moment the command is understood.
+ * the confirmations are said aloud the moment the command is understood, in
+ * the language it was given in.
  */
-enum class VoiceTarget(val packageName: String, val spoken: String, val confirm: String) {
-    SELF("com.weixu.ueatsmonitor", "接单助手", "好，应用"),
-    MAPS("com.google.android.apps.maps", "谷歌地图", "好，地图"),
-    UBER("com.ubercab.driver", "Uber 司机端", "好，送餐"),
+enum class VoiceTarget(
+    val packageName: String,
+    val spoken: String,
+    val confirmChinese: String,
+    val confirmEnglish: String,
+) {
+    SELF("com.weixu.ueatsmonitor", "接单助手", "好，应用", "OK, application"),
+    MAPS("com.google.android.apps.maps", "谷歌地图", "好，地图", "OK, map"),
+    UBER("com.ubercab.driver", "Uber 司机端", "好，送餐", "OK, Uber Eats"),
 }
+
+/** Data. The language a command was said in, which is the language it is answered in. */
+enum class SpokenLanguage { CHINESE, ENGLISH }
 
 /** Data. What a sentence asked for. */
 sealed interface VoiceCommand {
+    val language: SpokenLanguage
+
     /** Bring the app to the front. */
-    data class SwitchTo(val target: VoiceTarget) : VoiceCommand
+    data class SwitchTo(val target: VoiceTarget, override val language: SpokenLanguage) : VoiceCommand
 }
 
 /**
@@ -27,7 +38,7 @@ sealed interface VoiceCommand {
 object VoiceCommands {
 
     // Single characters are enough: an app name has to be in the sentence too.
-    private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去")
+    private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去", "switch", "open", "goto")
 
     /**
      * Chinese first. A sentence half in English - "切到 Google Map" - is the one a
@@ -45,6 +56,7 @@ object VoiceCommands {
         "切地图", "切优步", "切送餐", "切应用", "切助手",
         "地图", "送餐", "助手", "应用",
         "map", "uber eats", "application",
+        "switch to map", "switch to uber eats", "switch to application",
     )
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
@@ -59,12 +71,18 @@ object VoiceCommands {
             .maxByOrNull { (_, name) -> name.length }
             ?.first
             ?: return null
+        val language = languageOf(sentence)
         return when {
-            SWITCH_VERBS.any { text.contains(it) } -> VoiceCommand.SwitchTo(target)
-            NAMES.any { (_, names) -> text in names } -> VoiceCommand.SwitchTo(target)
+            SWITCH_VERBS.any { text.contains(it) } -> VoiceCommand.SwitchTo(target, language)
+            NAMES.any { (_, names) -> text in names } -> VoiceCommand.SwitchTo(target, language)
             else -> null
         }
     }
+
+    /** Any Chinese character makes it Chinese: "切到 Google Map" is answered in Chinese. */
+    private fun languageOf(sentence: String): SpokenLanguage =
+        if (sentence.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }) SpokenLanguage.CHINESE
+        else SpokenLanguage.ENGLISH
 
     /**
      * Lower case, no spaces, no punctuation: the recognizer writes "Google Map"

@@ -15,7 +15,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -27,7 +27,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -39,7 +39,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -51,7 +51,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -63,7 +63,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -75,7 +75,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -87,7 +87,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -101,18 +101,21 @@ class VoiceCommandsTest {
         // assert
         assertEquals(
             listOf(
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF),
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF),
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.ENGLISH),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.ENGLISH),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
             ),
             commands,
         )
@@ -127,7 +130,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
     }
 
     @Test
@@ -139,7 +142,7 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH), command)
     }
 
     @Test
@@ -151,7 +154,19 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH), command)
+    }
+
+    @Test
+    fun `given switch to uber eats in english, when it is parsed, then uber comes to the front and is answered in english`() {
+        // arrange
+        val heard = listOf("Switch to Uber Eats")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH), command)
     }
 
     @Test
@@ -187,6 +202,6 @@ class VoiceCommandsTest {
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS), command)
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
     }
 }
