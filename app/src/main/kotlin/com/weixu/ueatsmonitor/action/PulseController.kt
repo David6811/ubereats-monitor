@@ -126,7 +126,7 @@ class PulseController(private val context: Context) {
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = dp(8)
+            x = dp(2)
             y = TOP_PIXELS
         }
         return runCatching { windowManager.addView(holder, params); holder }
