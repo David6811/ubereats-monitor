@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,6 +38,10 @@ import androidx.compose.material.icons.filled.LocationOn
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
+import com.weixu.ueatsmonitor.domain.JobDay
+import com.weixu.ueatsmonitor.domain.JobDays
+import java.time.LocalDate
+import java.time.ZoneId
 import com.weixu.ueatsmonitor.domain.Shelf
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +58,15 @@ import java.util.Locale
 fun WorkScreen() {
     val context = LocalContext.current
     var cleared by remember { mutableStateOf(0) }
-    val jobs by rememberPolled(JobStore.list(context), 2_000L, cleared) { JobStore.list(context) }
+    // The date is read with the jobs, so the board turns over at midnight on its
+    // own - the counts go back to nothing without the screen being touched.
+    val zone = remember { ZoneId.systemDefault() }
+    val board by rememberPolled(
+        JobStore.list(context) to LocalDate.now(zone),
+        2_000L,
+        cleared,
+    ) { JobStore.list(context) to LocalDate.now(zone) }
+    val (jobs, today) = board
 
     // Taken first, because that is the work in hand; the other two are why it is
     // there. A job sits on every shelf that is true of it: what the rules advised
@@ -61,12 +74,16 @@ fun WorkScreen() {
     // shows up in both places. The counts add up to more than the board holds.
     val shelves = listOf(Shelf.TAKEN to "已接", Shelf.WORTH_TAKING to "建议接", Shelf.NOT_WORTH_TAKING to "建议不接")
     var shelf by remember { mutableStateOf(Shelf.TAKEN) }
-    val here = jobs.filter { shelf.holds(it) }
+    val todays = JobDays.today(jobs, today, zone)
+    val here = todays.filter { shelf.holds(it) }
+    val before = JobDays.earlier(jobs.filter { shelf.holds(it) }, today, zone)
+    // Folded unless opened: yesterday is for looking something up, not for driving.
+    val opened = remember { mutableStateMapOf<LocalDate, Boolean>() }
 
     Column(Modifier.fillMaxSize()) {
         Segments(
             choices = shelves.map { (which, label) ->
-                val count = jobs.count { which.holds(it) }
+                val count = todays.count { which.holds(it) }
                 which to (if (count > 0) "$label  $count" else label)
             },
             chosen = shelf,
@@ -82,16 +99,16 @@ fun WorkScreen() {
             if (here.isEmpty()) {
                 item {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = if (before.isEmpty()) 64.dp else 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("空", style = MaterialTheme.typography.headlineLarge, color = Dash.Line)
                         Text(
                             text = when (shelf) {
-                                Shelf.TAKEN -> "现在没有已接的单"
-                                Shelf.WORTH_TAKING -> "现在没有建议接的单"
-                                Shelf.NOT_WORTH_TAKING -> "现在没有建议不接的单"
+                                Shelf.TAKEN -> "今天还没有已接的单"
+                                Shelf.WORTH_TAKING -> "今天还没有建议接的单"
+                                Shelf.NOT_WORTH_TAKING -> "今天还没有建议不接的单"
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             color = Dash.Muted,
@@ -102,6 +119,17 @@ fun WorkScreen() {
             items(here, key = { it.atMillis }) { job ->
                 JobCard(job, shelf) { JobStore.remove(context, job.atMillis); cleared++ }
             }
+            before.forEach { day ->
+                val open = opened[day.date] == true
+                item(key = "day-" + day.date) {
+                    DayHeader(day, today, open) { opened[day.date] = !open }
+                }
+                if (open) {
+                    items(day.jobs, key = { it.atMillis }) { job ->
+                        JobCard(job, shelf) { JobStore.remove(context, job.atMillis); cleared++ }
+                    }
+                }
+            }
             if (jobs.isNotEmpty()) {
                 item {
                     GhostButton("全部清空", Modifier.fillMaxWidth(), color = Dash.Muted) {
@@ -110,6 +138,41 @@ fun WorkScreen() {
                 }
             }
         }
+    }
+}
+
+/** An earlier day, folded to one line: which day, how many, and a chevron to open it. */
+@Composable
+private fun DayHeader(day: JobDay, today: LocalDate, open: Boolean, onToggle: () -> Unit) {
+    val name = when (day.date) {
+        today.minusDays(1) -> "昨天"
+        today.minusDays(2) -> "前天"
+        else -> ""
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Dash.ControlShape)
+            .background(Dash.Panel)
+            .border(1.dp, Dash.Line, Dash.ControlShape)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = DAY.format(day.date),
+            style = MaterialTheme.typography.titleMedium.merge(Dash.Numbers),
+            color = Dash.Ink,
+        )
+        if (name.isNotEmpty()) Text(name, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = day.jobs.size.toString() + " 单",
+            style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+            color = Dash.Muted,
+        )
+        Text(if (open) "▴" else "▾", style = MaterialTheme.typography.titleMedium, color = Dash.Gold)
     }
 }
 
@@ -269,3 +332,4 @@ private fun Stop(
 }
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
+private val DAY: java.time.format.DateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("M月d日 EEE", Locale.CHINA)
