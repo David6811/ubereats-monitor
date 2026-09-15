@@ -168,7 +168,7 @@ class PulseController(private val context: Context) {
         val QUIET: Int = WRONG
         const val STALLED = 0.30f
 
-        /** Near-black and solid, so the edge holds on Uber's white sheet and on the map. */
-        val RING: Int = Color.parseColor("#E6000000")
+        /** Gold and solid, so the blue sits inside a clear edge. */
+        val RING: Int = Color.parseColor("#FFC400")
     }
 }
