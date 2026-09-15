@@ -30,6 +30,9 @@ import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
 import com.weixu.ueatsmonitor.domain.RoadIndex
 import com.weixu.ueatsmonitor.domain.SuburbIndex
+import com.weixu.ueatsmonitor.domain.Spot
+import com.weixu.ueatsmonitor.domain.StoreKinds
+import com.weixu.ueatsmonitor.domain.Stops
 import java.util.concurrent.Executors
 
 /**
@@ -365,22 +368,29 @@ class UberScreenService : AccessibilityService() {
      * which of the three that was. Nothing here decides anything - it is a number
      * for the driver to read while the timer runs.
      */
-    private fun fromCentre(card: OfferCard, gazetteer: List<Suburb>): String? {
+    private fun fromCentre(spot: Spot?): String? {
         val centre = Profiles.centre(this) ?: return null
-        val suburb = SuburbIndex.findAll(card.dropoff, gazetteer).firstOrNull() ?: return null
+        return ChipText.fromCentre(spot ?: return null, centre)
+    }
+
+    /** Where the card's shop and dropoff are on the map, as far as the tables know. */
+    private fun place(card: OfferCard, gazetteer: List<Suburb>): Stops {
         val began = System.currentTimeMillis()
-        val spot = RoadIndex.find(
-            dropoff = card.dropoff,
-            suburb = suburb,
-            crossings = RoadTable.crossings(this),
-            roads = RoadTable.roads(this),
-        )
+        val spot = SuburbIndex.findAll(card.dropoff, gazetteer).firstOrNull()?.let { suburb ->
+            RoadIndex.find(
+                dropoff = card.dropoff,
+                suburb = suburb,
+                crossings = RoadTable.crossings(this),
+                roads = RoadTable.roads(this),
+            )
+        }
+        val shop = StoreKinds.find(card.pickup, StoreTable.all(this))
         // This sits in front of the verdict, so what it costs is what the driver
         // waits. Logged every time rather than measured once: the cost depends on
         // the card, and a card that names two long roads is the slow one.
         Log.i(TAG, "roads: placed in " + (System.currentTimeMillis() - began) + " ms, " +
-            spot::class.simpleName)
-        return ChipText.fromCentre(spot, centre)
+            (spot?.let { it::class.simpleName } ?: "nowhere") + ", shop=" + (shop?.name ?: "-"))
+        return Stops(pickup = shop, dropoff = spot)
     }
 
     private fun decide(lines: List<String>, text: String, now: Long): String {
@@ -409,7 +419,8 @@ class UberScreenService : AccessibilityService() {
         // to live here were invented by this app and are gone; the numbers are
         // still shown on the chip, they just do not decide anything.
         val rules = RulesStore.current(this)
-        val ruling = card?.let { RuleJudge.judge(it, rules, gazetteer) }
+        val stops = card?.let { place(it, gazetteer) }
+        val ruling = card?.let { RuleJudge.judge(it, rules, gazetteer, stops ?: Stops.UNPLACED) }
 
         val searchIn = card?.dropoff ?: text
         val found = SuburbIndex.findAll(searchIn, gazetteer)
@@ -442,7 +453,7 @@ class UberScreenService : AccessibilityService() {
                 OverlayController.State.Decided(
                     ruling = ruling,
                     card = card,
-                    fromCentre = fromCentre(card, gazetteer),
+                    fromCentre = fromCentre(stops?.dropoff),
                 )
             )
             // The verdict is the news while it is up; the heartbeat can wait.

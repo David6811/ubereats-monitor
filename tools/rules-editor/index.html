@@ -411,6 +411,8 @@ body.mapfull h2{font-size:17px}
           layer.bindTooltip(name, { sticky: true });
           layer.on("click", function(event){
             L.DomEvent.stop(event);
+            // The release that finishes a box also clicks whatever suburb is under it.
+            if (noGoOn || Date.now() - noGoDrewAt < 400) return;
             toggle(name);
           });
           layer.on("mouseover", function(){
@@ -423,8 +425,88 @@ body.mapfull h2{font-size:17px}
       }).addTo(map);
       drawAnchor();
       drawCentre();
+      drawNoGo();
       counts();
       fitToChosen();
+    });
+    bindNoGoDrawing();
+  }
+
+  /* ---- no-go boxes: drag a rectangle, nothing is picked up or delivered inside ---- */
+  var noGoLayer = null, noGoOn = false, noGoDrewAt = 0;
+
+  function noGo(){
+    if (!state.rules.noGo) state.rules.noGo = [];
+    return state.rules.noGo;
+  }
+
+  function drawNoGo(){
+    if (noGoLayer) noGoLayer.remove();
+    noGoLayer = L.layerGroup().addTo(map);
+    noGo().forEach(function(box, index){
+      var rect = L.rectangle([[box.south, box.west], [box.north, box.east]], {
+        color: "#b3261e", weight: 2, fillColor: "#b3261e", fillOpacity: 0.22, dashArray: "6 4",
+      }).addTo(noGoLayer);
+      rect.bindTooltip("⛔ " + box.label + "（点一下删掉）", { sticky: true });
+      rect.on("click", function(event){
+        L.DomEvent.stop(event);
+        if (noGoOn) return;
+        if (!confirm("删掉「" + box.label + "」？")) return;
+        noGo().splice(index, 1);
+        drawNoGo();
+        say("删了一个不接单框，记得保存", "ok");
+      });
+    });
+  }
+
+  function showNoGo(on){
+    noGoOn = on;
+    $("noGoTool").textContent = on ? "拖出一个框…（再点取消）" : "画不接单框";
+    map.getContainer().style.cursor = on ? "crosshair" : "";
+    if (on) map.dragging.disable(); else map.dragging.enable();
+    if (on) say("按住鼠标在地图上拖，框里的地方不接单也不送", "ok");
+  }
+
+  /** Press, drag, release: the rectangle between the two corners. */
+  function bindNoGoDrawing(){
+    var start = null, preview = null;
+    map.on("mousedown", function(event){
+      if (!noGoOn) return;
+      start = event.latlng;
+      preview = L.rectangle([start, start], { color: "#b3261e", weight: 2, fillOpacity: 0.15 }).addTo(map);
+    });
+    map.on("mousemove", function(event){
+      if (!noGoOn || !start) return;
+      preview.setBounds(L.latLngBounds(start, event.latlng));
+    });
+    map.on("mouseup", function(event){
+      if (!noGoOn || !start) return;
+      var bounds = L.latLngBounds(start, event.latlng);
+      noGoDrewAt = Date.now();
+      preview.remove();
+      start = null;
+      preview = null;
+      showNoGo(false);
+      // A click with no drag is a slip, not a box.
+      if (Math.abs(bounds.getNorth() - bounds.getSouth()) < 0.001 ||
+          Math.abs(bounds.getEast() - bounds.getWest()) < 0.001) {
+        return say("框太小了，没加", "bad");
+      }
+      // After the click that follows this release has been dispatched and ignored;
+      // a prompt opened here would hold it until the 400 ms guard had run out.
+      setTimeout(function(){
+        var label = prompt("给这个框起个名字", "不接单区 " + (noGo().length + 1));
+        if (label === null) return;
+        noGo().push({
+          label: label.trim() || ("不接单区 " + (noGo().length + 1)),
+          south: +bounds.getSouth().toFixed(5),
+          west: +bounds.getWest().toFixed(5),
+          north: +bounds.getNorth().toFixed(5),
+          east: +bounds.getEast().toFixed(5),
+        });
+        drawNoGo();
+        say("加了「" + noGo()[noGo().length - 1].label + "」，记得保存", "ok");
+      }, 0);
     });
   }
 
@@ -616,6 +698,7 @@ body.mapfull h2{font-size:17px}
       ["full", "全屏"],
       ["circleTool", "量范围"],
       ["centreTool", "设中心"],
+      ["noGoTool", "画不接单框"],
     ].forEach(function(pair){
       var button = document.createElement("button");
       button.className = "btn plain";
@@ -1035,6 +1118,11 @@ body.mapfull h2{font-size:17px}
   $("circleClose").addEventListener("click", function(){ showCircle(false); });
   $("centreTool").addEventListener("click", function(){ showCentre(!centreOn); });
   $("centreClose").addEventListener("click", function(){ showCentre(false); });
+  $("noGoTool").addEventListener("click", function(){
+    if (circleOn) showCircle(false);
+    if (centreOn) showCentre(false);
+    showNoGo(!noGoOn);
+  });
 
 
   $("full").addEventListener("click", function(){
@@ -1375,6 +1463,7 @@ body.mapfull h2{font-size:17px}
         ["远区 >$" + (far().overDollars || 30), far().suburbs.length + " 个"],
         ["市中心不接的店", (sending.stores.cbdDeny || []).length + " 家"],
         ["手动拉黑的店", sending.stores.deny.length + " 家"],
+        ["不接单框", (sending.noGo || []).length + " 个"],
       ];
       if (data.pushed) {
         say("已推送", "ok");

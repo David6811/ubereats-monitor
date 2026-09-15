@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
+import com.weixu.ueatsmonitor.domain.NoGoBox
 import com.weixu.ueatsmonitor.domain.Rules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -81,7 +82,8 @@ object RulesStore {
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
                 parsed.deniedStores.size + " denied stores, " +
                 parsed.alwaysOkStores.size + " always ok, " +
-                parsed.farSuburbs.size + " far over " + parsed.farOverCents,
+                parsed.farSuburbs.size + " far over " + parsed.farOverCents + ", " +
+                parsed.noGoBoxes.size + " no-go boxes",
         )
         return parsed
     }
@@ -92,6 +94,7 @@ object RulesStore {
         farOverCents = Cents.ofDollars(DEFAULT_FAR_DOLLARS),
         deniedStores = emptyList(),
         alwaysOkStores = emptyList(),
+        noGoBoxes = emptyList(),
     )
 
     private fun parse(file: File): Rules {
@@ -122,12 +125,25 @@ object RulesStore {
             val overDollars = far?.get("overDollars")?.jsonPrimitive?.content?.toDoubleOrNull()
                 ?: DEFAULT_FAR_DOLLARS
 
+            // Rectangles drawn on the map. One with a missing edge is skipped
+            // rather than read as zero, which would stretch it to the equator.
+            val noGo = root["noGo"]?.jsonArray?.mapNotNull { entry ->
+                val box = entry.jsonObject
+                fun edge(key: String) = box[key]?.jsonPrimitive?.content?.toDoubleOrNull()
+                val south = edge("south") ?: return@mapNotNull null
+                val west = edge("west") ?: return@mapNotNull null
+                val north = edge("north") ?: return@mapNotNull null
+                val east = edge("east") ?: return@mapNotNull null
+                NoGoBox(box["label"]?.jsonPrimitive?.content ?: "不接单区", south, west, north, east)
+            }.orEmpty()
+
             Rules(
                 allowedSuburbs = allow,
                 farSuburbs = farSuburbs,
                 farOverCents = Cents.ofDollars(overDollars),
                 deniedStores = deny,
                 alwaysOkStores = alwaysOk,
+                noGoBoxes = noGo,
             )
         }.getOrElse { empty() }
     }

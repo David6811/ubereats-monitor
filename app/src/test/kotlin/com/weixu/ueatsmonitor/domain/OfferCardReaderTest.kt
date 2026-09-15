@@ -404,6 +404,7 @@ class OfferCardReaderTest {
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
+            noGoBoxes = emptyList(),
         )
         val gazetteer = listOf(
             Suburb("Clayton South", GeoPoint(-37.9415, 145.1245)),
@@ -411,7 +412,7 @@ class OfferCardReaderTest {
         )
 
         // act
-        val ruling = RuleJudge.judge(card, rules, gazetteer)
+        val ruling = RuleJudge.judge(card, rules, gazetteer, Stops.UNPLACED)
 
         // assert
         assertEquals("Clayton South 不在名单里", RulingText.reason(ruling))

@@ -12,7 +12,7 @@ class RuleJudgeTest {
         val card = card(pickup = "McDonald's (Sandown)", dropoff = "Dandenong Road & Dunblane Road, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertTrue(ruling is Ruling.Take)
@@ -24,7 +24,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Mad Shak's Cafe", dropoff = "Bangholme Road, Dandenong South")
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // affirm
         assertTrue(ruling is Ruling.Leave)
@@ -40,7 +40,7 @@ class RuleJudgeTest {
         val rules = RULES.copy(deniedStores = listOf("Walrus BBQ"))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling))
@@ -53,7 +53,7 @@ class RuleJudgeTest {
         val rules = RULES.copy(deniedStores = listOf("Walrus BBQ"))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling))
@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList()), GAZETTEER)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList()), GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -77,7 +77,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "12 Nowhere Street")
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Unknown, ruling)
@@ -93,7 +93,7 @@ class RuleJudgeTest {
         )
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertTrue(ruling is Ruling.Take)
@@ -109,7 +109,7 @@ class RuleJudgeTest {
         )
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertTrue(ruling is Ruling.Take)
@@ -122,7 +122,7 @@ class RuleJudgeTest {
         val rules = RULES.copy(deniedStores = listOf("KFC"), alwaysOkStores = listOf("KFC"))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling))
@@ -145,7 +145,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(31.0))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
@@ -158,7 +158,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(30.0))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
@@ -174,7 +174,7 @@ class RuleJudgeTest {
         assertEquals(true, RULES.allowedSuburbs.contains("Keysborough"))
 
         // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER)
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Keysborough")), ruling)
@@ -186,7 +186,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(60.0))
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
@@ -198,19 +198,79 @@ class RuleJudgeTest {
         val card = card(pickup = "Woolworths Keysborough", dropoff = "Bowman Lane & Keys Road, Keysborough")
 
         // act
-        val ruling = RuleJudge.judge(card, RULES, GAZETTEER)
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.Take("Keysborough"), ruling)
     }
 
+    @Test
+    fun `given a dropoff at a junction inside a no-go box, when judged, then the box is the reason`() {
+        // arrange  -37.97, 145.12 lies inside -38.00..-37.93 by 145.10..145.14
+        val card = card(pickup = "Some Shop", dropoff = "Dandenong Road & Dunblane Road, Noble Park")
+        val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.12), "Dandenong Road", "Dunblane Road"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals("送餐点在「Springvale 西」里", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given a pickup shop inside a no-go box, when judged, then the shop and the box are the reason`() {
+        // arrange
+        val card = card(pickup = "Pho Hung", dropoff = "Some Street, Noble Park")
+        val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
+        val shop = Store("Pho Hung", "restaurant", "STRIP", GeoPoint(-37.95, 145.13))
+        val stops = Stops(pickup = shop, dropoff = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals("取餐 Pho Hung 在「Springvale 西」里", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given a dropoff placed only by its suburb inside a no-go box, when judged, then the suburb list decides`() {
+        // arrange  a suburb's middle is kilometres from the door, too rough for a box
+        val card = card(pickup = "Some Shop", dropoff = "Somewhere, Noble Park")
+        val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
+        val stops = Stops(pickup = null, dropoff = Spot.InSuburb(GeoPoint(-37.97, 145.12), "Noble Park"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Noble Park"), ruling)
+    }
+
+    @Test
+    fun `given a dropoff at a junction just east of a no-go box, when judged, then the box does not refuse it`() {
+        // arrange  145.141 is east of the box's 145.14 edge
+        val card = card(pickup = "Some Shop", dropoff = "Dandenong Road & Dunblane Road, Noble Park")
+        val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.141), "Dandenong Road", "Dunblane Road"))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Noble Park"), ruling)
+    }
+
     private companion object {
+        val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
+
         val RULES = Rules(
             allowedSuburbs = setOf("Noble Park", "Keysborough", "Dandenong"),
             farSuburbs = emptySet(),
             farOverCents = Cents.ofDollars(30.0),
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
+            noGoBoxes = emptyList(),
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),

@@ -21,6 +21,8 @@ data class Rules(
      * strip is still a McDonald's with a car park.
      */
     val alwaysOkStores: List<String>,
+    /** Rectangles drawn on the laptop: no pickup and no dropoff inside any of them. */
+    val noGoBoxes: List<NoGoBox>,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -40,20 +42,24 @@ sealed interface Ruling {
     sealed interface Reason {
         data class SuburbNotAllowed(val suburb: String) : Reason
         data class StoreDenied(val store: String) : Reason
+        data class InNoGoBox(val hit: NoGoHit) : Reason
     }
 }
 
 /**
  * Calculation. Card plus rules in, [Ruling] out.
  *
- * Two rules, in order: the pickup must not be on the deny list, and the
- * destination's suburb must be on the allow list. The first one that says no
- * is the one reported, because that is the one the driver needs to hear.
+ * Three rules, in order: the pickup must not be on the deny list, neither stop
+ * may be inside a no-go box, and the destination's suburb must be on the allow
+ * list. The first one that says no is the one reported, because that is the
+ * one the driver needs to hear.
  */
 object RuleJudge {
 
-    fun judge(card: OfferCard, rules: Rules, gazetteer: List<Suburb>): Ruling {
-        if (rules.allowedSuburbs.isEmpty() && rules.deniedStores.isEmpty()) return Ruling.NoRules
+    fun judge(card: OfferCard, rules: Rules, gazetteer: List<Suburb>, stops: Stops): Ruling {
+        if (rules.allowedSuburbs.isEmpty() && rules.deniedStores.isEmpty() && rules.noGoBoxes.isEmpty()) {
+            return Ruling.NoRules
+        }
 
         val alwaysOk = rules.alwaysOkStores.any { name ->
             name.isNotBlank() && card.pickup.contains(name, ignoreCase = true)
@@ -62,6 +68,10 @@ object RuleJudge {
             name.isNotBlank() && card.pickup.contains(name, ignoreCase = true)
         }
         if (denied != null) return Ruling.Leave(Ruling.Reason.StoreDenied(denied))
+
+        // Before the suburb list, and whatever the payout: a box is a place he
+        // will not go, not a place that is merely out of the way.
+        NoGo.hit(rules.noGoBoxes, stops)?.let { return Ruling.Leave(Ruling.Reason.InNoGoBox(it)) }
 
         // Over the threshold the far set applies instead. Not as well as: the
         // whole point is that a big payout reaches somewhere the ordinary set
@@ -102,6 +112,10 @@ object RulingText {
         is Ruling.Leave -> when (val why = ruling.reason) {
             is Ruling.Reason.SuburbNotAllowed -> why.suburb + " 不在名单里"
             is Ruling.Reason.StoreDenied -> why.store + " 在黑名单里"
+            is Ruling.Reason.InNoGoBox -> when (val hit = why.hit) {
+                is NoGoHit.Pickup -> "取餐 " + hit.store + " 在「" + hit.box.label + "」里"
+                is NoGoHit.Dropoff -> "送餐点在「" + hit.box.label + "」里"
+            }
         }
         Ruling.NoRules -> "在电脑上设好规则再推过来"
         Ruling.Unknown -> "送达地址里没有认得出的郊区"

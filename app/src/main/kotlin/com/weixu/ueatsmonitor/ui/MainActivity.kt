@@ -54,7 +54,6 @@ import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SettingsStore
 import com.weixu.ueatsmonitor.action.UberScreenService
 import com.weixu.ueatsmonitor.action.VoiceService
-import com.weixu.ueatsmonitor.action.LiveSettings
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.GeoPoint
@@ -67,6 +66,8 @@ import com.weixu.ueatsmonitor.domain.RawNotification
 import com.weixu.ueatsmonitor.domain.Thresholds
 import com.weixu.ueatsmonitor.domain.Verdict
 import com.weixu.ueatsmonitor.domain.VerdictText
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,8 +106,14 @@ class MainActivity : ComponentActivity() {
         // The microphone service dies with the process (a reinstall, a reboot) and
         // may only be started while the app is in front, so opening the app is
         // what brings it back.
-        if (LiveSettings.current?.voiceEnabled == true && Permissions.microphoneGranted(this)) {
-            runCatching { VoiceService.start(this) }
+        // Read from the store, not the live copy: straight after a reinstall the
+        // live copy is still empty when the first screen resumes.
+        if (Permissions.microphoneGranted(this)) {
+            lifecycleScope.launch {
+                if (App.instance.settingsStore.settings.first().voiceEnabled) {
+                    runCatching { VoiceService.start(this@MainActivity) }
+                }
+            }
         }
     }
 
