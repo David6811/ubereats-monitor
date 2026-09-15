@@ -43,18 +43,6 @@ class VoiceCommandsTest {
     }
 
     @Test
-    fun `given close google map, when it is parsed, then maps is closed rather than opened`() {
-        // arrange
-        val heard = listOf("关闭谷歌地图")
-
-        // act
-        val command = VoiceCommands.parse(heard)
-
-        // assert
-        assertEquals(VoiceCommand.Close(VoiceTarget.MAPS), command)
-    }
-
-    @Test
     fun `given the short chinese for uber, when it is parsed, then uber comes to the front`() {
         // arrange
         val heard = listOf("切优步")
@@ -91,18 +79,6 @@ class VoiceCommandsTest {
     }
 
     @Test
-    fun `given the short chinese for closing the map, when it is parsed, then maps is closed`() {
-        // arrange
-        val heard = listOf("关地图")
-
-        // act
-        val command = VoiceCommands.parse(heard)
-
-        // assert
-        assertEquals(VoiceCommand.Close(VoiceTarget.MAPS), command)
-    }
-
-    @Test
     fun `given this app's full name, which contains uber's word for taking a job, when it is parsed, then this app wins`() {
         // arrange
         val heard = listOf("切到接单助手")
@@ -130,10 +106,25 @@ class VoiceCommandsTest {
                 VoiceCommand.SwitchTo(VoiceTarget.UBER),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF),
-                VoiceCommand.Close(VoiceTarget.MAPS),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF),
             ),
             commands,
         )
+    }
+
+    @Test
+    fun `given only the map's name ending in a full stop, when it is parsed, then maps comes to the front`() {
+        // arrange
+        val heard = listOf("地图。")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS), command)
     }
 
     @Test

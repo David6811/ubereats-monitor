@@ -135,10 +135,6 @@ class VoiceService : Service() {
                 }.onFailure { Log.w(TAG, "voice: switch failed", it) }
                 toast("切到" + command.target.spoken)
             }
-            is VoiceCommand.Close -> {
-                val done = UberScreenService.goHomeIfShowing(command.target.packageName)
-                toast(if (done) "已把" + command.target.spoken + "退到后台" else command.target.spoken + "不在前台")
-            }
         }
     }
 
@@ -154,7 +150,7 @@ class VoiceService : Service() {
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("语音命令在听")
-            .setContentText("说「切地图」「切优步」「切送餐」「切应用」「关地图」")
+            .setContentText("说「地图」「送餐」「应用」")
             .setOngoing(true)
             .build()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {

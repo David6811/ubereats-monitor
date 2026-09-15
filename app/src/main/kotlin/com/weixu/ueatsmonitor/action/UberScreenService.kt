@@ -606,17 +606,6 @@ class UberScreenService : AccessibilityService() {
         }
 
         /**
-         * Presses Home when that app is the one in front. No app may kill another,
-         * and Home is a global action: it needs no gesture right, only this service.
-         */
-        fun goHomeIfShowing(packageName: String): Boolean {
-            val service = live ?: return false
-            val front = runCatching { service.rootInActiveWindow?.packageName?.toString() }.getOrNull()
-            if (front != packageName) return false
-            return service.performGlobalAction(GLOBAL_ACTION_HOME)
-        }
-
-        /**
          * Everything down: the overlays go, the keeper goes, and the service
          * switches itself off. Turning it back on means Settings -> Accessibility,
          * because nothing in an app can grant itself that permission again.
