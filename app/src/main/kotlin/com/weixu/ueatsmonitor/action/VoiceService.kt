@@ -41,6 +41,14 @@ class VoiceService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
+
+    /**
+     * The on-device recognizer first. On this phone the offline Mandarin pack is
+     * downloaded into the on-device service, while the default recognizer is a
+     * different app that never sees it and keeps going to the network. Cleared
+     * for good the first time the on-device one says it has no such language.
+     */
+    private var offline = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
     private var running = false
 
     /** Set once this session has acted, so the final result does not act again. */
@@ -96,7 +104,7 @@ class VoiceService : Service() {
             stopSelf()
             return
         }
-        val current = recognizer ?: SpeechRecognizer.createSpeechRecognizer(this).also {
+        val current = recognizer ?: create().also {
             it.setRecognitionListener(listener)
             recognizer = it
         }
@@ -135,6 +143,16 @@ class VoiceService : Service() {
         }.onFailure { Log.w(TAG, "voice: offline model request failed", it) }
     }
 
+    private fun create(): SpeechRecognizer {
+        if (offline && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            Log.i(TAG, "voice: listening on-device")
+            return SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+        }
+        offline = false
+        Log.i(TAG, "voice: listening through the default recognizer")
+        return SpeechRecognizer.createSpeechRecognizer(this)
+    }
+
     /** Starts the next session after a pause, so a failing recognizer does not spin. */
     private fun again(afterMillis: Long) {
         main.removeCallbacksAndMessages(null)
@@ -168,6 +186,17 @@ class VoiceService : Service() {
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 toast("没有麦克风权限，语音命令已停止")
                 stopSelf()
+                return
+            }
+            // No Mandarin on the device after all: fall back to the network for good.
+            if (offline && (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                    error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
+            ) {
+                Log.w(TAG, "voice: on-device has no $LANGUAGE (error $error), using the network")
+                offline = false
+                recognizer?.destroy()
+                recognizer = null
+                again(NEXT_MILLIS)
                 return
             }
             if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
