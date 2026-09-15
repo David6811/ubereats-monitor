@@ -68,10 +68,31 @@ class UberScreenService : AccessibilityService() {
 
     private val poll = object : Runnable {
         override fun run() {
+            listenFor(capturing())
             look()
-            work.postDelayed(this, POLL_MILLIS)
+            work.postDelayed(this, if (capturing()) POLL_MILLIS else IDLE_POLL_MILLIS)
         }
     }
+
+    @Volatile
+    private var listening: Boolean? = null
+
+    /**
+     * Every app's accessibility events arrive on this service's main thread, many
+     * a second, and each is parsed before it can be ignored. With screenshots off
+     * nothing reads them, so the service asks for none; that was most of the CPU
+     * left once the polling had stopped.
+     */
+    private fun listenFor(on: Boolean) {
+        if (listening == on) return
+        val info = serviceInfo ?: return
+        info.eventTypes = if (on) AccessibilityEvent.TYPES_ALL_MASK else 0
+        runCatching { serviceInfo = info }
+            .onSuccess { listening = on; Log.i(TAG, "events " + (if (on) "on" else "off")) }
+    }
+
+    /** Screenshots on. Off, the service does no work at all - not even listing windows. */
+    private fun capturing(): Boolean = LiveSettings.current?.timedCaptureEnabled != false
 
     private var lastText: String = ""
     private var lastWindowSignature: String = ""
@@ -174,6 +195,13 @@ class UberScreenService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun look(force: Boolean = false) {
+        // Off means off, and before anything that costs: listing windows twice a
+        // second for a result that could never be used was most of what the app
+        // spent while idle. The dot goes too - a beating dot says it is watching.
+        if (!capturing()) {
+            pulse.hide()
+            return
+        }
         val bursting = System.currentTimeMillis() < burstUntilMillis
         val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
         // During a burst take whatever windows are there - on the lock screen that
@@ -195,9 +223,8 @@ class UberScreenService : AccessibilityService() {
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
 
-        // One beat per pass of the loop, while screenshots are on. With them off
-        // the dot goes too: a dot still beating would say the app is watching.
-        if (LiveSettings.current?.timedCaptureEnabled == false) pulse.hide() else pulse.beat(
+        // One beat per pass of the loop.
+        pulse.beat(
             when {
                 !Permissions.screenReadingGranted(this) -> PulseController.Mood.BROKEN
                 all.any { OfferParser.isUberPackage(it.packageName?.toString().orEmpty()) } ->
@@ -206,10 +233,6 @@ class UberScreenService : AccessibilityService() {
             }
         )
         if (roots.isEmpty() && !shootBlind) return
-
-        // Off means off: no screenshot at all, Uber in front or not. The offer card
-        // is only ever read off a screenshot, so with this off no card is judged.
-        if (LiveSettings.current?.timedCaptureEnabled == false) return
 
         // A card that appears half a second after the last capture must not be
         // swallowed by the throttle that exists to stop a moving map spamming files.
@@ -642,6 +665,7 @@ class UberScreenService : AccessibilityService() {
 
         const val TAG = "UEatsMonitor"
         const val POLL_MILLIS = 1_000L
+        const val IDLE_POLL_MILLIS = 2_000L
         /**
          * Measured on this phone over thirty seconds with Uber in front, counting
          * frames actually judged against screenshots the platform refused:

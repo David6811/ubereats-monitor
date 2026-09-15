@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,7 +38,6 @@ import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
 import com.weixu.ueatsmonitor.domain.Shelf
-import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,12 +53,7 @@ import java.util.Locale
 fun WorkScreen() {
     val context = LocalContext.current
     var cleared by remember { mutableStateOf(0) }
-    val jobs by produceState(initialValue = JobStore.list(context), cleared) {
-        while (true) {
-            value = JobStore.list(context)
-            delay(2_000)
-        }
-    }
+    val jobs by rememberPolled(JobStore.list(context), 2_000L, cleared) { JobStore.list(context) }
 
     // Taken first, because that is the work in hand; the other two are why it is
     // there. A job sits on every shelf that is true of it: what the rules advised

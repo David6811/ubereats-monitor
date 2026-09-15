@@ -37,6 +37,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.repeatOnLifecycle
 
 /**
  * The look of the app: a car's instrument cluster. Near-black, one gold accent,
@@ -315,4 +316,28 @@ fun <T> Segments(
 @Composable
 fun ButtonRow(content: @Composable RowScope.() -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), content = content)
+}
+
+/**
+ * A value re-read every [everyMillis] while the screen is actually showing, and
+ * not at all once it is behind another app. A plain loop in produceState keeps
+ * running after Home is pressed, and two of them were most of what the app spent
+ * sitting in the background.
+ */
+@Composable
+fun <T> rememberPolled(
+    initial: T,
+    everyMillis: Long,
+    vararg keys: Any?,
+    read: () -> T,
+): androidx.compose.runtime.State<T> {
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    return androidx.compose.runtime.produceState(initial, owner, *keys) {
+        owner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                value = read()
+                kotlinx.coroutines.delay(everyMillis)
+            }
+        }
+    }
 }

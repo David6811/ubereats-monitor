@@ -176,15 +176,11 @@ private fun HomeTabs() {
 private fun StatusStrip() {
     val context = LocalContext.current
     val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
-    val live by androidx.compose.runtime.produceState(initialValue = Triple(false, "", false)) {
-        while (true) {
-            value = Triple(
-                Permissions.screenReadingGranted(context),
-                Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
-                true,
-            )
-            kotlinx.coroutines.delay(2_000)
-        }
+    val live by rememberPolled(Pair(false, ""), 2_000L) {
+        Pair(
+            Permissions.screenReadingGranted(context),
+            Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
+        )
     }
     Row(
         modifier = Modifier
