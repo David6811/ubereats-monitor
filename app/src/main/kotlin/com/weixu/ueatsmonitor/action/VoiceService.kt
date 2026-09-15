@@ -140,16 +140,33 @@ class VoiceService : Service() {
             Log.w(TAG, "voice: no on-device recognizer on this phone")
             return
         }
+        // Only for a language with no pack at all. Asking for one that is merely
+        // out of date puts a system "download update" dialog over whatever is on
+        // screen, every time the service starts.
         runCatching {
             val onDevice = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            LANGUAGES.forEach { language ->
-                onDevice.triggerModelDownload(
-                    Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                        .putExtra(RecognizerIntent.EXTRA_LANGUAGE, language),
-                )
-                Log.i(TAG, "voice: asked for the offline $language model")
-            }
-            main.postDelayed({ onDevice.destroy() }, 5_000L)
+            onDevice.checkRecognitionSupport(
+                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH),
+                mainExecutor,
+                object : android.speech.RecognitionSupportCallback {
+                    override fun onSupportResult(support: android.speech.RecognitionSupport) {
+                        val installed = support.installedOnDeviceLanguages.map { it.lowercase() }
+                        LANGUAGES.filter { it.lowercase() !in installed }.forEach { language ->
+                            onDevice.triggerModelDownload(
+                                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, language),
+                            )
+                            Log.i(TAG, "voice: asked for the offline $language model")
+                        }
+                        main.postDelayed({ onDevice.destroy() }, 5_000L)
+                    }
+
+                    override fun onError(error: Int) {
+                        Log.w(TAG, "voice: could not check offline languages, error $error")
+                        onDevice.destroy()
+                    }
+                },
+            )
         }.onFailure { Log.w(TAG, "voice: offline model request failed", it) }
     }
 

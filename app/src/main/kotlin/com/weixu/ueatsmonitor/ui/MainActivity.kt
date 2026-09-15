@@ -3,7 +3,19 @@ package com.weixu.ueatsmonitor.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -120,8 +132,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+            DashTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
                     HomeTabs()
                 }
             }
@@ -129,21 +141,113 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Data. The four places in the app, in the order of the bar along the bottom. */
+private enum class Place(val label: String, val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
+    WORK("工作", Icons.Filled.Home),
+    AREAS("选区", Icons.Filled.LocationOn),
+    RECORD("记录", Icons.AutoMirrored.Filled.List),
+    SETTINGS("设置", Icons.Filled.Settings),
+}
+
+/**
+ * The frame: what is running along the top, the page in the middle, and the four
+ * places along the bottom where a thumb reaches them while the phone is in its
+ * cradle.
+ */
 @Composable
 private fun HomeTabs() {
-    var tab by remember { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("主工作区") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("用哪套") })
-            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("跑单记录") })
-            Tab(selected = tab == 3, onClick = { tab = 3 }, text = { Text("设置") })
+    var place by remember { mutableStateOf(Place.WORK) }
+    Column(Modifier.fillMaxSize().background(Dash.Ground)) {
+        StatusStrip()
+        Box(Modifier.weight(1f)) {
+            when (place) {
+                Place.WORK -> WorkScreen()
+                Place.AREAS -> ProfileScreen()
+                Place.RECORD -> CaptureScreen()
+                Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
+            }
         }
-        when (tab) {
-            0 -> WorkScreen()
-            1 -> ProfileScreen()
-            2 -> CaptureScreen()
-            else -> MonitorScreen(App.instance.settingsStore)
+        BottomBar(place) { place = it }
+    }
+}
+
+/** Is it watching, is it listening, which set is live - the three things worth a glance. */
+@Composable
+private fun StatusStrip() {
+    val context = LocalContext.current
+    val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
+    val live by androidx.compose.runtime.produceState(initialValue = Triple(false, "", false)) {
+        while (true) {
+            value = Triple(
+                Permissions.screenReadingGranted(context),
+                Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
+                true,
+            )
+            kotlinx.coroutines.delay(2_000)
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 56.dp, top = 14.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        Spacer(Modifier.weight(1f))
+        LampLabel("读屏", live.first, Dash.Blue)
+        LampLabel("语音", settings?.voiceEnabled == true, Dash.Gold)
+        if (live.second.isNotEmpty()) {
+            Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
+        }
+    }
+}
+
+@Composable
+private fun LampLabel(label: String, on: Boolean, color: androidx.compose.ui.graphics.Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Lamp(on, color)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = if (on) Dash.Ink else Dash.Muted)
+    }
+}
+
+@Composable
+private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
+    Column {
+        Hairline()
+        Row(
+            modifier = Modifier.fillMaxWidth().background(Dash.Ground).padding(vertical = 8.dp),
+        ) {
+            Place.entries.forEach { place ->
+                val on = place == current
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onChoose(place) }
+                        .padding(vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (on) Dash.GoldDeep else androidx.compose.ui.graphics.Color.Transparent)
+                            .padding(horizontal = 18.dp, vertical = 4.dp),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = place.glyph,
+                            contentDescription = place.label,
+                            tint = if (on) Dash.Gold else Dash.Muted,
+                        )
+                    }
+                    Text(
+                        text = place.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (on) Dash.Gold else Dash.Muted,
+                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
+            }
         }
     }
 }
@@ -153,15 +257,13 @@ private fun MonitorScreen(store: SettingsStore) {
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val settings by store.settings.collectAsStateWithLifecycle(initialValue = null)
-    val events by OfferLog.events.collectAsStateWithLifecycle()
-    val overlay = remember { OverlayController(context) }
-    val chime = remember { Chime() }
 
     val current = settings ?: return
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Only what is broken, and only what the driver actually changes. The
         // notification path was proven dead, and recording, vibration and the
@@ -169,8 +271,7 @@ private fun MonitorScreen(store: SettingsStore) {
         if (!Permissions.screenReadingGranted(context)) {
             item {
                 PermissionCard(
-                    title = "读屏（无障碍）",
-                    granted = false,
+                    title = "读屏没开",
                     hint = "唯一能看到派单卡片的通道。关掉就什么都记录不到",
                     onFix = { Permissions.openAccessibilitySettings(context) },
                 )
@@ -180,8 +281,7 @@ private fun MonitorScreen(store: SettingsStore) {
         if (!Permissions.overlayGranted(context)) {
             item {
                 PermissionCard(
-                    title = "悬浮窗",
-                    granted = false,
+                    title = "悬浮窗没开",
                     hint = "打开后判断结果会盖在派单卡片上",
                     onFix = { Permissions.openOverlaySettings(context) },
                 )
@@ -189,26 +289,32 @@ private fun MonitorScreen(store: SettingsStore) {
         }
 
         item {
-            Card {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+                SectionLabel("监控")
+                Column {
                     // Named with its own numbers, because the threshold and the
                     // size of the far set are the laptop's, not this app's.
                     Profiles.far(context)?.let { far ->
-                        ToggleRow(
-                            label = "超过 $" + far.overDollars + " 的单用远区（" + far.suburbs + " 个区）",
+                        SwitchRow(
+                            label = "超过 $" + far.overDollars + " 用远区",
+                            hint = far.suburbs.toString() + " 个区，每小时不够也不接",
                             checked = current.farEnabled,
                         ) { scope.launch { store.setFarEnabled(it) } }
+                        Hairline()
                     }
-                    ToggleRow("区域提示音", current.areaSoundEnabled) {
-                        scope.launch { store.setAreaSoundEnabled(it) }
-                    }
-                    ToggleRow("每 2 秒截屏", current.timedCaptureEnabled) {
+                    SwitchRow("每 2 秒截屏", "关掉就读不到派单卡片", current.timedCaptureEnabled) {
                         scope.launch { store.setTimedCaptureEnabled(it) }
                     }
-                    ToggleRow("测试模式（任何 App 的画面都识别）", current.testModeEnabled) {
+                    Hairline()
+                    SwitchRow("区域提示音", null, current.areaSoundEnabled) {
+                        scope.launch { store.setAreaSoundEnabled(it) }
+                    }
+                    Hairline()
+                    VoiceToggle(current.voiceEnabled) { scope.launch { store.setVoiceEnabled(it) } }
+                    Hairline()
+                    SwitchRow("测试模式", "任何 App 的画面都识别", current.testModeEnabled) {
                         scope.launch { store.setTestModeEnabled(it) }
                     }
-                    VoiceToggle(current.voiceEnabled) { scope.launch { store.setVoiceEnabled(it) } }
                 }
             }
         }
@@ -239,7 +345,7 @@ private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             android.widget.Toast.makeText(context, "没有麦克风权限，语音命令开不了", android.widget.Toast.LENGTH_LONG).show()
         }
     }
-    ToggleRow("语音命令（一直在听）", enabled) { on ->
+    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」", enabled) { on ->
         if (!on) {
             save(false)
             VoiceService.stop(context)
@@ -263,24 +369,14 @@ private fun QuitCard() {
     val activity = context as? Activity
     var asking by remember { mutableStateOf(false) }
 
-    Card {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("退出", fontWeight = FontWeight.Bold)
-            Text(
-                text = "停掉读屏和后台守护。下次要用，得去「系统设置 → 无障碍 → 接单助手」重新打开。",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Button(
-                onClick = { asking = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-            ) {
-                Text("退出并停止监控")
-            }
-        }
+    Panel {
+        SectionLabel("收工")
+        Text(
+            text = "停掉读屏和后台守护。下次要用，得去「系统设置 → 无障碍 → 接单助手」重新打开。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Dash.Muted,
+        )
+        GhostButton("退出并停止监控", Modifier.fillMaxWidth(), color = Dash.Orange) { asking = true }
     }
 
     if (asking) {
@@ -367,16 +463,14 @@ private fun megabytes(bytes: Long): String =
     }
 
 @Composable
-private fun PermissionCard(title: String, granted: Boolean, hint: String, onFix: () -> Unit) {
-    Card {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = (if (granted) "✅ " else "⛔ ") + title,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(hint, style = MaterialTheme.typography.bodySmall)
-            if (!granted) TextButton(onClick = onFix) { Text("去开启") }
+private fun PermissionCard(title: String, hint: String, onFix: () -> Unit) {
+    Panel(Modifier.border(1.dp, Dash.Orange, Dash.PanelShape)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Lamp(true, Dash.Orange)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Dash.Orange)
         }
+        Text(hint, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
+        GoldButton("去开启", Modifier.fillMaxWidth(), onFix)
     }
 }
 
@@ -433,25 +527,24 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
         floor = settings.farMinPerHour.toString()
     }
 
-    Card {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("每小时收入", fontWeight = FontWeight.Bold)
-            Text(
-                text = "每小时 = (钱 − 公里 × 2 × 油钱) ÷ (分钟 × 时间倍数 ÷ 60)",
-                style = MaterialTheme.typography.bodySmall,
+    Panel {
+        SectionLabel("每小时收入")
+        Text(
+            text = "(钱 − 公里 × 2 × 油钱) ÷ (分钟 × 倍数 ÷ 60)",
+            style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+            color = Dash.Muted,
+        )
+        DashField("每公里油钱 $", fuel) { fuel = it }
+        ButtonRow {
+            DashField("时间倍数", factor, Modifier.weight(1f)) { factor = it }
+            DashField("远区最低 $/时", floor, Modifier.weight(1f)) { floor = it }
+        }
+        GoldButton("保存", Modifier.fillMaxWidth()) {
+            onSave(
+                fuel.toDoubleOrNull() ?: settings.fuelPerKm,
+                factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
+                floor.toDoubleOrNull() ?: settings.farMinPerHour,
             )
-            NumberField("每公里油钱 $", fuel) { fuel = it }
-            NumberField("时间倍数（算上回程）", factor) { factor = it }
-            NumberField("远区单最低 $/小时", floor) { floor = it }
-            Button(
-                onClick = {
-                    onSave(
-                        fuel.toDoubleOrNull() ?: settings.fuelPerKm,
-                        factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
-                        floor.toDoubleOrNull() ?: settings.farMinPerHour,
-                    )
-                },
-            ) { Text("保存") }
         }
     }
 }
