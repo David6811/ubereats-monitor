@@ -144,7 +144,7 @@ class PulseController(private val context: Context) {
         (value * context.resources.displayMetrics.density).toInt()
 
     private companion object {
-        const val DOT_DP = 14
+        const val DOT_DP = 18
 
         /** Level with the verdict chip, at the very top of the screen. */
         const val TOP_PIXELS = 20
@@ -157,10 +157,10 @@ class PulseController(private val context: Context) {
         /** Longer than this without a beat and the loop is not running. */
         const val QUIET_MILLIS = 10_000L
 
-        // Blue against orange, never green against red: the driver cannot tell
+        // Gold against orange, never green against red: the driver cannot tell
         // those two apart. Colour is the second signal anyway - whether the dot
         // beats at all is the first.
-        val WATCHING: Int = Color.parseColor("#0A84FF")
+        val WATCHING: Int = Color.parseColor("#FFC400")
         val IDLE: Int = Color.parseColor("#9AA0A6")
         val WRONG: Int = Color.parseColor("#E67E22")
 
