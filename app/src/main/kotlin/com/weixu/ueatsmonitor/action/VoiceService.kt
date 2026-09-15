@@ -14,6 +14,11 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.media.AudioManager
+import android.media.ToneGenerator
+import java.util.Locale
 import android.util.Log
 import android.widget.Toast
 import com.weixu.ueatsmonitor.domain.VoiceCommand
@@ -26,6 +31,11 @@ import com.weixu.ueatsmonitor.domain.VoiceCommands
  * Android has no continuous recognizer: one session hears one sentence and ends,
  * on a result or on silence. So a session is started again the moment the last
  * one ends, for as long as the switch in settings is on.
+ *
+ * Recognition is the slow part - the recognizer waits for a pause, then asks
+ * the network - so a command is acted on from the first partial guess that
+ * reads as one, and said back aloud straight away. The driver hears that he was
+ * understood and does not have to say it again while the app switches.
  */
 class VoiceService : Service() {
 
@@ -33,7 +43,29 @@ class VoiceService : Service() {
     private var recognizer: SpeechRecognizer? = null
     private var running = false
 
+    /** Set once this session has acted, so the final result does not act again. */
+    private var actedThisSession = false
+
+    private var speech: TextToSpeech? = null
+    private var speechReady = false
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        speech = TextToSpeech(this) { status ->
+            val tts = speech ?: return@TextToSpeech
+            val language = if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.SIMPLIFIED_CHINESE) else -1
+            speechReady = language >= TextToSpeech.LANG_AVAILABLE
+            if (!speechReady) Log.w(TAG, "voice: no Chinese speech, confirming with a tone")
+            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) = Unit
+                override fun onDone(utteranceId: String?) { main.post { again(NEXT_MILLIS) } }
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) { main.post { again(NEXT_MILLIS) } }
+            })
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         goForeground()
@@ -49,11 +81,14 @@ class VoiceService : Service() {
         main.removeCallbacksAndMessages(null)
         recognizer?.destroy()
         recognizer = null
+        speech?.shutdown()
+        speech = null
         super.onDestroy()
     }
 
     private fun listen() {
         if (!running) return
+        actedThisSession = false
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             Log.w(TAG, "voice: no recognizer on this phone")
             toast("手机上没有语音识别服务，语音命令用不了")
@@ -68,7 +103,7 @@ class VoiceService : Service() {
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         // Leans the recognizer towards the few sentences that mean something here.
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             ask.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(VoiceCommands.PHRASES))
@@ -85,13 +120,23 @@ class VoiceService : Service() {
 
     private val listener = object : RecognitionListener {
         override fun onResults(results: Bundle?) {
+            if (actedThisSession) return
             val heard = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
             Log.i(TAG, "voice heard: $heard")
-            VoiceCommands.parse(heard)?.let(::act)
-            again(NEXT_MILLIS)
+            val command = VoiceCommands.parse(heard)
+            if (command != null) understood(command) else again(NEXT_MILLIS)
+        }
+
+        override fun onPartialResults(partialResults: Bundle?) {
+            if (actedThisSession) return
+            val heard = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
+            val command = VoiceCommands.parse(heard) ?: return
+            Log.i(TAG, "voice heard (partial): $heard")
+            understood(command)
         }
 
         override fun onError(error: Int) {
+            if (actedThisSession) return
             // No match and silence are the ordinary end of a quiet stretch; anything
             // else - busy, network, a missing language - is worth a longer wait.
             val quiet = error == SpeechRecognizer.ERROR_NO_MATCH ||
@@ -114,8 +159,38 @@ class VoiceService : Service() {
         override fun onRmsChanged(rmsdB: Float) = Unit
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
-        override fun onPartialResults(partialResults: Bundle?) = Unit
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
+    }
+
+    /**
+     * Stops listening, says the command back, and acts. Listening starts again
+     * only once the confirmation has been spoken, so the microphone does not
+     * hear "好，地图" and take it for the driver.
+     */
+    private fun understood(command: VoiceCommand) {
+        actedThisSession = true
+        main.removeCallbacksAndMessages(null)
+        runCatching { recognizer?.cancel() }
+        confirm(command)
+        act(command)
+    }
+
+    private fun confirm(command: VoiceCommand) {
+        val words = when (command) {
+            is VoiceCommand.SwitchTo -> command.target.confirm
+        }
+        val tts = speech
+        if (speechReady && tts != null) {
+            val params = Bundle().apply { putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC) }
+            val queued = tts.speak(words, TextToSpeech.QUEUE_FLUSH, params, "confirm-" + System.currentTimeMillis())
+            if (queued == TextToSpeech.SUCCESS) return
+        }
+        runCatching {
+            val tone = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
+            tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
+            main.postDelayed({ tone.release() }, TONE_MILLIS)
+        }
+        main.postDelayed({ listen() }, TONE_MILLIS)
     }
 
     private fun act(command: VoiceCommand) {
@@ -166,6 +241,7 @@ class VoiceService : Service() {
         private const val NOTIFICATION_ID = 44
         private const val NEXT_MILLIS = 150L
         private const val ERROR_BACKOFF_MILLIS = 3_000L
+        private const val TONE_MILLIS = 500L
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, VoiceService::class.java))

@@ -1,10 +1,13 @@
 package com.weixu.ueatsmonitor.domain
 
-/** Data. The apps a spoken command can name. */
-enum class VoiceTarget(val packageName: String, val spoken: String) {
-    SELF("com.weixu.ueatsmonitor", "接单助手"),
-    MAPS("com.google.android.apps.maps", "谷歌地图"),
-    UBER("com.ubercab.driver", "Uber 司机端"),
+/**
+ * Data. The apps a spoken command can name. [spoken] is written on screen;
+ * [confirm] is said aloud the moment the command is understood.
+ */
+enum class VoiceTarget(val packageName: String, val spoken: String, val confirm: String) {
+    SELF("com.weixu.ueatsmonitor", "接单助手", "好，应用"),
+    MAPS("com.google.android.apps.maps", "谷歌地图", "好，地图"),
+    UBER("com.ubercab.driver", "Uber 司机端", "好，送餐"),
 }
 
 /** Data. What a sentence asked for. */
