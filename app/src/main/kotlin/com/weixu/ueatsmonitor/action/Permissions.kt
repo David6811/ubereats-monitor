@@ -22,6 +22,10 @@ object Permissions {
 
     fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
 
+    fun microphoneGranted(context: Context): Boolean =
+        context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
     /**
      * Since Android 13 the app's own notification - and the two buttons on it -
      * is not shown until this is granted, and losing it is silent.

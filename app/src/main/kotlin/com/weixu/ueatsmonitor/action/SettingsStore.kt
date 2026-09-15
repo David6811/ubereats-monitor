@@ -30,6 +30,8 @@ class SettingsStore(private val context: Context) {
         /** Whether the reader takes screenshots at all. Off, no offer card is read. */
         val timedCaptureEnabled: Boolean,
         val logEveryNotification: Boolean,
+        /** Whether the microphone stays open for spoken commands. */
+        val voiceEnabled: Boolean,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -47,6 +49,7 @@ class SettingsStore(private val context: Context) {
             testModeEnabled = prefs[TEST_MODE] ?: false,
             timedCaptureEnabled = prefs[TIMED_CAPTURE] ?: true,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
+            voiceEnabled = prefs[VOICE_ENABLED] ?: false,
         )
     }
 
@@ -73,6 +76,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
 
+    suspend fun setVoiceEnabled(enabled: Boolean) = putBoolean(VOICE_ENABLED, enabled)
+
     private suspend fun putBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
         context.dataStore.edit { prefs -> prefs[key] = value }
     }
@@ -89,5 +94,6 @@ class SettingsStore(private val context: Context) {
         val TEST_MODE = booleanPreferencesKey("test_mode")
         val TIMED_CAPTURE = booleanPreferencesKey("timed_capture")
         val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
+        val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
     }
 }

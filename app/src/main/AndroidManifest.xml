@@ -11,10 +11,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <queries>
         <package android:name="com.ubercab.driver" />
         <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <application
@@ -66,6 +71,11 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Keeps the offer recorder running for the length of a shift" />
         </service>
+
+        <service
+            android:name=".action.VoiceService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <service
             android:name=".action.ScreenRecorderService"

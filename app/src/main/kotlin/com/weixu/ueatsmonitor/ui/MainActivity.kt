@@ -53,6 +53,8 @@ import com.weixu.ueatsmonitor.action.Permissions
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SettingsStore
 import com.weixu.ueatsmonitor.action.UberScreenService
+import com.weixu.ueatsmonitor.action.VoiceService
+import com.weixu.ueatsmonitor.action.LiveSettings
 import com.weixu.ueatsmonitor.domain.AreaCall
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.GeoPoint
@@ -99,6 +101,12 @@ class MainActivity : ComponentActivity() {
         // exists to serve the reader; without one there is nothing to keep alive.
         if (Permissions.screenReadingGranted(this)) {
             runCatching { CaptureKeeperService.start(this) }
+        }
+        // The microphone service dies with the process (a reinstall, a reboot) and
+        // may only be started while the app is in front, so opening the app is
+        // what brings it back.
+        if (LiveSettings.current?.voiceEnabled == true && Permissions.microphoneGranted(this)) {
+            runCatching { VoiceService.start(this) }
         }
     }
 
@@ -193,11 +201,41 @@ private fun MonitorScreen(store: SettingsStore) {
                     ToggleRow("测试模式（任何 App 的画面都识别）", current.testModeEnabled) {
                         scope.launch { store.setTestModeEnabled(it) }
                     }
+                    VoiceToggle(current.voiceEnabled) { scope.launch { store.setVoiceEnabled(it) } }
                 }
             }
         }
 
         item { QuitCard() }
+    }
+}
+
+/**
+ * The voice switch. Turning it on asks for the microphone first; the service is
+ * started and stopped here, while the app is on screen, because Android refuses
+ * to open the microphone for a service started from the background.
+ */
+@Composable
+private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            save(true)
+            VoiceService.start(context)
+        } else {
+            android.widget.Toast.makeText(context, "没有麦克风权限，语音命令开不了", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+    ToggleRow("语音命令（一直在听）", enabled) { on ->
+        if (!on) {
+            save(false)
+            VoiceService.stop(context)
+        } else if (Permissions.microphoneGranted(context)) {
+            save(true)
+            VoiceService.start(context)
+        } else {
+            askMicrophone.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
     }
 }
 
