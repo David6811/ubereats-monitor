@@ -35,15 +35,15 @@ fun SuburbMap(chosen: Set<String>, shapes: List<SuburbShape>, modifier: Modifier
     // outlines floating in the dark says nothing about where they are.
     val around = remember(box, shapes) { shapes.filter { it.name !in chosen && touches(it, box) } }
 
-    val ink = MaterialTheme.colorScheme.primary
-    val faint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)
+    val ink = Dash.Gold
+    val faint = Dash.Line
 
     Canvas(
         modifier
             .fillMaxWidth()
             .height(300.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
+            .background(Dash.Panel)
     ) {
         val fit = MapProjection.fit(box, size.width, size.height, PADDING)
         around.forEach { shape ->
@@ -51,8 +51,8 @@ fun SuburbMap(chosen: Set<String>, shapes: List<SuburbShape>, modifier: Modifier
         }
         mine.forEach { shape ->
             val path = pathOf(shape, fit)
-            drawPath(path, color = ink.copy(alpha = 0.35f))
-            drawPath(path, color = ink, style = Stroke(width = 2f))
+            drawPath(path, color = ink.copy(alpha = 0.18f))
+            drawPath(path, color = ink, style = Stroke(width = 2.5f))
         }
     }
 }

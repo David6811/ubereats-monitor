@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.LocationOn
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
@@ -122,50 +125,37 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
     val context = LocalContext.current
     val advice = job.offer.ruling
     val good = advice?.startsWith("可以") == true
-    Panel {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = CLOCK.format(Date(job.atMillis)),
-                    style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
-                    color = Dash.Muted,
-                )
-                Text(
-                    text = job.offer.payout,
-                    style = MaterialTheme.typography.headlineLarge.merge(Dash.Numbers),
-                    color = Dash.Gold,
-                )
+    // Tight on purpose: two jobs have to fit on one screen, because scrolling to
+    // the second delivery is not something to do at a red light.
+    Panel(padding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), spacing = 8.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = job.offer.payout,
+                style = MaterialTheme.typography.titleLarge.merge(Dash.Numbers),
+                color = Dash.Gold,
+            )
+            Text(
+                text = CLOCK.format(Date(job.atMillis)),
+                style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                color = Dash.Muted,
+            )
+            // On the two advice shelves the card cannot say whether he went, and
+            // that is the one thing worth reading back off them. On the taken
+            // shelf every card would say the same word, so it is left off.
+            if (shelf != Shelf.TAKEN) {
+                Tag(if (job.taken) "已接" else "没接", ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // On the two advice shelves the card cannot say whether he went, and
-                // that is the one thing worth reading back off them. On the taken
-                // shelf every card would say the same word, so it is left off.
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (shelf != Shelf.TAKEN) {
-                        Tag(
-                            text = if (job.taken) "已接" else "没接",
-                            ink = if (job.taken) Dash.Ink else Dash.Muted,
-                            ground = Dash.Raised,
-                        )
-                    }
-                    advice?.let {
-                        Tag(
-                            text = it,
-                            ink = if (good) Dash.Blue else Dash.Orange,
-                            ground = if (good) Dash.BlueDeep else Dash.OrangeDeep,
-                        )
-                    }
-                }
-                Text(
-                    text = "清掉",
-                    modifier = Modifier.clickable(onClick = onClear).padding(vertical = 4.dp, horizontal = 2.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Dash.Muted,
-                )
+            advice?.let {
+                Tag(it, ink = if (good) Dash.Blue else Dash.Orange, ground = if (good) Dash.BlueDeep else Dash.OrangeDeep)
             }
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "清掉",
+                modifier = Modifier.clickable(onClick = onClear).padding(vertical = 6.dp, horizontal = 4.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = Dash.Muted,
+            )
         }
-
-        Hairline()
 
         // Navigate to what the card shows, not to what the card said. Once a
         // screen has given us the real street address it is the better
@@ -228,10 +218,9 @@ private fun Note(title: String, original: String, chinese: String?) {
 }
 
 /**
- * One stop on the route, drawn as a point on a line: a hollow ring for the
- * pickup, a solid dot for the dropoff, joined down the left. Which of the two it
- * is has to be readable in the half second the driver can spare, and what can be
- * done with it has to be hittable without looking.
+ * One stop on the route, one row: a point on a line down the left (a hollow ring
+ * for the pickup, a solid dot for the dropoff), the place in the middle, and the
+ * two things to do with it on the right, big enough to hit without looking.
  */
 @Composable
 private fun Stop(
@@ -243,8 +232,16 @@ private fun Stop(
     onDrive: () -> Unit,
     onMap: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 6.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxHeight().width(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.weight(1f).width(2.dp).background(if (first) Color.Transparent else Dash.Line))
             Box(
                 modifier = Modifier
                     .size(14.dp)
@@ -252,26 +249,29 @@ private fun Stop(
                     .background(if (first) Color.Transparent else Dash.Blue)
                     .border(2.5.dp, if (first) Dash.Gold else Dash.Blue, CircleShape),
             )
-            if (first) {
-                Box(Modifier.padding(top = 6.dp).width(2.dp).height(96.dp).background(Dash.Line))
+            Box(Modifier.weight(1f).width(2.dp).background(if (first) Dash.Line else Color.Transparent))
+        }
+        Column(Modifier.weight(1f).padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(title)
+                // Says in words as well as colour that this address came from
+                // Uber's own screen rather than from OCR of the offer card.
+                if (confirmed) SectionLabel("✓ 已确认", color = Dash.Blue)
+            }
+            Text(
+                text = place,
+                style = MaterialTheme.typography.titleMedium,
+                color = Dash.Ink,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            detail?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = Dash.Muted, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel(title)
-                    // Says in words as well as colour that this address came from
-                    // Uber's own screen rather than from OCR of the offer card.
-                    if (confirmed) SectionLabel("✓ 已确认", color = Dash.Blue)
-                }
-                Text(place, style = MaterialTheme.typography.titleLarge, color = Dash.Ink)
-                detail?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted) }
-            }
-            ButtonRow {
-                GoldButton("导航", Modifier.weight(1.4f), onDrive)
-                GhostButton("地图", Modifier.weight(1f), onClick = onMap)
-            }
-        }
+        GoldButton("导航", Modifier.width(76.dp), onDrive)
+        GlyphButton(androidx.compose.material.icons.Icons.Filled.LocationOn, "看地图", Modifier.width(52.dp), onMap)
     }
 }
 

@@ -2,7 +2,9 @@ package com.weixu.ueatsmonitor.ui
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,53 +71,72 @@ fun CaptureScreen() {
     val journal = remember(reloads) { ServiceJournal.read(context) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (!recording) {
             item {
-                Card {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("⛔ 读屏没开，这一趟什么都不会记录", fontWeight = FontWeight.Bold)
-                        Text(
-                            text = "系统会在重装或某些更新后把它关掉。去「设置 → 无障碍 → 接单助手」打开。",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        TextButton(onClick = { Permissions.openAccessibilitySettings(context) }) {
-                            Text("去开启")
-                        }
+                Panel(Modifier.border(1.dp, Dash.Orange, Dash.PanelShape)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Lamp(true, Dash.Orange)
+                        Text("读屏没开，这一趟什么都不会记录", style = MaterialTheme.typography.titleMedium, color = Dash.Orange)
                     }
+                    Text(
+                        text = "系统会在重装或某些更新后把它关掉。去「设置 → 无障碍 → 接单助手」打开。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Dash.Muted,
+                    )
+                    GoldButton("去开启", Modifier.fillMaxWidth()) { Permissions.openAccessibilitySettings(context) }
                 }
+            }
+        }
+
+        item {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SectionLabel("识别到的派单")
+                    Text(
+                        text = shown.size.toString(),
+                        style = MaterialTheme.typography.headlineLarge.merge(Dash.Numbers),
+                        color = Dash.Gold,
+                    )
+                }
+                Text(
+                    text = "刷新",
+                    modifier = Modifier.clickable { reloads++ }.padding(10.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Dash.Gold,
+                )
+                Text(
+                    text = "全部删除",
+                    modifier = Modifier.clickable { scope.launch(Dispatchers.IO) { store.deleteAll(); reloads++ } }.padding(10.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Dash.Muted,
+                )
             }
         }
 
         if (journal.isNotEmpty()) {
             item {
                 Text(
-                    text = "读屏状态：" + journal.first(),
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "读屏 · " + journal.first(),
+                    style = MaterialTheme.typography.bodySmall.merge(Dash.Numbers),
+                    color = Dash.Muted,
                 )
-            }
-        }
-
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "" + shown.size + " 单",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                TextButton(onClick = { reloads++ }) { Text("刷新") }
-                TextButton(onClick = { scope.launch(Dispatchers.IO) { store.deleteAll(); reloads++ } }) { Text("全部删除") }
             }
         }
 
         if (shown.isEmpty()) {
             item {
-                Text(
-                    text = "还没有识别到派单。",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("空", style = MaterialTheme.typography.headlineLarge, color = Dash.Line)
+                    Text("还没有识别到派单", style = MaterialTheme.typography.bodyLarge, color = Dash.Muted)
+                }
             }
         }
 
@@ -139,26 +160,33 @@ private fun CaptureCard(
     hereNow: GeoPoint?,
     onToggle: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(CLOCK.format(Date(capture.atMillis)), style = MaterialTheme.typography.labelMedium)
-            capture.offer?.let { offer ->
-                Text(
-                    text = (offer.ruling ?: "没判") + "  " + offer.payout,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(offer.pickup + "  →  " + offer.dropoff, style = MaterialTheme.typography.bodyMedium)
-                offer.why?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+    Panel(Modifier.clickable(onClick = onToggle), padding = PaddingValues(16.dp)) {
+        val offer = capture.offer
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = CLOCK.format(Date(capture.atMillis)),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                color = Dash.Muted,
+            )
+            offer?.ruling?.let { ruling ->
+                val good = ruling.startsWith("可以")
+                Tag(ruling, ink = if (good) Dash.Blue else Dash.Orange, ground = if (good) Dash.BlueDeep else Dash.OrangeDeep)
             }
+        }
+        offer?.let {
+            Text(it.payout, style = MaterialTheme.typography.titleLarge.merge(Dash.Numbers), color = Dash.Gold)
+            Text(it.pickup + "  →  " + it.dropoff, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+            it.why?.let { why -> Text(why, style = MaterialTheme.typography.bodySmall, color = Dash.Muted) }
+        }
 
-            if (open) {
-                Directions(capture, suburbs, hereNow)
-                Text(capture.body, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                capture.imagePath?.let { Screenshot(it) }
-            } else {
-                Text("点开看全文和截图", style = MaterialTheme.typography.labelSmall)
-            }
+        if (open) {
+            Hairline()
+            Directions(capture, suburbs, hereNow)
+            Text(capture.body, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = Dash.Muted)
+            capture.imagePath?.let { Screenshot(it) }
+        } else {
+            SectionLabel("点开看全文和截图")
         }
     }
 }

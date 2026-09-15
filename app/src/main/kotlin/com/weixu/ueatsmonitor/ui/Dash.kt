@@ -107,6 +107,7 @@ fun DashTheme(content: @Composable () -> Unit) {
 fun Panel(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(18.dp),
+    spacing: androidx.compose.ui.unit.Dp = 14.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -116,7 +117,7 @@ fun Panel(
             .background(Dash.Panel)
             .border(1.dp, Dash.Line, Dash.PanelShape)
             .padding(padding),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
         content = content,
     )
 }
@@ -140,7 +141,7 @@ fun GoldButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit)
         modifier = modifier.height(52.dp),
         shape = Dash.ControlShape,
         colors = ButtonDefaults.buttonColors(containerColor = Dash.Gold, contentColor = Dash.Ground),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
         Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
     }
@@ -160,9 +161,29 @@ fun GhostButton(
         shape = Dash.ControlShape,
         border = BorderStroke(1.dp, Dash.Line),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
         Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** A square outlined button that says what it does with a picture, for a row with no room for words. */
+@Composable
+fun GlyphButton(
+    glyph: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(52.dp),
+        shape = Dash.ControlShape,
+        border = BorderStroke(1.dp, Dash.Line),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Dash.Ink),
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        androidx.compose.material3.Icon(glyph, contentDescription = description)
     }
 }
 
