@@ -26,8 +26,11 @@ object DropoffScreen {
         Regex("""^complete delivery$""", RegexOption.IGNORE_CASE),
     )
 
-    /** The suburb line ends in the state: "Mentone VIC". No postcode on this screen. */
-    private val STATE = Regex("""^(.+?)\s+(VIC|NSW|QLD|SA|WA|TAS|NT|ACT)$""")
+    /**
+     * The suburb line ends in the state, written two ways by the same trip:
+     * "Chelsea, VIC, 3196" when the screen first opens, "Chelsea VIC" minutes later.
+     */
+    private val STATE = Regex("""^(.+?),?\s+(VIC|NSW|QLD|SA|WA|TAS|NT|ACT)(?:,?\s+(\d{4}))?$""")
 
     private const val UNIT_LABEL = "Apt / Unit / Floor:"
     private val NOTE = Regex("""^note from customer\s+(.+)$""", RegexOption.IGNORE_CASE)
@@ -41,7 +44,10 @@ object DropoffScreen {
         val clean = clean(lines)
         if (!looksLikeDropoff(clean)) return null
 
-        val stateAt = clean.indexOfFirst { STATE.containsMatchIn(it) }
+        // The map header can repeat the address above the card, with no name over
+        // it; the card's own copy is the last one before the buttons.
+        val anchorAt = clean.indexOfFirst { line -> ANCHORS.any { it.containsMatchIn(line) } }
+        val stateAt = clean.subList(0, anchorAt).indexOfLast { STATE.containsMatchIn(it) }
         if (stateAt < 1) return null
 
         // Street, then suburb and state, with the customer's name above both.
@@ -50,7 +56,7 @@ object DropoffScreen {
 
         return Dropoff(
             customer = clean.getOrNull(stateAt - 2)?.takeIf { it.length in 2..40 },
-            address = street + ", " + clean[stateAt],
+            address = street + ", " + suburbLine(clean[stateAt]),
             unit = if (unitAt >= 0) clean.getOrNull(unitAt + 1) else null,
             note = clean.firstNotNullOfOrNull { NOTE.find(it)?.groupValues?.get(1)?.trim() },
         )
@@ -59,6 +65,12 @@ object DropoffScreen {
     /** The suburb this delivery is in, used to find which job it belongs to. */
     fun suburbOf(dropoff: Dropoff): String? =
         STATE.find(dropoff.address.substringAfterLast(", "))?.groupValues?.get(1)?.trim()
+
+    /** "Chelsea, VIC, 3196" -> "Chelsea VIC 3196"; "Chelsea VIC" stays as it is. */
+    private fun suburbLine(line: String): String {
+        val (suburb, state, postcode) = STATE.find(line)!!.destructured
+        return listOf(suburb.trim(), state, postcode).filter { it.isNotEmpty() }.joinToString(" ")
+    }
 
     private fun clean(lines: List<String>): List<String> =
         lines.map { it.trim() }.filter { it.isNotEmpty() }

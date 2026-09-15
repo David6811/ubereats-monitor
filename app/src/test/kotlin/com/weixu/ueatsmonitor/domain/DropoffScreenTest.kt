@@ -97,6 +97,75 @@ class DropoffScreenTest {
         assertEquals("Mentone", suburb)
     }
 
+    /** The same trip as it first opens: suburb, state and postcode split by commas. */
+    private val openingScreen = listOf(
+        "Uber Driver notification: Going to 3/49 Argyle Avenue, Chelsea, VIC 3196, AUSTRALIA",
+        "Home",
+        "18 min",
+        "11.3 km",
+        "Trip planner",
+        "Agenda",
+        "Darcy E.",
+        "3/49 Argyle Ave",
+        "Chelsea, VIC, 3196",
+        "Customer note: On the front porch",
+        "Scan barcodes",
+        "Help and support",
+        "Complete delivery",
+        "Safety Toolkit",
+        "What's going on?",
+        "Turn left",
+    )
+
+    @Test
+    fun `given the delivery screen as it first opens, when it is read, then the address comes back with its postcode`() {
+        // arrange
+        val lines = openingScreen
+
+        // act
+        val dropoff = DropoffScreen.read(lines)
+
+        // assert
+        assertEquals("3/49 Argyle Ave, Chelsea VIC 3196", dropoff?.address)
+    }
+
+    @Test
+    fun `given the delivery screen as it first opens, when its suburb is asked for, then the commas are not part of it`() {
+        // arrange
+        val dropoff = DropoffScreen.read(openingScreen)!!
+
+        // act
+        val suburb = DropoffScreen.suburbOf(dropoff)
+
+        // assert
+        assertEquals("Chelsea", suburb)
+    }
+
+    @Test
+    fun `given the map header repeats the address above the card, when it is read, then the customer is taken from the card`() {
+        // arrange
+        val lines = listOf(
+            "Safety Toolkit",
+            "What's going on?",
+            "3/49 Argyle Ave",
+            "Chelsea, VIC, 3196",
+            "8 min",
+            "6.4 km",
+            "Darcy E.",
+            "3/49 Argyle Ave",
+            "Chelsea VIC",
+            "Customer note: On the front porch",
+            "Help and support",
+            "Complete delivery",
+        )
+
+        // act
+        val dropoff = DropoffScreen.read(lines)
+
+        // assert
+        assertEquals("Darcy E.", dropoff?.customer)
+    }
+
     @Test
     fun `given the pickup screen, when it is read as a delivery, then nothing comes back`() {
         // arrange
