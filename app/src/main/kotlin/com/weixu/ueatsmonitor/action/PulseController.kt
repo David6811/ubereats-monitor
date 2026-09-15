@@ -97,7 +97,7 @@ class PulseController(private val context: Context) {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(colourOf(Mood.IDLE))
-                setStroke(dp(2), RING)
+                setStroke(dp(3), RING)
             }
         }
         val holder = FrameLayout(context).apply {
@@ -157,10 +157,10 @@ class PulseController(private val context: Context) {
         /** Longer than this without a beat and the loop is not running. */
         const val QUIET_MILLIS = 10_000L
 
-        // Gold against orange, never green against red: the driver cannot tell
+        // Blue against orange, never green against red: the driver cannot tell
         // those two apart. Colour is the second signal anyway - whether the dot
         // beats at all is the first.
-        val WATCHING: Int = Color.parseColor("#FFC400")
+        val WATCHING: Int = Color.parseColor("#0A84FF")
         val IDLE: Int = Color.parseColor("#9AA0A6")
         val WRONG: Int = Color.parseColor("#E67E22")
 
@@ -168,6 +168,7 @@ class PulseController(private val context: Context) {
         val QUIET: Int = WRONG
         const val STALLED = 0.30f
 
-        val RING: Int = Color.parseColor("#66000000")
+        /** Near-black and solid, so the edge holds on Uber's white sheet and on the map. */
+        val RING: Int = Color.parseColor("#E6000000")
     }
 }
