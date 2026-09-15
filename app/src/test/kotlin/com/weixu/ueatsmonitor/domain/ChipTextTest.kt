@@ -75,15 +75,16 @@ class ChipTextTest {
     }
 
     @Test
-    fun `given a card of eight dollars over eight kilometres, when the rate is written, then it is a dollar a kilometre`() {
-        // arrange  5.0 miles is 8.047 km, and 8.03 over that is 0.998
+    fun `given a card of eight dollars over eight kilometres, when the rate is written, then it is the hour after petrol`() {
+        // arrange  5.0 mi = 8.0467 km; petrol 8.0467 x 2 x 0.2 = 3.2187; 8.03 - 3.2187 = 4.8113
+        //          18 min x 1.5 = 27 min = 0.45 h; 4.8113 / 0.45 = 10.69
         val offer = card
 
         // act
-        val rate = ChipText.rate(offer)
+        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5))
 
         // assert
-        assertEquals("${'$'}1.00/公里", rate)
+        assertEquals("${'$'}10.69/小时", rate)
     }
 
     @Test
@@ -92,7 +93,7 @@ class ChipTextTest {
         val offer = card.copy(distance = null)
 
         // act
-        val rate = ChipText.rate(offer)
+        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5))
 
         // assert
         assertNull(rate)

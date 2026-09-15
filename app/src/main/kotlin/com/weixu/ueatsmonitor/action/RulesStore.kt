@@ -5,6 +5,7 @@ import android.util.Log
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.NoGoBox
+import com.weixu.ueatsmonitor.domain.TripCost
 import com.weixu.ueatsmonitor.domain.Rules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -42,6 +43,9 @@ object RulesStore {
     @Volatile
     private var readWithFar: Boolean = true
 
+    @Volatile
+    private var readWithCost: Pair<TripCost, Double>? = null
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -51,8 +55,9 @@ object RulesStore {
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
         val farNow = LiveSettings.current?.farEnabled != false
+        val costNow = costOf(LiveSettings.current)
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
-            excludedNow == readWithExcluded && farNow == readWithFar
+            excludedNow == readWithExcluded && farNow == readWithFar && costNow == readWithCost
         ) {
             return known
         }
@@ -70,6 +75,8 @@ object RulesStore {
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
                 farSuburbs = far,
+                tripCost = costNow.first,
+                farMinPerHour = costNow.second,
             )
         }
         cached = parsed
@@ -77,6 +84,7 @@ object RulesStore {
         readForProfile = profile
         readWithExcluded = excluded
         readWithFar = farNow
+        readWithCost = costNow
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
@@ -88,6 +96,15 @@ object RulesStore {
         return parsed
     }
 
+    /** The phone's petrol reckoning, or the driver's defaults before settings have loaded. */
+    private fun costOf(settings: SettingsStore.Settings?): Pair<TripCost, Double> = Pair(
+        TripCost(
+            fuelPerKm = settings?.fuelPerKm ?: SettingsStore.DEFAULT_FUEL_PER_KM,
+            timeFactor = settings?.timeFactor ?: SettingsStore.DEFAULT_TIME_FACTOR,
+        ),
+        settings?.farMinPerHour ?: SettingsStore.DEFAULT_FAR_MIN_PER_HOUR,
+    )
+
     private fun empty(): Rules = Rules(
         allowedSuburbs = emptySet(),
         farSuburbs = emptySet(),
@@ -95,6 +112,8 @@ object RulesStore {
         deniedStores = emptyList(),
         alwaysOkStores = emptyList(),
         noGoBoxes = emptyList(),
+        tripCost = costOf(null).first,
+        farMinPerHour = costOf(null).second,
     )
 
     private fun parse(file: File): Rules {
@@ -144,6 +163,9 @@ object RulesStore {
                 deniedStores = deny,
                 alwaysOkStores = alwaysOk,
                 noGoBoxes = noGo,
+                // Filled from the phone's settings by current(), not the file.
+                tripCost = costOf(null).first,
+                farMinPerHour = costOf(null).second,
             )
         }.getOrElse { empty() }
     }

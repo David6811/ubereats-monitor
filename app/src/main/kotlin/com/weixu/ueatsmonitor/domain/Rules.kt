@@ -23,6 +23,14 @@ data class Rules(
     val alwaysOkStores: List<String>,
     /** Rectangles drawn on the laptop: no pickup and no dropoff inside any of them. */
     val noGoBoxes: List<NoGoBox>,
+    /** The driver's petrol and return-time reckoning, set on the phone. */
+    val tripCost: TripCost,
+    /**
+     * An offer let through by the far set must also clear this, in dollars an
+     * hour after petrol: the far set is there for money, and a long drive can
+     * pay less than it looks.
+     */
+    val farMinPerHour: Double,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -43,6 +51,7 @@ sealed interface Ruling {
         data class SuburbNotAllowed(val suburb: String) : Reason
         data class StoreDenied(val store: String) : Reason
         data class InNoGoBox(val hit: NoGoHit) : Reason
+        data class FarTooCheap(val perHour: Double, val floor: Double) : Reason
     }
 }
 
@@ -87,11 +96,17 @@ object RuleJudge {
         val outside = found.firstOrNull { suburb ->
             allowed.none { it.equals(suburb.name, ignoreCase = true) }
         }
-        return if (outside != null) {
-            Ruling.Leave(Ruling.Reason.SuburbNotAllowed(outside.name))
-        } else {
-            Ruling.Take(found.first().name, far = far)
+        if (outside != null) return Ruling.Leave(Ruling.Reason.SuburbNotAllowed(outside.name))
+
+        // Only on the far set. An unreadable distance or time says nothing about
+        // the hour, so it does not refuse.
+        if (far) {
+            val perHour = TripEarnings.perHour(card, rules.tripCost)
+            if (perHour != null && perHour < rules.farMinPerHour) {
+                return Ruling.Leave(Ruling.Reason.FarTooCheap(perHour, rules.farMinPerHour))
+            }
         }
+        return Ruling.Take(found.first().name, far = far)
     }
 }
 
@@ -116,6 +131,9 @@ object RulingText {
                 is NoGoHit.Pickup -> "取餐 " + hit.store + " 在「" + hit.box.label + "」里"
                 is NoGoHit.Dropoff -> "送餐点在「" + hit.box.label + "」里"
             }
+            is Ruling.Reason.FarTooCheap ->
+                "远区单每小时 $" + String.format("%.2f", why.perHour) +
+                    "，低于 $" + String.format("%.0f", why.floor)
         }
         Ruling.NoRules -> "在电脑上设好规则再推过来"
         Ruling.Unknown -> "送达地址里没有认得出的郊区"

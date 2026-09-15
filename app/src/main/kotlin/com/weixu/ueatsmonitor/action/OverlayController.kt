@@ -266,7 +266,7 @@ class OverlayController(private val context: Context) {
             // names are unreadable in the second the card gives you.
             route = ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
             distance = ChipText.distance(state.card),
-            rate = ChipText.rate(state.card),
+            rate = ChipText.rate(state.card, RulesStore.current(context).tripCost),
             fromCentre = fromCentre,
         )
     }

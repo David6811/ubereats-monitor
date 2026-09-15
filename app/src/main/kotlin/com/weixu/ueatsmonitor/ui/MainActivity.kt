@@ -213,6 +213,12 @@ private fun MonitorScreen(store: SettingsStore) {
             }
         }
 
+        item {
+            TripCostCard(current) { fuel, factor, floor ->
+                scope.launch { store.saveTripCost(fuel, factor, floor) }
+            }
+        }
+
         item { QuitCard() }
     }
 }
@@ -404,6 +410,45 @@ private fun ThresholdCard(thresholds: Thresholds, onSave: (Thresholds) -> Unit) 
                             minPayPerHour = perHour.toDoubleOrNull() ?: thresholds.minPayPerHour,
                             maxDistance = Miles(maxMiles.toDoubleOrNull() ?: thresholds.maxDistance.value),
                         )
+                    )
+                },
+            ) { Text("保存") }
+        }
+    }
+}
+
+/**
+ * The driver's petrol and time reckoning. Every card shows the hour it works out
+ * to; only an offer let through by the far set is refused for falling short.
+ */
+@Composable
+private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Double, Double) -> Unit) {
+    var fuel by remember { mutableStateOf("") }
+    var factor by remember { mutableStateOf("") }
+    var floor by remember { mutableStateOf("") }
+
+    LaunchedEffect(settings.fuelPerKm, settings.timeFactor, settings.farMinPerHour) {
+        fuel = settings.fuelPerKm.toString()
+        factor = settings.timeFactor.toString()
+        floor = settings.farMinPerHour.toString()
+    }
+
+    Card {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("每小时收入", fontWeight = FontWeight.Bold)
+            Text(
+                text = "每小时 = (钱 − 公里 × 2 × 油钱) ÷ (分钟 × 时间倍数 ÷ 60)",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            NumberField("每公里油钱 $", fuel) { fuel = it }
+            NumberField("时间倍数（算上回程）", factor) { factor = it }
+            NumberField("远区单最低 $/小时", floor) { floor = it }
+            Button(
+                onClick = {
+                    onSave(
+                        fuel.toDoubleOrNull() ?: settings.fuelPerKm,
+                        factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
+                        floor.toDoubleOrNull() ?: settings.farMinPerHour,
                     )
                 },
             ) { Text("保存") }

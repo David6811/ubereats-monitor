@@ -32,6 +32,12 @@ class SettingsStore(private val context: Context) {
         val logEveryNotification: Boolean,
         /** Whether the microphone stays open for spoken commands. */
         val voiceEnabled: Boolean,
+        /** Dollars of petrol per kilometre, driven out and back. */
+        val fuelPerKm: Double,
+        /** The card's minutes times this is the trip there and back. */
+        val timeFactor: Double,
+        /** A far-set offer under this many dollars an hour, after petrol, is left. */
+        val farMinPerHour: Double,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -50,6 +56,9 @@ class SettingsStore(private val context: Context) {
             timedCaptureEnabled = prefs[TIMED_CAPTURE] ?: true,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
             voiceEnabled = prefs[VOICE_ENABLED] ?: false,
+            fuelPerKm = prefs[FUEL_PER_KM] ?: DEFAULT_FUEL_PER_KM,
+            timeFactor = prefs[TIME_FACTOR] ?: DEFAULT_TIME_FACTOR,
+            farMinPerHour = prefs[FAR_MIN_PER_HOUR] ?: DEFAULT_FAR_MIN_PER_HOUR,
         )
     }
 
@@ -78,22 +87,39 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setVoiceEnabled(enabled: Boolean) = putBoolean(VOICE_ENABLED, enabled)
 
+    suspend fun saveTripCost(fuelPerKm: Double, timeFactor: Double, farMinPerHour: Double) {
+        context.dataStore.edit { prefs ->
+            prefs[FUEL_PER_KM] = fuelPerKm
+            prefs[TIME_FACTOR] = timeFactor
+            prefs[FAR_MIN_PER_HOUR] = farMinPerHour
+        }
+    }
+
     private suspend fun putBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
         context.dataStore.edit { prefs -> prefs[key] = value }
     }
 
-    private companion object {
-        val MIN_PAYOUT_CENTS = intPreferencesKey("min_payout_cents")
-        val MIN_PAY_PER_MILE = doublePreferencesKey("min_pay_per_mile")
-        val MIN_PAY_PER_HOUR = doublePreferencesKey("min_pay_per_hour")
-        val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
-        val FAR_ENABLED = booleanPreferencesKey("far_enabled")
-        val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
-        val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
-        val RECORD_SCREEN = booleanPreferencesKey("record_screen")
-        val TEST_MODE = booleanPreferencesKey("test_mode")
-        val TIMED_CAPTURE = booleanPreferencesKey("timed_capture")
-        val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
-        val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+    companion object {
+        private val MIN_PAYOUT_CENTS = intPreferencesKey("min_payout_cents")
+        private val MIN_PAY_PER_MILE = doublePreferencesKey("min_pay_per_mile")
+        private val MIN_PAY_PER_HOUR = doublePreferencesKey("min_pay_per_hour")
+        private val MAX_DISTANCE_MILES = doublePreferencesKey("max_distance_miles")
+        private val FAR_ENABLED = booleanPreferencesKey("far_enabled")
+        private val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
+        private val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
+        private val RECORD_SCREEN = booleanPreferencesKey("record_screen")
+        private val TEST_MODE = booleanPreferencesKey("test_mode")
+        private val TIMED_CAPTURE = booleanPreferencesKey("timed_capture")
+        private val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
+        private val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+        private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")
+        private val TIME_FACTOR = doublePreferencesKey("time_factor")
+        private val FAR_MIN_PER_HOUR = doublePreferencesKey("far_min_per_hour")
+
+        // The driver's own reckoning: a 2010 Camry in stop-start town driving,
+        // and the way back taking half as long again as the way there.
+        const val DEFAULT_FUEL_PER_KM = 0.2
+        const val DEFAULT_TIME_FACTOR = 1.5
+        const val DEFAULT_FAR_MIN_PER_HOUR = 10.0
     }
 }

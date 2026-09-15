@@ -79,12 +79,10 @@ object ChipText {
         return String.format("%.1f", miles / MILES_PER_KM) + " 公里"
     }
 
-    /** "$1.42/公里", or null when the card's distance was unreadable. */
-    fun rate(card: OfferCard): String? {
-        val miles = card.distance?.value ?: return null
-        val km = miles / MILES_PER_KM
-        if (km <= 0) return null
-        return "$" + String.format("%.2f", card.payout.dollars / km) + "/公里"
+    /** "$12.50/小时" after petrol, or null when the card's distance or time was unreadable. */
+    fun rate(card: OfferCard, cost: TripCost): String? {
+        val perHour = TripEarnings.perHour(card, cost) ?: return null
+        return "$" + String.format("%.2f", perHour) + "/小时"
     }
 
     /** The suburb a stop names, longest match first so Noble Park North wins. */

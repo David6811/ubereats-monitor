@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList()), GAZETTEER, Stops.UNPLACED)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0), GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -261,6 +261,62 @@ class RuleJudgeTest {
         assertEquals(Ruling.Take("Noble Park"), ruling)
     }
 
+    @Test
+    fun `given a far-set offer under ten dollars an hour after petrol, when judged, then it is left`() {
+        // arrange  the 15 Sep 09:51 card: $40.14, 75 min, 58.9 km (36.6 mi)
+        //          petrol 58.9 x 2 x 0.2 = 23.56; 40.14 - 23.56 = 16.58; 75 x 1.5 = 112.5 min = 1.875 h; 16.58 / 1.875 = 8.84
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(40.14))
+            .copy(duration = Minutes(75), distance = Miles(36.6))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
+
+        // assert
+        assertEquals("远区单每小时 ${'$'}8.84，低于 ${'$'}10", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given a far-set offer over ten dollars an hour after petrol, when judged, then it is taken`() {
+        // arrange  the 15 Sep 11:24 card: $35.46, 70 min, 35.9 km (22.3 mi) works out to $12.06
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(35.46))
+            .copy(duration = Minutes(70), distance = Miles(22.3))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
+
+        // assert
+        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
+    }
+
+    @Test
+    fun `given a far-set offer whose distance was unreadable, when judged, then the hour does not refuse it`() {
+        // arrange
+        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
+        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(40.14))
+            .copy(duration = Minutes(75), distance = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
+
+        // assert
+        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
+    }
+
+    @Test
+    fun `given an ordinary-set offer under ten dollars an hour, when judged, then the hour does not refuse it`() {
+        // arrange  $7.45, 17 min, 9.3 km (5.78 mi) works out to $8.78, but the floor is for the far set only
+        val card = card(pickup = "Some Shop", dropoff = "Somewhere, Noble Park", payout = Cents.ofDollars(7.45))
+            .copy(duration = Minutes(17), distance = Miles(5.78))
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES, GAZETTEER, Stops.UNPLACED)
+
+        // assert
+        assertEquals(Ruling.Take("Noble Park"), ruling)
+    }
+
     private companion object {
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 
@@ -271,6 +327,8 @@ class RuleJudgeTest {
             deniedStores = emptyList(),
             alwaysOkStores = emptyList(),
             noGoBoxes = emptyList(),
+            tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
+            farMinPerHour = 10.0,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),
