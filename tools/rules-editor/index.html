@@ -5,167 +5,175 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>接单规则</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
+/* The same instrument cluster as the phone: near-black, one gold accent,
+   hairlines instead of shadows, figures that line up. Blue and orange for yes
+   and no, never green and red - the driver cannot tell those two apart. */
 :root{
-  --ground:#F6F4F0; --panel:#FFFFFF; --sunk:#EEEBE5; --line:#DCD7CE;
-  --ink:#1B1F24; --ink-2:#5A6169; --ink-3:#8A9099;
-  --accent:#0E5B62; --accent-soft:#DBE9E9;
-  --yes:#2F7A4F; --no:#A9352C; --warn:#A8630B;
-  --shadow:0 1px 2px rgba(27,31,36,.06), 0 10px 28px rgba(27,31,36,.05);
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --ground:#13171B; --panel:#1B2026; --sunk:#232A31; --line:#2D343C;
-    --ink:#E7EAED; --ink-2:#A3ACB5; --ink-3:#737C85;
-    --accent:#5DC3C9; --accent-soft:#1C3538;
-    --yes:#5FBE87; --no:#E97D73; --warn:#DFA44B;
-    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.32);
-  }
+  --ground:#0A0A0B; --panel:#141416; --sunk:#1C1C1F; --line:#2A2A2E; --line-2:#3A3A3F;
+  --ink:#F3F1EC; --ink-2:#B9B6AF; --ink-3:#8F8C85;
+  --gold:#E8B64C; --gold-deep:#3A2E14;
+  --blue:#5AA9FF; --blue-deep:#142637;
+  --orange:#F0883E; --orange-deep:#3A2414;
+  --accent:var(--gold); --accent-soft:var(--gold-deep);
+  --yes:var(--blue); --no:var(--orange); --warn:var(--gold);
+  --r-panel:18px; --r-ctl:12px;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{
   margin:0; background:var(--ground); color:var(--ink);
-  font-family:"IBM Plex Sans",-apple-system,"PingFang SC",sans-serif; font-size:14px; line-height:1.55;
+  font-family:Inter,-apple-system,"PingFang SC","Hiragino Sans GB",sans-serif; font-size:14px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
 }
-h1,h2,.eyebrow,.btn{font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif}
-.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+h1,h2,.btn{font-family:Inter,-apple-system,"PingFang SC",sans-serif}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+::selection{background:var(--gold);color:var(--ground)}
 
 header{
-  position:sticky; top:0; z-index:20; background:var(--panel);
-  border-bottom:1px solid var(--line); padding:14px 24px;
-  display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+  position:sticky; top:0; z-index:1000; background:rgba(10,10,11,.86);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line); padding:14px 28px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
-h1{margin:0;font-size:26px;letter-spacing:.01em}
-.sub{color:var(--ink-2);font-size:13px}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}
+h1::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 0 4px var(--gold-deep);margin-right:12px;vertical-align:2px}
+.sub{color:var(--ink-3);font-size:13px}
 .spacer{flex:1}
-#phone{font-size:13px;color:var(--ink-3)}
-#phone[data-on="1"]{color:var(--yes)}
+#phone{font-size:13px;color:var(--ink-3);display:inline-flex;align-items:center;gap:8px}
+#phone::before{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink-3)}
+#phone[data-on="1"]{color:var(--ink)}
+#phone[data-on="1"]::before{background:var(--blue);border-color:var(--blue)}
 .btn{
-  border:1px solid var(--accent); background:var(--accent-soft); color:var(--accent);
-  border-radius:8px; padding:9px 18px; font-size:16px; font-weight:700;
-  letter-spacing:.02em; cursor:pointer;
+  border:1px solid var(--gold); background:var(--gold); color:var(--ground);
+  border-radius:var(--r-ctl); padding:10px 20px; font-size:15px; font-weight:600;
+  cursor:pointer; transition:filter .15s, background .15s, border-color .15s;
 }
-.btn.plain{background:var(--sunk);border-color:var(--line);color:var(--ink);font-size:14px;padding:6px 12px}
+.btn:hover{filter:brightness(1.08)}
+.btn.plain{background:transparent;border-color:var(--line-2);color:var(--ink);font-size:13.5px;font-weight:500;padding:7px 14px}
+.btn.plain:hover{border-color:var(--ink-3);filter:none;background:var(--sunk)}
 .btn:disabled{opacity:.45;cursor:default}
-.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* The map is the work surface and takes the window; prose stays at a readable
    width beside it. */
-main{padding:24px; display:flex; flex-direction:column; gap:20px}
+main{padding:24px 28px; display:flex; flex-direction:column; gap:20px}
 main > section:not(.mapsection){max-width:1100px}
 .mapsection{width:100%}
 section{
-  background:var(--panel); border:1px solid var(--line); border-radius:12px;
-  padding:20px; box-shadow:var(--shadow);
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r-panel);
+  padding:22px 24px;
 }
-h2{margin:0 0 4px; font-size:20px}
-.hint{color:var(--ink-2); font-size:13px; margin:0 0 16px; max-width:62ch}
+h2{margin:0 0 6px; font-size:18px; font-weight:600; letter-spacing:-.005em}
+.hint{color:var(--ink-3); font-size:13px; margin:0 0 16px; max-width:66ch}
+.hint b{color:var(--ink-2);font-weight:600}
 
 .row{display:flex; gap:12px; flex-wrap:wrap; align-items:end}
-label.field{display:flex; flex-direction:column; gap:4px}
-.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+label.field{display:flex; flex-direction:column; gap:6px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
 input[type="text"],input[type="number"],input[type="search"]{
-  padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+  padding:10px 12px; border:1px solid var(--line); border-radius:var(--r-ctl);
   background:var(--sunk); color:var(--ink); font:inherit; font-size:14px; min-width:150px;
 }
-input[type="range"]{width:260px;accent-color:var(--accent)}
+input::placeholder{color:var(--ink-3)}
+input[type="range"]{width:260px;accent-color:var(--gold)}
 select{
-  padding:8px 10px;border:1px solid var(--line);border-radius:7px;
+  padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-ctl);
   background:var(--sunk);color:var(--ink);font:inherit;font-size:14px;min-width:230px;
 }
 
-.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
 .chip{
   border:1px solid var(--line); background:var(--sunk); color:var(--ink-2);
-  border-radius:999px; padding:4px 11px; font-size:13px; cursor:pointer; user-select:none;
+  border-radius:10px; padding:5px 12px; font-size:13px; cursor:pointer; user-select:none;
 }
-.chip[data-on="1"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600}
-.chip.deny[data-on="1"]{background:transparent; border-color:var(--no); color:var(--no)}
+.chip[data-on="1"]{background:var(--gold-deep); border-color:rgba(232,182,76,.5); color:var(--gold); font-weight:600}
+.chip.deny[data-on="1"]{background:var(--orange-deep); border-color:rgba(240,136,62,.5); color:var(--orange)}
 
 .list{
-  margin-top:12px; border:1px solid var(--line); border-radius:8px;
-  max-height:260px; overflow:auto; background:var(--sunk);
+  margin-top:14px; border:1px solid var(--line); border-radius:var(--r-ctl);
+  max-height:280px; overflow:auto; background:var(--ground);
 }
 .list div{
-  padding:6px 10px; border-bottom:1px solid var(--line);
+  padding:8px 12px; border-bottom:1px solid var(--line);
   display:flex; gap:10px; align-items:center; font-size:13px;
 }
+.list div:hover{background:var(--sunk)}
 .list div:last-child{border-bottom:0}
 .list .name{flex:1}
 .list .meta{color:var(--ink-3); font-size:12px; white-space:nowrap}
-.tag{border:1px solid; border-radius:999px; padding:0 7px; font-size:11px; font-weight:600}
-.tag.mall{color:var(--no);border-color:var(--no)}
-.tag.strip{color:var(--warn);border-color:var(--warn)}
-.tag.easy{color:var(--yes);border-color:var(--yes)}
-.tag.unknown{color:var(--ink-3);border-color:var(--ink-3)}
+.tag{border:1px solid; border-radius:8px; padding:0 8px; font-size:11px; font-weight:600}
+.tag.mall{color:var(--orange);border-color:rgba(240,136,62,.5);background:var(--orange-deep)}
+.tag.strip{color:var(--gold);border-color:rgba(232,182,76,.45);background:var(--gold-deep)}
+.tag.easy{color:var(--blue);border-color:rgba(90,169,255,.45);background:var(--blue-deep)}
+.tag.unknown{color:var(--ink-3);border-color:var(--line-2)}
 
 textarea{
-  width:100%; min-height:110px; padding:10px; border:1px solid var(--line);
-  border-radius:8px; background:var(--sunk); color:var(--ink);
-  font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; resize:vertical;
+  width:100%; min-height:110px; padding:12px; border:1px solid var(--line);
+  border-radius:var(--r-ctl); background:var(--sunk); color:var(--ink);
+  font-family:"JetBrains Mono",monospace; font-size:13px; line-height:1.7; resize:vertical;
 }
-.count{color:var(--ink-3); font-size:12px; margin-left:8px}
-#status{font-size:13px;color:var(--ink-2);max-width:34ch;text-align:right;line-height:1.35}
-#status[data-kind="ok"]{color:var(--yes)}
-#status[data-kind="bad"]{color:var(--no)}
+.count{color:var(--ink-3); font-size:13px; font-weight:500; margin-left:10px;font-variant-numeric:tabular-nums}
+#status{font-size:13px;color:var(--ink-3);max-width:34ch;text-align:right;line-height:1.35}
+#status[data-kind="ok"]{color:var(--blue)}
+#status[data-kind="bad"]{color:var(--orange)}
 
 /* The save result gets a dialog, not a line of text in the header: pushing to
    the phone is the one action here with a consequence, and it has to be
    impossible to miss whether it landed. */
-#result{
-  border:none; border-radius:14px; padding:0; max-width:420px; width:calc(100% - 32px);
-  background:var(--panel); color:var(--ink); box-shadow:var(--shadow);
+#result, #jobs{
+  border:1px solid var(--line); border-radius:var(--r-panel); padding:0; max-width:440px; width:calc(100% - 32px);
+  background:var(--panel); color:var(--ink); box-shadow:0 30px 80px rgba(0,0,0,.6);
 }
-#result::backdrop{background:rgba(11,14,17,.42)}
+#jobs{max-width:580px}
+#result::backdrop, #jobs::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
 
 /* Opened with the map still in view and still live, so no backdrop and parked in
    a corner: watching the circle grow as the slider moves is the whole point.
    Above Leaflet, whose own panes and controls sit between 400 and 800. */
 #circle, #centre{
-  position:fixed; inset:auto auto 20px 20px; margin:0; z-index:10000;
-  border:1px solid var(--line); border-radius:14px; padding:14px 16px; width:330px;
-  background:var(--panel); color:var(--ink); box-shadow:var(--shadow);
-  flex-direction:column; gap:10px;
+  position:fixed; inset:auto auto 24px 24px; margin:0; z-index:10000;
+  border:1px solid var(--line); border-radius:var(--r-panel); padding:18px 20px; width:340px;
+  background:rgba(20,20,22,.94); backdrop-filter:blur(12px); color:var(--ink);
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+  flex-direction:column; gap:12px;
 }
 #circle[open], #centre[open]{display:flex}
-#circle h2, #centre h2{margin:0;font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif;font-size:21px}
+#circle h2, #centre h2{margin:0;font-size:18px}
 #circle .hint, #centre .hint{margin:0}
-.resultTop{display:flex;gap:14px;align-items:flex-start;padding:22px 24px 6px}
+.resultTop{display:flex;gap:14px;align-items:flex-start;padding:24px 24px 6px}
 .resultMark{
-  flex:none;width:38px;height:38px;border-radius:50%;
-  display:grid;place-items:center;font-size:21px;color:#fff;line-height:1;
+  flex:none;width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;font-size:20px;line-height:1;
 }
-.resultMark[data-kind="ok"]{background:var(--yes)}
-.resultMark[data-kind="bad"]{background:var(--no)}
-#resultTitle{font-family:"Barlow Condensed",-apple-system,"PingFang SC",sans-serif;
-  font-size:23px;margin:0;letter-spacing:.01em}
-#resultSub{color:var(--ink-2);font-size:13px;margin:2px 0 0}
+.resultMark[data-kind="ok"]{background:var(--blue-deep);color:var(--blue);box-shadow:inset 0 0 0 1px rgba(90,169,255,.5)}
+.resultMark[data-kind="bad"]{background:var(--orange-deep);color:var(--orange);box-shadow:inset 0 0 0 1px rgba(240,136,62,.5)}
+#resultTitle,#jobsTitle{font-size:20px;margin:0;font-weight:600}
+#resultSub,#jobsSub{color:var(--ink-3);font-size:13px;margin:2px 0 0}
 #resultRows{list-style:none;margin:14px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:0}
 #resultRows li{
   display:flex;justify-content:space-between;gap:16px;
-  padding:8px 0;border-top:1px solid var(--line);font-size:13px;
+  padding:9px 0;border-top:1px solid var(--line);font-size:13px;
 }
-#resultRows li span:first-child{color:var(--ink-2)}
-#resultRows li span:last-child{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  font-variant-numeric:tabular-nums;text-align:right}
-.resultFoot{display:flex;justify-content:flex-end;padding:16px 24px 20px}
-#jobs{border:none;border-radius:14px;padding:0;max-width:560px;width:calc(100% - 32px);
-  background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
-#jobs::backdrop{background:rgba(11,14,17,.42)}
+#resultRows li span:first-child{color:var(--ink-3)}
+#resultRows li span:last-child{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  font-variant-numeric:tabular-nums;text-align:right;color:var(--gold)}
+.resultFoot{display:flex;justify-content:flex-end;padding:18px 24px 22px}
 #jobsList{list-style:none;margin:14px 0 0;padding:0 24px;display:flex;flex-direction:column;gap:14px}
 #jobsList li{border-top:1px solid var(--line);padding-top:12px}
-#jobsList .money{font-weight:600}
-#jobsList a{flex:1;color:var(--accent);text-decoration:none}
+#jobsList .money{font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums}
+#jobsList a{flex:1;color:var(--ink);text-decoration:none}
 .jobrow{display:flex;align-items:center;gap:10px;margin-top:6px}
-.btn.tiny{padding:3px 10px;font-size:13px;flex:none}
-#jobsList a:hover{text-decoration:underline}
+.btn.tiny{padding:4px 10px;font-size:12.5px;flex:none}
+#jobsList a:hover{color:var(--gold)}
 #jobsList .eyebrow{margin-right:6px}
-footer{padding:0 24px 40px; color:var(--ink-3); font-size:12px; max-width:70ch; line-height:1.7}
+footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; line-height:1.7}
 
 #map{
-  height:78vh; min-height:460px; border-radius:10px;
-  border:1px solid var(--line); margin-top:12px; background:var(--sunk);
+  height:78vh; min-height:460px; border-radius:14px;
+  border:1px solid var(--line); margin-top:14px; background:#0E0E10;
 }
 /* Full screen is where this work actually happens: picking forty suburbs out
    of seven hundred needs the whole window, not a panel. */
@@ -174,50 +182,60 @@ body.mapfull header{display:none}
 body.mapfull footer{display:none}
 body.mapfull main{padding:0;max-width:none;height:100vh;gap:0}
 body.mapfull .mapsection{
-  border:0;border-radius:0;box-shadow:none;height:100vh;
+  border:0;border-radius:0;height:100vh;
   display:flex;flex-direction:column;padding:12px 16px;
 }
 body.mapfull #map{height:100%;flex:1;min-height:0;margin-top:10px}
 body.mapfull .hint{display:none}
-body.mapfull h2{font-size:17px}
-.leaflet-container{font-family:inherit}
+body.mapfull h2{font-size:16px}
+.leaflet-container{font-family:inherit;background:#0E0E10}
+.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.25)}
+.leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-bar{border:1px solid var(--line)!important;box-shadow:none!important;border-radius:10px!important;overflow:hidden}
+.leaflet-control-attribution{background:rgba(10,10,11,.7)!important;color:var(--ink-3)!important}
+.leaflet-control-attribution a{color:var(--ink-2)!important}
+.leaflet-control-scale-line{background:rgba(10,10,11,.7);border-color:var(--ink-3);color:var(--ink-2)}
+.leaflet-tooltip{background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:none;border-radius:8px}
+.leaflet-tooltip:before{display:none}
 /* The browser draws a rectangular focus ring around a clicked SVG path, which
    on a map reads as if the suburb itself were a rectangle. Selection is shown
    by the fill, so the ring only misleads. */
 .leaflet-container path.leaflet-interactive:focus,
 .leaflet-container path.leaflet-interactive:focus-visible{outline:none}
-.maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.maptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
 .maptools>span{display:contents}
-.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
-.btn.armed{background:var(--accent);color:#fff}
-.prof.far{border-style:dashed;border-color:var(--warn);color:var(--warn)}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink-3);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+.btn.armed{background:var(--gold);border-color:var(--gold);color:var(--ground)}
+.prof.far{border-style:dashed;border-color:rgba(240,136,62,.6);color:var(--orange)}
 /* Being edited on the map, which is not the same as being the live set. */
-.prof[data-editing="1"]{box-shadow:0 0 0 2px var(--accent)}
-.prof.far[data-editing="1"]{box-shadow:0 0 0 2px var(--warn);border-style:solid}
+.prof[data-editing="1"]{box-shadow:0 0 0 2px var(--gold)}
+.prof.far[data-editing="1"]{box-shadow:0 0 0 2px var(--orange);border-style:solid;background:var(--orange-deep)}
 .prof{
-  border:1px solid var(--line);background:var(--sunk);color:var(--ink-2);
-  border-radius:999px;padding:5px 14px;font-size:14px;cursor:pointer;user-select:none;
+  border:1px solid var(--line-2);background:transparent;color:var(--ink-2);
+  border-radius:10px;padding:6px 14px;font-size:13.5px;cursor:pointer;user-select:none;
 }
-.prof[data-on="1"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
-.prof .x{margin-left:8px;opacity:.5}
-.core{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px;background:var(--sunk)}
-.core h3{margin:0 0 2px;font-family:"Barlow Condensed",sans-serif;font-size:19px}
-.core .sum{color:var(--ink-2);font-size:13px;margin-bottom:10px}
+.prof:hover{background:var(--sunk)}
+.prof[data-on="1"]{background:var(--gold-deep);border-color:rgba(232,182,76,.55);color:var(--gold);font-weight:600}
+.prof .x{margin-left:8px;opacity:.45}
+.core{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;background:var(--ground)}
+.core h3{margin:0 0 2px;font-size:16px;font-weight:600}
+.core .sum{color:var(--ink-3);font-size:13px;margin-bottom:12px}
 .core .acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .core details{margin-top:8px}
-.core summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:600}
-.core .grp{margin:8px 0 0 4px}
-.core .grp b{font-size:12px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
-.core .items{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:13px}
+.core summary{cursor:pointer;font-size:13px;color:var(--gold);font-weight:600}
+.core .grp{margin:10px 0 0 4px}
+.core .grp b{font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase}
+.core .items{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:13px}
 .core .items span{color:var(--ink-2)}
-.core .items span.warn{color:var(--warn)}
-.core .items span.kept{color:var(--yes)}
+.core .items span.warn{color:var(--gold)}
+.core .items span.kept{color:var(--blue)}
 .core .items span.pick{cursor:pointer}
 .core .items span.pick:hover{text-decoration:underline}
-.core .items span.spared{color:var(--ink-2);opacity:.55;text-decoration:line-through}
-.checkline{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);cursor:pointer}
-.core .acts .checkline{border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:var(--panel)}
+.core .items span.spared{color:var(--ink-3);opacity:.6;text-decoration:line-through}
+.checkline{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink);cursor:pointer}
+.checkline input{accent-color:var(--gold)}
+.core .acts .checkline{border:1px solid var(--line-2);border-radius:10px;padding:6px 12px;background:var(--panel)}
 </style>
 </head>
 <body>
@@ -241,8 +259,9 @@ body.mapfull h2{font-size:17px}
     </div>
     <div id="map"></div>
     <div class="legend">
-      <span><i style="background:linear-gradient(90deg,#2F7A4F,#0E5B62,#7A3E5E,#3A5A9E)"></i>去（颜色只为分开相邻的区）</span>
-      <span><i style="background:transparent;border:1px solid var(--ink-3)"></i>不去（只剩轮廓）</span>
+      <span><i style="background:rgba(232,182,76,.4);border:1px solid #E8B64C"></i>去</span>
+      <span><i style="background:transparent;border:1px solid #6B6A66"></i>不去（只剩轮廓）</span>
+      <span><i style="background:rgba(240,136,62,.25);border:1px dashed #F0883E"></i>不接单框</span>
     </div>
 
     <input type="hidden" id="pickLat"><input type="hidden" id="pickLon"><input type="hidden" id="pickLabel">
@@ -383,6 +402,9 @@ body.mapfull h2{font-size:17px}
 
   function initMap(){
     map = L.map("map", { zoomControl: true }).setView([-37.99, 145.15], 11);
+    // The ordinary OpenStreetMap tiles, darkened by a CSS filter on the tile pane
+    // alone: dark tile services now want an API key, and the suburbs drawn on
+    // top must keep their true gold.
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18, attribution: "© OpenStreetMap"
     }).addTo(map);
@@ -416,7 +438,7 @@ body.mapfull h2{font-size:17px}
             toggle(name);
           });
           layer.on("mouseover", function(){
-            this.setStyle({ weight: 3.4, color: "#111", opacity: 1 });
+            this.setStyle({ weight: 3, color: "#F3F1EC", opacity: 1 });
           });
           layer.on("mouseout", function(){
             this.setStyle(styleFor({ properties: { name: name } }));
@@ -445,7 +467,7 @@ body.mapfull h2{font-size:17px}
     noGoLayer = L.layerGroup().addTo(map);
     noGo().forEach(function(box, index){
       var rect = L.rectangle([[box.south, box.west], [box.north, box.east]], {
-        color: "#b3261e", weight: 2, fillColor: "#b3261e", fillOpacity: 0.22, dashArray: "6 4",
+        color: "#F0883E", weight: 2, fillColor: "#F0883E", fillOpacity: 0.2, dashArray: "6 4",
       }).addTo(noGoLayer);
       rect.bindTooltip("⛔ " + box.label + "（点一下删掉）", { sticky: true });
       rect.on("click", function(event){
@@ -473,7 +495,7 @@ body.mapfull h2{font-size:17px}
     map.on("mousedown", function(event){
       if (!noGoOn) return;
       start = event.latlng;
-      preview = L.rectangle([start, start], { color: "#b3261e", weight: 2, fillOpacity: 0.15 }).addTo(map);
+      preview = L.rectangle([start, start], { color: "#F0883E", weight: 2, fillColor: "#F0883E", fillOpacity: 0.15 }).addTo(map);
     });
     map.on("mousemove", function(event){
       if (!noGoOn || !start) return;
@@ -522,7 +544,9 @@ body.mapfull h2{font-size:17px}
    * Chosen or not is carried by the fill, not the hue: a suburb you go to is
    * filled, one you do not is an outline.
    */
-  var HUES = ["#2F7A4F","#0E5B62","#7A5B1E","#7A3E5E","#3A5A9E","#1E7A6E","#8A5A2B","#4A4E8C"];
+  // All golds, a few shades apart: enough to tell neighbours from each other
+  // without the map turning into a patchwork.
+  var HUES = ["#E8B64C","#D19A33","#F2C96B","#BF8A2A","#E0A94A","#F5D48A","#C79436","#DDB25E"];
 
   function hueOf(name){
     var sum = 0;
@@ -534,11 +558,11 @@ body.mapfull h2{font-size:17px}
     var name = feature.properties.name;
     var on = allowed(name);
     return {
-      color: on ? hueOf(name) : "#9AA0A6",
-      weight: on ? 1.8 : 0.6,
+      color: on ? "#E8B64C" : "#6B6A66",
+      weight: on ? 1.4 : 0.6,
       fillColor: hueOf(name),
-      fillOpacity: on ? 0.52 : 0,
-      opacity: on ? 1 : 0.45,
+      fillOpacity: on ? 0.34 : 0,
+      opacity: on ? 0.95 : 0.5,
     };
   }
 
@@ -584,7 +608,7 @@ body.mapfull h2{font-size:17px}
     var c = centreOf(state.rules.active);
     if (!c) return;
     centreMark = L.circleMarker([c.lat, c.lon], {
-      radius: 8, color: "#fff", weight: 3, fillColor: "#B8860B", fillOpacity: 1,
+      radius: 8, color: "#fff", weight: 3, fillColor: "#E8B64C", fillOpacity: 1,
     }).addTo(map).bindTooltip("「" + state.rules.active + "」的中心" +
                               (c.label ? "：" + c.label : ""));
   }
@@ -595,7 +619,7 @@ body.mapfull h2{font-size:17px}
     var lat = parseFloat($("pickLat").value), lon = parseFloat($("pickLon").value);
     if (!centreOn || isNaN(lat) || isNaN(lon)) return;
     pickMark = L.circleMarker([lat, lon], {
-      radius: 8, color: "#B8860B", weight: 2, fillColor: "#B8860B", fillOpacity: 0.35,
+      radius: 8, color: "#E8B64C", weight: 2, fillColor: "#E8B64C", fillOpacity: 0.35,
     }).addTo(map).bindTooltip("按「设为中心」就定在这里");
   }
 
@@ -609,26 +633,26 @@ body.mapfull h2{font-size:17px}
     if (!circleOn || isNaN(lat) || isNaN(lon)) return;
 
     anchorRing = L.circle([lat, lon], {
-      radius: km * 1000, color: "#0E5B62", weight: 2, fillOpacity: 0.05,
+      radius: km * 1000, color: "#5AA9FF", weight: 2, fillOpacity: 0.05,
     }).addTo(map);
 
     // A spoke of exactly the same length, labelled. Read it against the scale
     // bar in the corner: if the two disagree, the circle is wrong.
     var east = lon + (km / (111.320 * Math.cos(lat * Math.PI / 180)));
     anchorSpoke = L.polyline([[lat, lon], [lat, east]], {
-      color: "#0E5B62", weight: 2, dashArray: "5 5",
+      color: "#5AA9FF", weight: 2, dashArray: "5 5",
     }).addTo(map);
     anchorTip = L.marker([lat, east], {
       icon: L.divIcon({
         className: "",
-        html: '<div style="background:#0E5B62;color:#fff;padding:1px 7px;' +
+        html: '<div style="background:#5AA9FF;color:#0A0A0B;padding:1px 7px;' +
               'border-radius:9px;font:600 12px system-ui;white-space:nowrap">' + km + ' km</div>',
         iconSize: null,
       }),
     }).addTo(map);
 
     anchorMark = L.circleMarker([lat, lon], {
-      radius: 6, color: "#0E5B62", fillColor: "#0E5B62", fillOpacity: 1,
+      radius: 6, color: "#5AA9FF", fillColor: "#5AA9FF", fillOpacity: 1,
     }).addTo(map).bindTooltip("画圈圆心");
   }
 
