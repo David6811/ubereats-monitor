@@ -53,6 +53,7 @@ class VoiceService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        askForOfflineChinese()
         speech = TextToSpeech(this) { status ->
             val tts = speech ?: return@TextToSpeech
             val language = if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.SIMPLIFIED_CHINESE) else -1
@@ -101,7 +102,7 @@ class VoiceService : Service() {
         }
         val ask = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE)
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         // Leans the recognizer towards the few sentences that mean something here.
@@ -110,6 +111,28 @@ class VoiceService : Service() {
         }
         runCatching { current.startListening(ask) }
             .onFailure { Log.w(TAG, "voice: start failed", it); again(ERROR_BACKOFF_MILLIS) }
+    }
+
+    /**
+     * Asks the phone to download its on-device Mandarin model, so recognition
+     * stops needing the network and stops sending the car's audio to Google.
+     * The phone does nothing if the model is already there.
+     */
+    private fun askForOfflineChinese() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            Log.w(TAG, "voice: no on-device recognizer on this phone")
+            return
+        }
+        runCatching {
+            val onDevice = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            onDevice.triggerModelDownload(
+                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE),
+            )
+            Log.i(TAG, "voice: asked for the offline $LANGUAGE model")
+            main.postDelayed({ onDevice.destroy() }, 5_000L)
+        }.onFailure { Log.w(TAG, "voice: offline model request failed", it) }
     }
 
     /** Starts the next session after a pause, so a failing recognizer does not spin. */
@@ -242,6 +265,12 @@ class VoiceService : Service() {
         private const val NEXT_MILLIS = 150L
         private const val ERROR_BACKOFF_MILLIS = 3_000L
         private const val TONE_MILLIS = 500L
+
+        /**
+         * Mandarin, simplified, as the phone's offline packs name it. "zh-CN" is
+         * understood online but matches no offline pack.
+         */
+        private const val LANGUAGE = "cmn-Hans-CN"
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, VoiceService::class.java))
