@@ -67,6 +67,30 @@ class VoiceCommandsTest {
     }
 
     @Test
+    fun `given switch to the app, when it is parsed, then this app comes to the front`() {
+        // arrange
+        val heard = listOf("切应用")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+    }
+
+    @Test
+    fun `given switch to delivering, when it is parsed, then uber comes to the front`() {
+        // arrange
+        val heard = listOf("切送餐")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+    }
+
+    @Test
     fun `given the short chinese for closing the map, when it is parsed, then maps is closed`() {
         // arrange
         val heard = listOf("关地图")
@@ -103,6 +127,8 @@ class VoiceCommandsTest {
             listOf(
                 VoiceCommand.SwitchTo(VoiceTarget.MAPS),
                 VoiceCommand.SwitchTo(VoiceTarget.UBER),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF),
                 VoiceCommand.Close(VoiceTarget.MAPS),
             ),

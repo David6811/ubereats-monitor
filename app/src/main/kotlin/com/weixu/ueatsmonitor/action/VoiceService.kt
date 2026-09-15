@@ -154,7 +154,7 @@ class VoiceService : Service() {
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("语音命令在听")
-            .setContentText("说「切地图」「切优步」「切助手」「关地图」")
+            .setContentText("说「切地图」「切优步」「切送餐」「切应用」「关地图」")
             .setOngoing(true)
             .build()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
