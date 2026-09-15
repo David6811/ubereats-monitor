@@ -25,21 +25,35 @@ sealed interface VoiceCommand {
  */
 object VoiceCommands {
 
-    private val CLOSE_VERBS = listOf("关闭", "关掉", "关了", "退出", "收起")
-    private val SWITCH_VERBS = listOf("切换到", "切换", "切到", "切回", "打开", "回到", "去")
+    // Single characters are enough: an app name has to be in the sentence too.
+    private val CLOSE_VERBS = listOf("关闭", "关掉", "退出", "收起", "关")
+    private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去")
 
+    /**
+     * Chinese first. A sentence half in English - "切到 Google Map" - is the one a
+     * Chinese recognizer gets wrong, so every app has a plain Chinese name to say.
+     * The English ones stay for when the recognizer does write them.
+     */
     private val NAMES: List<Pair<VoiceTarget, List<String>>> = listOf(
-        VoiceTarget.MAPS to listOf("谷歌地图", "google地图", "googlemap", "googlemaps", "地图", "导航"),
-        VoiceTarget.UBER to listOf("ubereats", "uber", "优步", "司机端", "派单"),
-        VoiceTarget.SELF to listOf("接单助手", "我们的app", "我们的应用", "我们的", "助手"),
+        VoiceTarget.MAPS to listOf("地图", "谷歌", "导航", "google", "map"),
+        VoiceTarget.UBER to listOf("优步", "司机", "送餐", "外卖", "派单", "接单", "uber"),
+        VoiceTarget.SELF to listOf("接单助手", "助手", "我们的"),
     )
+
+    /** The short sentences to say, and to steer the recognizer towards. */
+    val PHRASES: List<String> = listOf("切地图", "切优步", "切助手", "关地图")
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
     fun parse(guesses: List<String>): VoiceCommand? = guesses.firstNotNullOfOrNull(::parseOne)
 
     private fun parseOne(sentence: String): VoiceCommand? {
         val text = fold(sentence)
-        val target = NAMES.firstOrNull { (_, names) -> names.any { text.contains(it) } }?.first
+        // The longest name heard wins: "接单助手" is this app, though "接单" is Uber.
+        val target = NAMES
+            .flatMap { (target, names) -> names.map { target to it } }
+            .filter { (_, name) -> text.contains(name) }
+            .maxByOrNull { (_, name) -> name.length }
+            ?.first
             ?: return null
         return when {
             CLOSE_VERBS.any { text.contains(it) } -> VoiceCommand.Close(target)

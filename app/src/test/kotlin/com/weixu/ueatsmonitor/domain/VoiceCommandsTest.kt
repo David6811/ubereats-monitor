@@ -55,6 +55,62 @@ class VoiceCommandsTest {
     }
 
     @Test
+    fun `given the short chinese for uber, when it is parsed, then uber comes to the front`() {
+        // arrange
+        val heard = listOf("切优步")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+    }
+
+    @Test
+    fun `given the short chinese for closing the map, when it is parsed, then maps is closed`() {
+        // arrange
+        val heard = listOf("关地图")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.Close(VoiceTarget.MAPS), command)
+    }
+
+    @Test
+    fun `given this app's full name, which contains uber's word for taking a job, when it is parsed, then this app wins`() {
+        // arrange
+        val heard = listOf("切到接单助手")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+    }
+
+    @Test
+    fun `given each phrase offered to the driver, when they are parsed, then every one is a command`() {
+        // arrange
+        val phrases = VoiceCommands.PHRASES
+
+        // act
+        val commands = phrases.map { VoiceCommands.parse(listOf(it)) }
+
+        // assert
+        assertEquals(
+            listOf(
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF),
+                VoiceCommand.Close(VoiceTarget.MAPS),
+            ),
+            commands,
+        )
+    }
+
+    @Test
     fun `given an app named in passing with no verb, when it is parsed, then nothing happens`() {
         // arrange
         val heard = listOf("这个地图不太准")
