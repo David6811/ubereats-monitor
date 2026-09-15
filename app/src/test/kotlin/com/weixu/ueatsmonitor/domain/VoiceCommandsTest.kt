@@ -110,6 +110,9 @@ class VoiceCommandsTest {
                 VoiceCommand.SwitchTo(VoiceTarget.UBER),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF),
+                VoiceCommand.SwitchTo(VoiceTarget.MAPS),
+                VoiceCommand.SwitchTo(VoiceTarget.UBER),
+                VoiceCommand.SwitchTo(VoiceTarget.SELF),
             ),
             commands,
         )
@@ -125,6 +128,42 @@ class VoiceCommandsTest {
 
         // assert
         assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS), command)
+    }
+
+    @Test
+    fun `given uber eats said in english with a capital and a full stop, when it is parsed, then uber comes to the front`() {
+        // arrange
+        val heard = listOf("Uber Eats.")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER), command)
+    }
+
+    @Test
+    fun `given application said in english, when it is parsed, then this app wins over the shorter app`() {
+        // arrange
+        val heard = listOf("Application")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF), command)
+    }
+
+    @Test
+    fun `given an english sentence that mentions the map in passing, when it is parsed, then nothing happens`() {
+        // arrange
+        val heard = listOf("the map is wrong")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertNull(command)
     }
 
     @Test

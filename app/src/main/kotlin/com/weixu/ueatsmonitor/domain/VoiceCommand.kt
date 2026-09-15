@@ -35,15 +35,16 @@ object VoiceCommands {
      * The English ones stay for when the recognizer does write them.
      */
     private val NAMES: List<Pair<VoiceTarget, List<String>>> = listOf(
-        VoiceTarget.MAPS to listOf("地图", "谷歌", "导航", "google", "map"),
-        VoiceTarget.UBER to listOf("优步", "司机", "送餐", "外卖", "派单", "接单", "uber"),
-        VoiceTarget.SELF to listOf("接单助手", "助手", "应用", "我们的"),
+        VoiceTarget.MAPS to listOf("地图", "谷歌", "导航", "google", "map", "maps"),
+        VoiceTarget.UBER to listOf("优步", "司机", "送餐", "外卖", "派单", "接单", "uber", "ubereats"),
+        VoiceTarget.SELF to listOf("接单助手", "助手", "应用", "我们的", "application", "app"),
     )
 
     /** The short sentences to say, and to steer the recognizer towards. */
     val PHRASES: List<String> = listOf(
         "切地图", "切优步", "切送餐", "切应用", "切助手",
         "地图", "送餐", "助手", "应用",
+        "map", "uber eats", "application",
     )
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */

@@ -113,6 +113,12 @@ class VoiceService : Service() {
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE)
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        // Mandarin first, English when he speaks it: the on-device recognizer
+        // switches between the two mid-session from Android 14.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ask.putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_SWITCH, RecognizerIntent.LANGUAGE_SWITCH_QUICK_RESPONSE)
+            ask.putStringArrayListExtra(RecognizerIntent.EXTRA_LANGUAGE_SWITCH_ALLOWED_LANGUAGES, ArrayList(LANGUAGES))
+        }
         // Leans the recognizer towards the few sentences that mean something here.
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             ask.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(VoiceCommands.PHRASES))
@@ -134,11 +140,13 @@ class VoiceService : Service() {
         }
         runCatching {
             val onDevice = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            onDevice.triggerModelDownload(
-                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE),
-            )
-            Log.i(TAG, "voice: asked for the offline $LANGUAGE model")
+            LANGUAGES.forEach { language ->
+                onDevice.triggerModelDownload(
+                    Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                        .putExtra(RecognizerIntent.EXTRA_LANGUAGE, language),
+                )
+                Log.i(TAG, "voice: asked for the offline $language model")
+            }
             main.postDelayed({ onDevice.destroy() }, 5_000L)
         }.onFailure { Log.w(TAG, "voice: offline model request failed", it) }
     }
@@ -277,7 +285,7 @@ class VoiceService : Service() {
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("语音命令在听")
-            .setContentText("说「地图」「送餐」「应用」")
+            .setContentText("说「地图」「送餐」「应用」或 map / uber eats / application")
             .setOngoing(true)
             .build()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -300,6 +308,9 @@ class VoiceService : Service() {
          * understood online but matches no offline pack.
          */
         private const val LANGUAGE = "cmn-Hans-CN"
+
+        /** Every language a command may be said in, the one listened for first at its head. */
+        private val LANGUAGES = listOf(LANGUAGE, "en-AU")
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, VoiceService::class.java))
