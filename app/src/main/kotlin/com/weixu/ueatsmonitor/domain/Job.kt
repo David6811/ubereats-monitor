@@ -73,17 +73,13 @@ enum class Shelf {
  */
 object JobBoard {
 
-    /** How many to keep. More than a handful in hand at once does not happen. */
-    const val CAPACITY = 6
-
+    /**
+     * No cap. A cap of six pushed offers off the board during a busy half hour;
+     * the driver clears jobs by hand, so the board only ever holds what he kept.
+     */
     fun add(jobs: List<Job>, job: Job): List<Job> {
         if (jobs.any { sameOffer(it, job) }) return jobs
-        val next = listOf(job) + jobs
-        // The cap is about how many offers are worth still looking at. A job in
-        // hand is not an offer any more, so it does not compete for the room -
-        // a busy half hour used to push the delivery being driven off the board.
-        val kept = next.filterNot { it.taken }.take(CAPACITY).map { it.atMillis }.toSet()
-        return next.filter { it.taken || it.atMillis in kept }
+        return listOf(job) + jobs
     }
 
     fun remove(jobs: List<Job>, atMillis: Long): List<Job> = jobs.filterNot { it.atMillis == atMillis }

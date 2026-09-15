@@ -72,37 +72,17 @@ class JobBoardTest {
     }
 
     @Test
-    fun `given a full board, when one more arrives, then the oldest falls off`() {
+    fun `given twenty offers on the board, when one more arrives, then none falls off`() {
         // arrange
-        val board = (1..JobBoard.CAPACITY).map { at ->
+        val board = (20 downTo 1).map { at ->
             Job(at.toLong(), pizza.copy(dropoff = "Street $at"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
-        }.reversed()
+        }
 
         // act
         val next = JobBoard.add(board, Job(99, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
 
-        // affirm
-        assertEquals(JobBoard.CAPACITY, next.size)
-
-        // assert  the one from the far end is gone
-        assertEquals(listOf<Long>(99, 6, 5, 4, 3, 2), next.map { it.atMillis })
-    }
-
-    @Test
-    fun `given a full board whose oldest job was taken, when one more arrives, then the taken one stays`() {
-        // arrange
-        val board = (1..JobBoard.CAPACITY).map { at ->
-            Job(at.toLong(), pizza.copy(dropoff = "Street $at"), taken = at == 1, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
-        }.reversed()
-
-        // act
-        val next = JobBoard.add(board, Job(99, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
-
-        // affirm  the cap still holds the offers to six
-        assertEquals(JobBoard.CAPACITY, next.count { !it.taken })
-
-        // assert  the delivery being driven is still on the board
-        assertEquals(listOf<Long>(99, 6, 5, 4, 3, 2, 1), next.map { it.atMillis })
+        // assert  20 already there + the new one
+        assertEquals(21, next.size)
     }
 
     @Test

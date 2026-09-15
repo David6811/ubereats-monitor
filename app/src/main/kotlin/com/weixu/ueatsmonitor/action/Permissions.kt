@@ -22,6 +22,15 @@ object Permissions {
 
     fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
 
+    /**
+     * Since Android 13 the app's own notification - and the two buttons on it -
+     * is not shown until this is granted, and losing it is silent.
+     */
+    fun postNotificationsGranted(context: Context): Boolean =
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
     /** The screen recorder is the only source that sees an offer card. */
     fun screenReadingGranted(context: Context): Boolean {
         val enabled = Settings.Secure.getString(

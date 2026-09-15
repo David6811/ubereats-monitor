@@ -72,8 +72,28 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
+    private var askedNotifications = false
+
+    private val askNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                android.widget.Toast.makeText(
+                    this,
+                    "通知权限没开：常驻通知和上面的两个按钮不会出现",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+
     override fun onResume() {
         super.onResume()
+        // Asked whenever the app is opened afresh, so a permission lost in the
+        // background is noticed. Once per activity: the permission dialog itself
+        // pauses and resumes this screen, and a refusal would otherwise loop.
+        if (!askedNotifications && !Permissions.postNotificationsGranted(this)) {
+            askedNotifications = true
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
         // Brings back the keeper notification if it was swiped away - but never
         // after a deliberate quit, which leaves screen reading off. The keeper
         // exists to serve the reader; without one there is nothing to keep alive.
