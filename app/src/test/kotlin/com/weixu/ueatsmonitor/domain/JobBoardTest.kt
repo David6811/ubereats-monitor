@@ -86,6 +86,36 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a delivery screen that names the city after the suburb, when it is read, then the job still matches`() {
+        // arrange  the card of 16 Sep 10:40 said Clarinda; the delivery screen said "Clarinda Melbourne VIC"
+        val board = listOf(
+            Job(1_000, pizza.copy(dropoff = "Bourke Road & Glenelg Drive, Clarinda"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+        )
+        val dropoff = Dropoff(customer = "Elisa N.", address = "10 Bushland Avenue, Clarinda Melbourne VIC", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(board, dropoff, "Clarinda Melbourne")
+
+        // assert
+        assertEquals("10 Bushland Avenue, Clarinda Melbourne VIC", next.first().dropAddress)
+    }
+
+    @Test
+    fun `given a delivery in a suburb no job names, when it is read, then no job is touched`() {
+        // arrange
+        val board = listOf(
+            Job(1_000, pizza.copy(dropoff = "Cole Street, Noble Park"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+        )
+        val dropoff = Dropoff(customer = null, address = "1 Somewhere St, Frankston VIC", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(board, dropoff, "Frankston")
+
+        // assert
+        assertEquals(board, next)
+    }
+
+    @Test
     fun `given two jobs, when one is cleared, then the other stays`() {
         // arrange
         val board = listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))

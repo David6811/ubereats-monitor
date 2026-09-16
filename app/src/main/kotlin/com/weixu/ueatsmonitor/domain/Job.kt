@@ -142,11 +142,15 @@ object JobBoard {
      */
     fun delivered(jobs: List<Job>, dropoff: Dropoff, suburb: String?): List<Job> {
         if (suburb.isNullOrBlank()) return jobs
-        val wanted = fold(suburb)
-        if (wanted.length < MIN_SUBURB) return jobs
 
-        val matches = jobs.indices.filter { at -> fold(jobs[at].offer.dropoff).contains(wanted) }
-        val at = matches.firstOrNull { jobs[it].taken } ?: matches.firstOrNull() ?: return jobs
+        // The delivery screen sometimes writes the city after the suburb -
+        // "Clarinda Melbourne VIC" - while the card only ever said "Clarinda".
+        // So the whole name is tried first, then shorter ones from its front.
+        val matches = suburbNames(suburb).firstNotNullOfOrNull { wanted ->
+            jobs.indices.filter { at -> fold(jobs[at].offer.dropoff).contains(wanted) }
+                .takeIf { it.isNotEmpty() }
+        } ?: return jobs
+        val at = matches.firstOrNull { jobs[it].taken } ?: matches.first()
 
         return jobs.mapIndexed { index, job ->
             if (index != at) job
@@ -157,6 +161,15 @@ object JobBoard {
                 dropNote = dropoff.note,
             )
         }
+    }
+
+    /** "Clarinda Melbourne" -> ["clarindamelbourne", "clarinda"], longest first. */
+    private fun suburbNames(suburb: String): List<String> {
+        val words = suburb.trim().split(Regex("""\s+""")).filter { it.isNotBlank() }
+        return (words.size downTo 1)
+            .map { take -> fold(words.take(take).joinToString(" ")) }
+            .filter { it.length >= MIN_SUBURB }
+            .distinct()
     }
 
     private const val MIN_STORE = 4
