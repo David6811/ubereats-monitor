@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
@@ -141,11 +140,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Data. The four places in the app, in the order of the bar along the bottom. */
+/**
+ * Data. The three places in the app, in the order of the bar along the bottom.
+ *
+ * The recorded frames are still written and still pruned; they are read on the
+ * laptop, where a shift is actually looked into, so the phone no longer carries
+ * a page for them.
+ */
 private enum class Place(val label: String, val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
     WORK("工作", Icons.Filled.Home),
     AREAS("选区", Icons.Filled.LocationOn),
-    RECORD("记录", Icons.AutoMirrored.Filled.List),
     SETTINGS("设置", Icons.Filled.Settings),
 }
 
@@ -163,7 +167,6 @@ private fun HomeTabs() {
             when (place) {
                 Place.WORK -> WorkScreen()
                 Place.AREAS -> ProfileScreen()
-                Place.RECORD -> CaptureScreen()
                 Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
             }
         }
