@@ -96,7 +96,7 @@ fun TripScreen() {
             }
             // The same outlines as the areas page, so what is left is a shape, not
             // a list of names to read one by one.
-            SuburbMap(chosen = going, shapes = shapes)
+            SuburbMap(chosen = going, shapes = shapes, dropped = all.toSet() - going)
         }
 
         Panel {

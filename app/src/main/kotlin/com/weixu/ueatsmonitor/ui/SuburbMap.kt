@@ -26,17 +26,32 @@ import com.weixu.ueatsmonitor.domain.SuburbShape
  * with no network and no map library.
  */
 @Composable
-fun SuburbMap(chosen: Set<String>, shapes: List<SuburbShape>, modifier: Modifier = Modifier) {
+fun SuburbMap(
+    chosen: Set<String>,
+    shapes: List<SuburbShape>,
+    modifier: Modifier = Modifier,
+    /**
+     * Suburbs of the set that are not being gone to right now. Drawn in their
+     * place rather than left out, so dropping one changes a colour instead of
+     * making the map redraw itself around a new hole.
+     */
+    dropped: Set<String> = emptySet(),
+) {
     val mine = remember(chosen, shapes) { shapes.filter { it.name in chosen } }
-    if (mine.isEmpty()) return
+    val off = remember(dropped, shapes) { shapes.filter { it.name in dropped } }
+    if (mine.isEmpty() && off.isEmpty()) return
 
-    val box = remember(mine) { MapProjection.boxOf(mine) } ?: return
+    // The frame holds the whole set, so it does not jump as suburbs go on and off.
+    val box = remember(mine, off) { MapProjection.boxOf(mine + off) } ?: return
     // The neighbours give the shapes somewhere to sit; without them a handful of
     // outlines floating in the dark says nothing about where they are.
-    val around = remember(box, shapes) { shapes.filter { it.name !in chosen && touches(it, box) } }
+    val around = remember(box, shapes, chosen, dropped) {
+        shapes.filter { it.name !in chosen && it.name !in dropped && touches(it, box) }
+    }
 
     val ink = Dash.Gold
     val faint = Dash.Line
+    val offInk = Dash.Muted
 
     Canvas(
         modifier
@@ -48,6 +63,11 @@ fun SuburbMap(chosen: Set<String>, shapes: List<SuburbShape>, modifier: Modifier
         val fit = MapProjection.fit(box, size.width, size.height, PADDING)
         around.forEach { shape ->
             drawPath(pathOf(shape, fit), color = faint, style = Stroke(width = 1f))
+        }
+        off.forEach { shape ->
+            val path = pathOf(shape, fit)
+            drawPath(path, color = offInk.copy(alpha = 0.10f))
+            drawPath(path, color = offInk.copy(alpha = 0.55f), style = Stroke(width = 1.5f))
         }
         mine.forEach { shape ->
             val path = pathOf(shape, fit)
