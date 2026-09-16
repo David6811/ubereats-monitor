@@ -293,8 +293,16 @@ class UberScreenService : AccessibilityService() {
             }
         }
 
+        // The tree already holds the card: the verdict is read from its words, not
+        // from a picture, so nothing here needs a screenshot. That also spares the
+        // wait for one on the few frames where speed actually matters.
+        if (OfferCardReader.read(lines) != null) {
+            BandLog.note(this, now, NOT_SAMPLED, "card")
+            finish(now, null, headerHead, lines, text, emptyList(), -1, "card", NOT_SAMPLED)
+            return
+        }
+
         capture { screen ->
-            val treeHasCard = OfferCardReader.read(lines) != null
             // One sample of the band, read twice: the same pixels answer both
             // questions, and getPixel over three hundred of them is not free.
             val band = if (screen != null) sampleBand(screen) else IntArray(0)
@@ -307,7 +315,6 @@ class UberScreenService : AccessibilityService() {
                 now,
                 green,
                 when {
-                    treeHasCard -> "card"
                     button -> "ocr"
                     routine -> "routine"
                     else -> "skip"
@@ -320,15 +327,17 @@ class UberScreenService : AccessibilityService() {
             // whether this frame is worth either.
 
             when {
-                treeHasCard ->
-                    finish(now, screen, headerHead, lines, text, emptyList(), -1, "card", green)
                 screen != null && button ->
                     ScreenTextReader.read(screen) { ocrLines, millis ->
                         finish(now, screen, headerHead, lines, text, ocrLines, millis, "button", green)
                     }
+                // A frame kept only to have something to look at afterwards. Its
+                // words are the useful part; the picture is a megabyte to compress
+                // and write for a map with nothing on it.
                 routine -> {
                     lastRoutineAtMillis = now
-                    finish(now, screen, headerHead, lines, text, emptyList(), -1, "routine", green)
+                    finish(now, null, headerHead, lines, text, emptyList(), -1, "routine", green)
+                    runCatching { screen?.recycle() }
                 }
                 else -> runCatching { screen?.recycle() }
             }
@@ -710,6 +719,9 @@ class UberScreenService : AccessibilityService() {
          */
         const val ROUTINE_MILLIS = 10_000L
         const val BAND_SAMPLES = 60
+
+        /** Written where the green share would go on a frame that took no screenshot. */
+        const val NOT_SAMPLED = -1.0
 
         /** Events arrive in floods; the poll is the real clock. */
         const val EVENT_POST_GAP_MILLIS = 300L
