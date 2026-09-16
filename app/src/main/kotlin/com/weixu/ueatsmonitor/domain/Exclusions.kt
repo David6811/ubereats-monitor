@@ -30,6 +30,10 @@ object Exclusions {
         if (excluded.isEmpty()) suburbs
         else suburbs.filterNot { name -> excluded.any { it.equals(name, ignoreCase = true) } }.toSet()
 
+    /** The last hour of a shift: this one suburb, every other one in the set dropped. */
+    fun keepOnly(suburbs: Set<String>, suburb: String): Set<String> =
+        suburbs.filterNot { it.equals(suburb, ignoreCase = true) }.toSet()
+
     fun toggle(excluded: Set<String>, suburb: String): Set<String> =
         if (excluded.any { it.equals(suburb, ignoreCase = true) }) {
             excluded.filterNot { it.equals(suburb, ignoreCase = true) }.toSet()

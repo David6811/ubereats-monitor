@@ -66,4 +66,16 @@ class ExclusionsTest {
         // assert
         assertEquals(setOf("Springvale"), next)
     }
+
+    @Test
+    fun `given a set of four suburbs, when only one is kept, then the other three are the exclusions`() {
+        // arrange
+        val set = setOf("Noble Park", "Keysborough", "Springvale", "Dandenong")
+
+        // act
+        val dropped = Exclusions.keepOnly(set, "Keysborough")
+
+        // assert
+        assertEquals(setOf("Noble Park", "Springvale", "Dandenong"), dropped)
+    }
 }

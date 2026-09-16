@@ -35,6 +35,12 @@ object ExclusionStore {
         write(context, Excluded(set, stampOf(context), next))
     }
 
+    /** Drops every suburb of the live set but this one. */
+    fun keepOnly(context: Context, suburb: String, all: List<String>) {
+        val set = Profiles.chosen(context) ?: return
+        write(context, Excluded(set, stampOf(context), Exclusions.keepOnly(all.toSet(), suburb)))
+    }
+
     fun clear(context: Context) {
         runCatching { File(context.filesDir, FILE_NAME).delete() }
     }

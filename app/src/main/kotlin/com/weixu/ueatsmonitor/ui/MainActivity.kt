@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
  */
 private enum class Place(val label: String, val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
     WORK("工作", Icons.Filled.Home),
+    TRIP("这趟", Icons.Filled.Check),
     AREAS("选区", Icons.Filled.LocationOn),
     SETTINGS("设置", Icons.Filled.Settings),
 }
@@ -166,6 +168,7 @@ private fun HomeTabs() {
         Box(Modifier.weight(1f)) {
             when (place) {
                 Place.WORK -> WorkScreen()
+                Place.TRIP -> TripScreen()
                 Place.AREAS -> ProfileScreen()
                 Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
             }

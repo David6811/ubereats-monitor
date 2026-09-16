@@ -137,76 +137,12 @@ fun ProfileScreen() {
             }
         }
 
-        profiles.firstOrNull { it.active }?.let { live ->
-            Panel {
-                SuburbTicks(
-                    suburbs = live.suburbs.sorted(),
-                    excluded = excluded,
-                    onToggle = { suburb ->
-                        ExclusionStore.toggle(context, suburb)
-                        excluded = ExclusionStore.inForce(context)
-                    },
-                    onRestore = {
-                        ExclusionStore.clear(context)
-                        excluded = ExclusionStore.inForce(context)
-                    },
-                )
-            }
-        }
-    }
-}
-
-/**
- * The live set's suburbs, each with a tick. Unticking one drops it for this
- * shift only - it is not written into the laptop's set, and it is forgotten the
- * moment the set is switched or new rules arrive.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SuburbTicks(
-    suburbs: List<String>,
-    excluded: Set<String>,
-    onToggle: (String) -> Unit,
-    onRestore: () -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            SectionLabel("这一趟去哪些")
+        Panel {
+            SectionLabel("这一趟想少去几个区")
             Text(
-                text = if (excluded.isEmpty()) "点掉就是这一趟不去，换套或推新规则会恢复"
-                else "去掉了 " + excluded.sorted().joinToString("、"),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (excluded.isEmpty()) Dash.Muted else Dash.Orange,
-            )
-        }
-        if (excluded.isNotEmpty()) {
-            Text(
-                text = "恢复",
-                modifier = Modifier.clickable(onClick = onRestore).padding(8.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = Dash.Gold,
-            )
-        }
-    }
-    // Across as well as down: a set of thirty suburbs is a long scroll in one
-    // column, and each name is short enough to sit beside its neighbour.
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        suburbs.forEach { suburb ->
-            val on = excluded.none { it.equals(suburb, ignoreCase = true) }
-            Text(
-                text = suburb,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (on) Dash.GoldDeep else Dash.Ground)
-                    .border(1.dp, if (on) Dash.Gold.copy(alpha = 0.5f) else Dash.Line, RoundedCornerShape(10.dp))
-                    .clickable { onToggle(suburb) }
-                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                text = "去「这趟」那一页点掉，只管这一趟，不会改这里的选区。",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (on) Dash.Gold else Dash.Muted,
-                textDecoration = if (on) null else androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                color = Dash.Muted,
             )
         }
     }
