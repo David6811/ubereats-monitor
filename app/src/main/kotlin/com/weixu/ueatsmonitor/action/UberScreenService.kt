@@ -228,7 +228,12 @@ class UberScreenService : AccessibilityService() {
         val screenLit = runCatching {
             getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
         }.getOrDefault(false)
-        val shootBlind = bursting || (screenLit && onShift)
+        // A window the system lists but will not let us read is where a card could
+        // be hiding - that is what blind shooting was for. When every window on
+        // screen can be read and none of them is Uber's, there is nothing to find,
+        // and a shot every two seconds over Maps was most of a shift's frames.
+        val unreadable = runCatching { windows.orEmpty().any { it.root == null } }.getOrDefault(true)
+        val shootBlind = bursting || (screenLit && onShift && unreadable)
 
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
@@ -286,6 +291,7 @@ class UberScreenService : AccessibilityService() {
             append("burst=").append(bursting).append('\n')
             append("test_mode=").append(testing).append('\n')
             append("blind=").append(roots.isEmpty()).append('\n')
+            append("unreadable_window=").append(unreadable).append('\n')
             append("millis=").append(now).append('\n')
             if (fix != null) {
                 append("lat=").append(fix.at.latitude).append('\n')
