@@ -12,6 +12,7 @@ class JobBoardTest {
         dropoff = "Cole Street, Noble Park",
         ruling = "可以接单",
         why = "Noble Park 在名单里",
+        fromTree = false,
     )
 
     private val kebab = OfferRecord(
@@ -21,6 +22,7 @@ class JobBoardTest {
         dropoff = "Corrigan Road, Noble Park",
         ruling = "可以接单",
         why = "Noble Park 在名单里",
+        fromTree = false,
     )
 
     @Test
@@ -83,6 +85,59 @@ class JobBoardTest {
 
         // assert  20 already there + the new one
         assertEquals(21, next.size)
+    }
+
+    @Test
+    fun `given an offer first read off the picture, when the tree reads it, then the tree's words replace it`() {
+        // arrange  the card of 16 Sep 12:23, as OCR read it and as the tree did two seconds later
+        val seen = OfferRecord(
+            isMatch = false, payout = "${'$'}10.45", pickup = "9 Royal Stacks (Moorabbin)",
+            dropoff = "o Latrobe Street & Phillip Street, Mentone",
+            ruling = "不要接单", why = "Mentone 不在名单里", fromTree = false,
+        )
+        val read = seen.copy(
+            pickup = "Royal Stacks (Moorabbin)",
+            dropoff = "Latrobe Street & Phillip Street, Mentone",
+            fromTree = true,
+        )
+        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.add(board, Job(5_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // affirm  still one job, keeping the time it first appeared
+        assertEquals(listOf<Long>(1_000), next.map { it.atMillis })
+
+        // assert
+        assertEquals("Latrobe Street & Phillip Street, Mentone", next.first().offer.dropoff)
+    }
+
+    @Test
+    fun `given the money read wrongly off the picture, when the tree reads the same card, then it is not a second job`() {
+        // arrange  "${'$'}8.06" came off the picture as "${'$'}8.O6"
+        val seen = pizza.copy(payout = "${'$'}8.O6", dropoff = "Nepean Hwy, Moorabbin", fromTree = false)
+        val read = pizza.copy(payout = "${'$'}8.06", dropoff = "Nepean Hwy, Moorabbin", fromTree = true)
+        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.add(board, Job(3_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // assert
+        assertEquals(listOf("${'$'}8.06"), next.map { it.offer.payout })
+    }
+
+    @Test
+    fun `given a job the tree already read, when the picture reads it again, then the tree's words stay`() {
+        // arrange
+        val read = pizza.copy(pickup = "Royal Stacks (Moorabbin)", fromTree = true)
+        val seen = pizza.copy(pickup = "9 Royal Stacks (Moorabbin)", fromTree = false)
+        val board = listOf(Job(1_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // act
+        val next = JobBoard.add(board, Job(3_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+
+        // assert
+        assertEquals(listOf("Royal Stacks (Moorabbin)"), next.map { it.offer.pickup })
     }
 
     @Test

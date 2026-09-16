@@ -39,7 +39,7 @@ class JobDaysTest {
 
     private fun job(atMillis: Long) = Job(
         atMillis = atMillis,
-        offer = OfferRecord(isMatch = false, payout = "${'$'}9.07", pickup = "Some Shop", dropoff = "Somewhere", ruling = null, why = null),
+        offer = OfferRecord(isMatch = false, payout = "${'$'}9.07", pickup = "Some Shop", dropoff = "Somewhere", ruling = null, why = null, fromTree = false),
         taken = true,
         address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
     )

@@ -14,6 +14,7 @@ class OfferRunTest {
         dropoff = "Cole Street, Noble Park",
         ruling = "可以接单",
         why = "Noble Park 在名单里",
+        fromTree = false,
     )
 
     private val kebab = pizza.copy(pickup = "Ali Baba Kebabs", payout = "${'$'}9.20")

@@ -14,6 +14,12 @@ data class OfferRecord(
     val dropoff: String,
     val ruling: String?,
     val why: String?,
+    /**
+     * True when the words came from the accessibility tree rather than from
+     * reading the picture. The tree cannot mistake one letter for another, so a
+     * reading from it replaces one from the picture for the same offer.
+     */
+    val fromTree: Boolean,
 )
 
 /**
@@ -33,6 +39,7 @@ object OfferRecordReader {
             dropoff = field(raw, "card_dropoff") ?: return null,
             ruling = field(raw, "ruling"),
             why = field(raw, "ruling_why"),
+            fromTree = field(raw, "source") == "a11y",
         )
     }
 

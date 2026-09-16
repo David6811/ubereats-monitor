@@ -78,8 +78,15 @@ object JobBoard {
      * the driver clears jobs by hand, so the board only ever holds what he kept.
      */
     fun add(jobs: List<Job>, job: Job): List<Job> {
-        if (jobs.any { sameOffer(it, job) }) return jobs
-        return listOf(job) + jobs
+        val at = jobs.indexOfFirst { sameOffer(it, job) }
+        if (at < 0) return listOf(job) + jobs
+
+        // The same offer again. Its first reading was off the picture, and this
+        // one is off the tree: keep the job, its stops and its addresses, and
+        // take the words from the tree, which cannot mistake a letter.
+        val held = jobs[at]
+        if (!job.offer.fromTree || held.offer.fromTree) return jobs
+        return jobs.mapIndexed { index, one -> if (index == at) one.copy(offer = job.offer) else one }
     }
 
     fun remove(jobs: List<Job>, atMillis: Long): List<Job> = jobs.filterNot { it.atMillis == atMillis }
@@ -194,8 +201,22 @@ object JobBoard {
      * and a card is only on screen for about a minute, so money within a window
      * is what says the same offer.
      */
-    private fun sameOffer(job: Job, other: Job): Boolean =
-        job.offer.payout == other.offer.payout &&
-            job.offer.isMatch == other.offer.isMatch &&
-            abs(job.atMillis - other.atMillis) <= SAME_OFFER_MILLIS
+    /**
+     * The same card read twice. The money usually settles it, but the picture
+     * turns "$8.06" into "$8.O6" often enough that the destination has to be
+     * able to say so too - it carries "o Latrobe Street" for "Latrobe Street",
+     * so one being inside the other is as close as it gets.
+     */
+    private fun sameOffer(job: Job, other: Job): Boolean {
+        if (job.offer.isMatch != other.offer.isMatch) return false
+        if (abs(job.atMillis - other.atMillis) > SAME_OFFER_MILLIS) return false
+        if (job.offer.payout == other.offer.payout) return true
+        val here = fold(job.offer.dropoff)
+        val there = fold(other.offer.dropoff)
+        if (here.length < MIN_DROPOFF || there.length < MIN_DROPOFF) return false
+        return here.contains(there) || there.contains(here)
+    }
+
+    /** Short enough to sit inside another destination by accident. */
+    private const val MIN_DROPOFF = 12
 }

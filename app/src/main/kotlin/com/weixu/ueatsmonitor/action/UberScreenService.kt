@@ -405,7 +405,7 @@ class UberScreenService : AccessibilityService() {
         // all done, and nothing at all until the model has been fetched.
         JobStore.translateNotes(this)
 
-        val decision = decide(lines, text, now)
+        val decision = decide(lines, text, now, fromTree = source == "a11y")
         DecisionLog.note(this, now, source, decision)
 
         val body = buildString {
@@ -464,7 +464,7 @@ class UberScreenService : AccessibilityService() {
         return Stops(pickup = shop, dropoff = spot, carAt = position.lastKnown()?.at)
     }
 
-    private fun decide(lines: List<String>, text: String, now: Long): String {
+    private fun decide(lines: List<String>, text: String, now: Long, fromTree: Boolean): String {
         // The card is read by layout, which is far stronger evidence than the
         // money-and-distance heuristic. The heuristic stays as the fallback for
         // a card whose text the accessibility tree does not expose.
@@ -542,6 +542,7 @@ class UberScreenService : AccessibilityService() {
                     dropoff = card.dropoff,
                     ruling = ruling?.let { RulingText.headline(it, card.isMatch) },
                     why = ruling?.let(RulingText::reason),
+                    fromTree = fromTree,
                 ),
             )
         }

@@ -115,6 +115,7 @@ object JobStore {
                         put("dropoff", JsonPrimitive(job.offer.dropoff))
                         job.offer.ruling?.let { put("ruling", JsonPrimitive(it)) }
                         job.offer.why?.let { put("why", JsonPrimitive(it)) }
+                        put("tree", JsonPrimitive(job.offer.fromTree))
                     }
                 )
             }
@@ -142,6 +143,7 @@ object JobStore {
                 dropoff = entry["dropoff"]!!.jsonPrimitive.content,
                 ruling = entry["ruling"]?.jsonPrimitive?.content,
                 why = entry["why"]?.jsonPrimitive?.content,
+                fromTree = entry["tree"]?.jsonPrimitive?.content == "true",
             ),
         )
     }.getOrNull()
