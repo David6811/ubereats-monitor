@@ -62,7 +62,6 @@ class UberScreenService : AccessibilityService() {
      * unbind this service as unresponsive - which showed up as minute-long holes
      * in the recording, one of them straight through a real offer.
      */
-    private val pulse by lazy { PulseController(this) }
     private val worker = HandlerThread("uber-screen").apply { start() }
     private val work = Handler(worker.looper)
 
@@ -86,7 +85,15 @@ class UberScreenService : AccessibilityService() {
     private fun listenFor(on: Boolean) {
         if (listening == on) return
         val info = serviceInfo ?: return
-        info.eventTypes = if (on) AccessibilityEvent.TYPES_ALL_MASK else 0
+        // Windows appearing is all that is wanted: the loop looks every second by
+        // itself, and events only make it look sooner. Every app's text changes
+        // and scrolls were arriving here too, each one parsed before it could be
+        // ignored, which was most of what the app spent with the screen on.
+        info.eventTypes = if (on) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        } else {
+            0
+        }
         runCatching { serviceInfo = info }
             .onSuccess { listening = on; Log.i(TAG, "events " + (if (on) "on" else "off")) }
     }
@@ -197,9 +204,9 @@ class UberScreenService : AccessibilityService() {
     private fun look(force: Boolean = false) {
         // Off means off, and before anything that costs: listing windows twice a
         // second for a result that could never be used was most of what the app
-        // spent while idle. The dot goes too - a beating dot says it is watching.
+        // spent while idle.
         if (!capturing()) {
-            pulse.hide()
+            CaptureStatus.note(System.currentTimeMillis(), CaptureStatus.State.OFF)
             return
         }
         val bursting = System.currentTimeMillis() < burstUntilMillis
@@ -223,14 +230,15 @@ class UberScreenService : AccessibilityService() {
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
         heartbeat(all.map { it.packageName?.toString() ?: "null" }, roots.size)
 
-        // One beat per pass of the loop.
-        pulse.beat(
+        // One note per pass of the loop, read by the strip at the top of the app.
+        CaptureStatus.note(
+            System.currentTimeMillis(),
             when {
-                !Permissions.screenReadingGranted(this) -> PulseController.Mood.BROKEN
+                !Permissions.screenReadingGranted(this) -> CaptureStatus.State.BROKEN
                 all.any { OfferParser.isUberPackage(it.packageName?.toString().orEmpty()) } ->
-                    PulseController.Mood.WATCHING
-                else -> PulseController.Mood.IDLE
-            }
+                    CaptureStatus.State.WATCHING
+                else -> CaptureStatus.State.IDLE
+            },
         )
         if (roots.isEmpty() && !shootBlind) return
 
@@ -287,8 +295,11 @@ class UberScreenService : AccessibilityService() {
 
         capture { screen ->
             val treeHasCard = OfferCardReader.read(lines) != null
-            val green = if (screen != null) AcceptBand.bandShare(sampleBand(screen)) else 0.0
-            val button = AcceptBand.holdsButton(if (screen != null) sampleBand(screen) else IntArray(0))
+            // One sample of the band, read twice: the same pixels answer both
+            // questions, and getPixel over three hundred of them is not free.
+            val band = if (screen != null) sampleBand(screen) else IntArray(0)
+            val green = AcceptBand.bandShare(band)
+            val button = AcceptBand.holdsButton(band)
             val routine = now - lastRoutineAtMillis >= ROUTINE_MILLIS
 
             BandLog.note(
@@ -479,8 +490,6 @@ class UberScreenService : AccessibilityService() {
                     fromCentre = fromCentre(stops?.dropoff),
                 )
             )
-            // The verdict is the news while it is up; the heartbeat can wait.
-            pulse.hide()
         }
 
         // Onto the board, so the two stops are still there after the card goes.
@@ -651,7 +660,6 @@ class UberScreenService : AccessibilityService() {
                 return
             }
             service.overlay.hide()
-            service.pulse.hide()
             ServiceJournal.note(service, "读屏已退出")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 runCatching { service.disableSelf() }
@@ -664,7 +672,12 @@ class UberScreenService : AccessibilityService() {
         fun isRunning(): Boolean = live != null
 
         const val TAG = "UEatsMonitor"
-        const val POLL_MILLIS = 1_000L
+        /**
+         * The keeper's clock pokes this service every second as well, and a
+         * screenshot may be had only every two: looking twice a second listed
+         * every window twice for one frame's worth of use.
+         */
+        const val POLL_MILLIS = 2_000L
         const val IDLE_POLL_MILLIS = 2_000L
         /**
          * Measured on this phone over thirty seconds with Uber in front, counting

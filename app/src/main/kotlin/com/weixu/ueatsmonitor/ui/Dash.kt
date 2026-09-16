@@ -200,6 +200,8 @@ fun Tag(text: String, ink: Color, ground: Color, modifier: Modifier = Modifier) 
         color = ink,
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
     )
 }
 

@@ -55,6 +55,7 @@ import android.media.projection.MediaProjectionManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
+import com.weixu.ueatsmonitor.action.CaptureStatus
 import com.weixu.ueatsmonitor.action.Chime
 import com.weixu.ueatsmonitor.action.CurrentPosition
 import com.weixu.ueatsmonitor.action.RecordingStore
@@ -183,22 +184,38 @@ private fun HomeTabs() {
 private fun StatusStrip() {
     val context = LocalContext.current
     val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
-    val live by rememberPolled(Pair(false, ""), 2_000L) {
-        Pair(
+    val live by rememberPolled(Triple(false, "", CaptureStatus.State.OFF), 2_000L) {
+        Triple(
             Permissions.screenReadingGranted(context),
             Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
+            // Stale means the loop stopped: say so rather than leave the last word up.
+            if (System.currentTimeMillis() - CaptureStatus.lastFrameAtMillis > STALE_MILLIS) {
+                CaptureStatus.State.OFF
+            } else {
+                CaptureStatus.state
+            },
         )
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 56.dp, top = 14.dp, bottom = 10.dp),
+            .padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
         Spacer(Modifier.weight(1f))
         LampLabel("读屏", live.first, Dash.Blue)
+        LampLabel(
+            label = when (live.third) {
+                CaptureStatus.State.WATCHING -> "看派单"
+                CaptureStatus.State.IDLE -> "截屏"
+                CaptureStatus.State.BROKEN -> "读屏断了"
+                CaptureStatus.State.OFF -> "截屏"
+            },
+            on = live.third == CaptureStatus.State.WATCHING || live.third == CaptureStatus.State.IDLE,
+            color = if (live.third == CaptureStatus.State.WATCHING) Dash.Gold else Dash.Blue,
+        )
         LampLabel("语音", settings?.voiceEnabled == true, Dash.Gold)
         if (live.second.isNotEmpty()) {
             Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
@@ -382,6 +399,9 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
         }
     }
 }
+
+/** Two loops without a frame: the reader has stopped, whatever it last said. */
+private const val STALE_MILLIS = 6_000L
 
 private fun say(context: Context, words: String) {
     android.widget.Toast.makeText(context, words, android.widget.Toast.LENGTH_LONG).show()
