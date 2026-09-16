@@ -37,6 +37,16 @@ object Navigation {
         }
     }
 
+    /** Drives to a point rather than an address: the set's centre has no street name. */
+    fun driveTo(context: Context, at: com.weixu.ueatsmonitor.domain.GeoPoint) {
+        val where = at.latitude.toString() + "," + at.longitude.toString()
+        start(
+            context,
+            Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=$where&mode=d")).setPackage(MAPS),
+            Intent(Intent.ACTION_VIEW, Uri.parse("geo:$where?q=$where")),
+        )
+    }
+
     /**
      * Opens Maps searching for an address, with its pin on the building and its
      * street view photos underneath. The address alone is enough - Maps resolves

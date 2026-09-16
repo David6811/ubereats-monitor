@@ -258,6 +258,7 @@ class VoiceService : Service() {
         val english = command.language == SpokenLanguage.ENGLISH
         val words = when (command) {
             is VoiceCommand.SwitchTo -> if (english) command.target.confirmEnglish else command.target.confirmChinese
+            is VoiceCommand.DriveToCentre -> if (english) "OK, centre" else "好，回中心"
         }
         val tts = speech
         val voiced = speechReady && tts != null &&
@@ -291,6 +292,15 @@ class VoiceService : Service() {
                     )
                 }.onFailure { Log.w(TAG, "voice: switch failed", it) }
                 toast("切到" + command.target.spoken)
+            }
+            is VoiceCommand.DriveToCentre -> {
+                val centre = Profiles.centre(this)
+                if (centre == null) {
+                    toast("这套选区没设中心，在电脑上设一个")
+                    return
+                }
+                Navigation.driveTo(this, centre)
+                toast("导航回中心")
             }
         }
     }

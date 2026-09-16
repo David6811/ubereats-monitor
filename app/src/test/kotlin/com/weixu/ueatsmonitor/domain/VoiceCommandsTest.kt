@@ -116,6 +116,8 @@ class VoiceCommandsTest {
                 VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.ENGLISH),
                 VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
+                VoiceCommand.DriveToCentre(SpokenLanguage.CHINESE),
+                VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH),
             ),
             commands,
         )
@@ -179,6 +181,30 @@ class VoiceCommandsTest {
 
         // assert
         assertNull(command)
+    }
+
+    @Test
+    fun `given 回中心, when it is parsed, then it is the drive back to the centre`() {
+        // arrange
+        val heard = listOf("回中心")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.DriveToCentre(SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given centre said in english, when it is parsed, then it is answered in english`() {
+        // arrange
+        val heard = listOf("Centre")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH), command)
     }
 
     @Test

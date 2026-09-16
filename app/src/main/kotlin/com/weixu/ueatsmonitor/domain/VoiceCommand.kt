@@ -25,6 +25,9 @@ sealed interface VoiceCommand {
 
     /** Bring the app to the front. */
     data class SwitchTo(val target: VoiceTarget, override val language: SpokenLanguage) : VoiceCommand
+
+    /** Drive back to the middle of the set being worked, as drawn on the laptop. */
+    data class DriveToCentre(override val language: SpokenLanguage) : VoiceCommand
 }
 
 /**
@@ -39,6 +42,9 @@ object VoiceCommands {
 
     // Single characters are enough: an app name has to be in the sentence too.
     private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去", "switch", "open", "goto")
+
+    /** Said on its own or with a verb: the middle of the set, not an app. */
+    private val CENTRE_NAMES = listOf("回中心", "中心", "回工作点", "centre", "center")
 
     /**
      * Chinese first. A sentence half in English - "切到 Google Map" - is the one a
@@ -57,6 +63,7 @@ object VoiceCommands {
         "地图", "送餐", "助手", "应用",
         "map", "uber eats", "application",
         "switch to map", "switch to uber eats", "switch to application",
+        "回中心", "centre",
     )
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
@@ -64,6 +71,9 @@ object VoiceCommands {
 
     private fun parseOne(sentence: String): VoiceCommand? {
         val text = fold(sentence)
+        // Before the apps: "回中心" names no app, and "中心" must not be taken
+        // for one either.
+        if (CENTRE_NAMES.any { text.contains(it) }) return VoiceCommand.DriveToCentre(languageOf(sentence))
         // The longest name heard wins: "接单助手" is this app, though "接单" is Uber.
         val target = NAMES
             .flatMap { (target, names) -> names.map { target to it } }
