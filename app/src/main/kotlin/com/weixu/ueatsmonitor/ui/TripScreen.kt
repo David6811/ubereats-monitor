@@ -33,6 +33,7 @@ import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
+import com.weixu.ueatsmonitor.domain.SuburbAt
 
 /**
  * This trip's suburbs: the live set with any of them dropped for now.
@@ -65,6 +66,13 @@ fun TripScreen() {
     }
 
     val all = live.suburbs.sorted()
+    // The set's own centre, as drawn on the laptop, and the suburb it stands in -
+    // where he wants to end up when the shift is nearly over.
+    val middle = remember(live.name) {
+        Profiles.centre(context)?.let { centre ->
+            SuburbAt.find(centre, shapes)?.takeIf { it in live.suburbs }
+        }
+    }
     val going = Exclusions.apply(all.toSet(), excluded)
 
     Column(
@@ -110,6 +118,12 @@ fun TripScreen() {
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    middle?.let { here ->
+                        GhostButton("只留中心", color = Dash.Gold) {
+                            ExclusionStore.keepOnly(context, here, all)
+                            excluded = ExclusionStore.inForce(context)
+                        }
+                    }
                     if (going.isNotEmpty()) {
                         GhostButton("全不选", color = Dash.Muted) {
                             ExclusionStore.excludeAll(context, all)

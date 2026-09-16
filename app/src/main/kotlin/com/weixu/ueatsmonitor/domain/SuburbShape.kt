@@ -77,3 +77,33 @@ object MapProjection {
     /** A single suburb still needs a span, or the scale is infinite. */
     private const val MIN_SPAN = 1e-6
 }
+
+/**
+ * Calculation. Which suburb a point stands in.
+ *
+ * Ray casting on the outlines the app already carries, so it needs no network
+ * and no table of boundaries beyond the shapes drawn on the map. A point that
+ * falls in none of them - the sea, a park between two suburbs - is no answer,
+ * not the nearest guess.
+ */
+object SuburbAt {
+
+    fun find(point: GeoPoint, shapes: List<SuburbShape>): String? =
+        shapes.firstOrNull { shape -> shape.rings.any { inside(point, it) } }?.name
+
+    private fun inside(point: GeoPoint, ring: List<GeoPoint>): Boolean {
+        var within = false
+        var previous = ring.lastOrNull() ?: return false
+        for (current in ring) {
+            val crosses = (current.latitude > point.latitude) != (previous.latitude > point.latitude)
+            if (crosses) {
+                val slope = (previous.longitude - current.longitude) /
+                    (previous.latitude - current.latitude)
+                val lonAtLatitude = current.longitude + (point.latitude - current.latitude) * slope
+                if (point.longitude < lonAtLatitude) within = !within
+            }
+            previous = current
+        }
+        return within
+    }
+}
