@@ -51,6 +51,17 @@ object AcceptBand {
 
     fun holdsButton(samples: IntArray): Boolean = bandShare(samples) >= MIN_SHARE
 
+    /**
+     * Calculation. A short name for what the band looks like, quantised the same
+     * way the share is. Two frames of the same still screen give the same name;
+     * a card appearing changes it.
+     */
+    fun signature(samples: IntArray): Int {
+        var hash = 17
+        for (pixel in samples) hash = hash * 31 + quantise(pixel)
+        return hash
+    }
+
     private fun quantise(argb: Int): Int {
         val red = ((argb shr 16) and 0xFF) / STEP
         val green = ((argb shr 8) and 0xFF) / STEP

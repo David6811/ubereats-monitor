@@ -97,4 +97,30 @@ class AcceptBandTest {
         val BLACK = 0xFF000000.toInt()
         val WHITE = 0xFFFFFFFF.toInt()
     }
+
+    @Test
+    fun `given the same band twice, when it is named, then the two names match`() {
+        // arrange  one frame of a still screen, sampled twice
+        val once = intArrayOf(0xFF0F7B44.toInt(), 0xFF0F7B45.toInt(), 0xFFFFFFFF.toInt())
+        val again = intArrayOf(0xFF0F7B44.toInt(), 0xFF0F7B45.toInt(), 0xFFFFFFFF.toInt())
+
+        // act
+        val same = AcceptBand.signature(once) == AcceptBand.signature(again)
+
+        // assert
+        assertTrue(same)
+    }
+
+    @Test
+    fun `given a band that has changed, when it is named, then the name changes with it`() {
+        // arrange  the green button gives way to a white sheet
+        val green = intArrayOf(0xFF0F7B44.toInt(), 0xFF0F7B44.toInt(), 0xFF0F7B44.toInt())
+        val white = intArrayOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt())
+
+        // act
+        val same = AcceptBand.signature(green) == AcceptBand.signature(white)
+
+        // assert
+        assertFalse(same)
+    }
 }

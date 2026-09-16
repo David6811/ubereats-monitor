@@ -112,6 +112,9 @@ class UberScreenService : AccessibilityService() {
     private var burstUntilMillis: Long = 0L
     private var lastSawUberAtMillis: Long = 0L
 
+    /** The band of the last frame read by OCR that held no card. Zero means none. */
+    private var lastFruitlessBand: Int = 0
+
     /**
      * An offer wakes a sleeping phone, and on the lock screen the window list is
      * not ours to read - which is how a real offer left a 109 second hole in a
@@ -307,7 +310,13 @@ class UberScreenService : AccessibilityService() {
             // questions, and getPixel over three hundred of them is not free.
             val band = if (screen != null) sampleBand(screen) else IntArray(0)
             val green = AcceptBand.bandShare(band)
-            val button = AcceptBand.holdsButton(band)
+            // The same band as the last frame read for nothing is the same screen
+            // - a Complete delivery button sitting there for a minute - and
+            // reading it again costs a fifth of a second each time. A card
+            // appearing changes the band, so nothing waits on this.
+            val signature = AcceptBand.signature(band)
+            val seenBefore = signature == lastFruitlessBand
+            val button = AcceptBand.holdsButton(band) && !seenBefore
             val routine = now - lastRoutineAtMillis >= ROUTINE_MILLIS
 
             BandLog.note(
@@ -316,6 +325,7 @@ class UberScreenService : AccessibilityService() {
                 green,
                 when {
                     button -> "ocr"
+                    seenBefore -> "same"
                     routine -> "routine"
                     else -> "skip"
                 },
@@ -329,6 +339,7 @@ class UberScreenService : AccessibilityService() {
             when {
                 screen != null && button ->
                     ScreenTextReader.read(screen) { ocrLines, millis ->
+                        lastFruitlessBand = if (OfferCardReader.read(ocrLines) == null) signature else 0
                         finish(now, screen, headerHead, lines, text, ocrLines, millis, "button", green)
                     }
                 // A frame kept only to have something to look at afterwards. Its
