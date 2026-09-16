@@ -56,6 +56,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
 import com.weixu.ueatsmonitor.action.Chime
+import com.weixu.ueatsmonitor.action.CurrentPosition
 import com.weixu.ueatsmonitor.action.RecordingStore
 import com.weixu.ueatsmonitor.action.ScreenRecorderService
 import com.weixu.ueatsmonitor.action.LoggedEvent
@@ -308,11 +309,7 @@ private fun MonitorScreen(store: SettingsStore) {
                         scope.launch { store.setTimedCaptureEnabled(it) }
                     }
                     Hairline()
-                    SwitchRow(
-                        label = "回中心模式",
-                        hint = "只接离选区中心更近的单，远区也一样",
-                        checked = current.homewardEnabled,
-                    ) { scope.launch { store.setHomewardEnabled(it) } }
+                    HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     Hairline()
                     SwitchRow("区域提示音", null, current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
@@ -334,6 +331,47 @@ private fun MonitorScreen(store: SettingsStore) {
         }
 
         item { QuitCard() }
+    }
+}
+
+/**
+ * The homeward switch, which will not go on while it could do nothing.
+ *
+ * It needs three things: the phone's own position, a centre drawn for the live
+ * set, and the permission to read that position. Missing any of them, the rule
+ * would judge nothing at all - so the switch says what is missing instead of
+ * turning on and staying silent.
+ */
+@Composable
+private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val centre = remember { Profiles.centre(context) }
+    val fix = remember { CurrentPosition(context).lastKnown() }
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val now = if (granted) CurrentPosition(context).lastKnown() else null
+        if (now != null && centre != null) save(true)
+        else android.widget.Toast.makeText(context, if (granted) "还没有定位，到车里开着定位再试" else "没有定位权限，回中心模式开不了", android.widget.Toast.LENGTH_LONG).show()
+    }
+
+    SwitchRow(
+        label = "回中心模式",
+        hint = when {
+            centre == null -> "这套选区没设中心，先在电脑上设一个"
+            fix == null -> "手机还没有定位，开不了"
+            else -> "只接离中心（" + centre.latitude.toString().take(7) + "）更近的单，远区也一样"
+        },
+        checked = enabled,
+    ) { on ->
+        when {
+            !on -> save(false)
+            centre == null ->
+                android.widget.Toast.makeText(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送", android.widget.Toast.LENGTH_LONG).show()
+            !Permissions.locationGranted(context) ->
+                askLocation.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            CurrentPosition(context).lastKnown() == null ->
+                android.widget.Toast.makeText(context, "手机还没有定位，到车里开着定位再试", android.widget.Toast.LENGTH_LONG).show()
+            else -> save(true)
+        }
     }
 }
 

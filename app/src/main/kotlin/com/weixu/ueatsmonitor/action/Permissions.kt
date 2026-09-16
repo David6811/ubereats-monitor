@@ -22,6 +22,12 @@ object Permissions {
 
     fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
 
+    fun locationGranted(context: Context): Boolean =
+        listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            .any {
+                context.checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+
     fun microphoneGranted(context: Context): Boolean =
         context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
