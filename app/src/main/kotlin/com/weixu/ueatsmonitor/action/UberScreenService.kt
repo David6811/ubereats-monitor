@@ -413,7 +413,7 @@ class UberScreenService : AccessibilityService() {
         // the card, and a card that names two long roads is the slow one.
         Log.i(TAG, "roads: placed in " + (System.currentTimeMillis() - began) + " ms, " +
             (spot?.let { it::class.simpleName } ?: "nowhere") + ", shop=" + (shop?.name ?: "-"))
-        return Stops(pickup = shop, dropoff = spot)
+        return Stops(pickup = shop, dropoff = spot, carAt = position.lastKnown()?.at)
     }
 
     private fun decide(lines: List<String>, text: String, now: Long): String {

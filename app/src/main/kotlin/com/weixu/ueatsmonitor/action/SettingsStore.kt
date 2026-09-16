@@ -38,6 +38,8 @@ class SettingsStore(private val context: Context) {
         val timeFactor: Double,
         /** A far-set offer under this many dollars an hour, after petrol, is left. */
         val farMinPerHour: Double,
+        /** Only take what leaves him nearer the centre of the set he is working. */
+        val homewardEnabled: Boolean,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -59,6 +61,7 @@ class SettingsStore(private val context: Context) {
             fuelPerKm = prefs[FUEL_PER_KM] ?: DEFAULT_FUEL_PER_KM,
             timeFactor = prefs[TIME_FACTOR] ?: DEFAULT_TIME_FACTOR,
             farMinPerHour = prefs[FAR_MIN_PER_HOUR] ?: DEFAULT_FAR_MIN_PER_HOUR,
+            homewardEnabled = prefs[HOMEWARD] ?: false,
         )
     }
 
@@ -87,6 +90,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setVoiceEnabled(enabled: Boolean) = putBoolean(VOICE_ENABLED, enabled)
 
+    suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
+
     suspend fun saveTripCost(fuelPerKm: Double, timeFactor: Double, farMinPerHour: Double) {
         context.dataStore.edit { prefs ->
             prefs[FUEL_PER_KM] = fuelPerKm
@@ -112,6 +117,7 @@ class SettingsStore(private val context: Context) {
         private val TIMED_CAPTURE = booleanPreferencesKey("timed_capture")
         private val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
         private val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+        private val HOMEWARD = booleanPreferencesKey("homeward")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")
         private val TIME_FACTOR = doublePreferencesKey("time_factor")
         private val FAR_MIN_PER_HOUR = doublePreferencesKey("far_min_per_hour")

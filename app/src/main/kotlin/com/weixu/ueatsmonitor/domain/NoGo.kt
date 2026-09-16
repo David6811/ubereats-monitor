@@ -20,9 +20,11 @@ data class NoGoBox(
 data class Stops(
     val pickup: Store?,
     val dropoff: Spot?,
+    /** Where the car was when the card appeared, when the phone knew. */
+    val carAt: GeoPoint?,
 ) {
     companion object {
-        val UNPLACED = Stops(pickup = null, dropoff = null)
+        val UNPLACED = Stops(pickup = null, dropoff = null, carAt = null)
     }
 }
 

@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0), GAZETTEER, Stops.UNPLACED)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0, null), GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -209,7 +209,7 @@ class RuleJudgeTest {
         // arrange  -37.97, 145.12 lies inside -38.00..-37.93 by 145.10..145.14
         val card = card(pickup = "Some Shop", dropoff = "Dandenong Road & Dunblane Road, Noble Park")
         val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
-        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.12), "Dandenong Road", "Dunblane Road"))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.12), "Dandenong Road", "Dunblane Road"), carAt = null)
 
         // act
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
@@ -224,7 +224,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Pho Hung", dropoff = "Some Street, Noble Park")
         val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
         val shop = Store("Pho Hung", "restaurant", "STRIP", GeoPoint(-37.95, 145.13))
-        val stops = Stops(pickup = shop, dropoff = null)
+        val stops = Stops(pickup = shop, dropoff = null, carAt = null)
 
         // act
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
@@ -238,7 +238,7 @@ class RuleJudgeTest {
         // arrange  a suburb's middle is kilometres from the door, too rough for a box
         val card = card(pickup = "Some Shop", dropoff = "Somewhere, Noble Park")
         val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
-        val stops = Stops(pickup = null, dropoff = Spot.InSuburb(GeoPoint(-37.97, 145.12), "Noble Park"))
+        val stops = Stops(pickup = null, dropoff = Spot.InSuburb(GeoPoint(-37.97, 145.12), "Noble Park"), carAt = null)
 
         // act
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
@@ -252,7 +252,7 @@ class RuleJudgeTest {
         // arrange  145.141 is east of the box's 145.14 edge
         val card = card(pickup = "Some Shop", dropoff = "Dandenong Road & Dunblane Road, Noble Park")
         val rules = RULES.copy(noGoBoxes = listOf(WEST_OF_SPRINGVALE))
-        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.141), "Dandenong Road", "Dunblane Road"))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(GeoPoint(-37.97, 145.141), "Dandenong Road", "Dunblane Road"), carAt = null)
 
         // act
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
@@ -317,7 +317,68 @@ class RuleJudgeTest {
         assertEquals(Ruling.Take("Noble Park"), ruling)
     }
 
+    @Test
+    fun `given the homeward switch on and a drop that leads away, when judged, then it is left`() {
+        // arrange  the car is in Keysborough, the drop is out at Rowville, the centre is Aspendale Gardens
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homewardCentre = CENTRE)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = KEYSBOROUGH)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals("离中心更远：现在 4.0 公里，送完 14.1 公里", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given the homeward switch on and a drop that leads in, when judged, then it is taken`() {
+        // arrange  the car is out at Rowville, the drop is in Keysborough
+        val rules = RULES.copy(homewardCentre = CENTRE)
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given the homeward switch on but no fix for the car, when judged, then it does not refuse`() {
+        // arrange
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homewardCentre = CENTRE)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals(Ruling.Take("Rowville"), ruling)
+    }
+
+    @Test
+    fun `given the homeward switch off, when a drop that leads away is judged, then the suburb alone decides`() {
+        // arrange  the same card as the first homeward test, with the switch off
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville")
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = KEYSBOROUGH)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals(Ruling.Take("Rowville"), ruling)
+    }
+
     private companion object {
+        /** Wells Rd, Aspendale Gardens - the centre drawn for the driver's own set. */
+        val CENTRE = GeoPoint(-38.02506, 145.12873)
+        val KEYSBOROUGH = GeoPoint(-38.0054, 145.1674)
+        val ROWVILLE = GeoPoint(-37.9282, 145.2333)
+
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 
         val RULES = Rules(
@@ -329,6 +390,7 @@ class RuleJudgeTest {
             noGoBoxes = emptyList(),
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
             farMinPerHour = 10.0,
+            homewardCentre = null,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),

@@ -31,6 +31,12 @@ data class Rules(
      * pay less than it looks.
      */
     val farMinPerHour: Double,
+    /**
+     * The middle of the set being worked, when the driver has asked to be taken
+     * back to it: an offer is then refused unless its drop leaves him nearer to
+     * this than he is now. Null when the switch is off or no centre was drawn.
+     */
+    val homewardCentre: GeoPoint?,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -52,6 +58,7 @@ sealed interface Ruling {
         data class StoreDenied(val store: String) : Reason
         data class InNoGoBox(val hit: NoGoHit) : Reason
         data class FarTooCheap(val perHour: Double, val floor: Double) : Reason
+        data class LeadingAway(val away: Homeward.Further) : Reason
     }
 }
 
@@ -106,12 +113,21 @@ object RuleJudge {
                 return Ruling.Leave(Ruling.Reason.FarTooCheap(perHour, rules.farMinPerHour))
             }
         }
+
+        // On the way back in, whichever set let it through. Unknown positions say
+        // nothing, so nothing is refused for them.
+        val homeward = HomewardRule.judge(stops.carAt, stops.dropoff?.at, rules.homewardCentre)
+        if (homeward is Homeward.Further) return Ruling.Leave(Ruling.Reason.LeadingAway(homeward))
+
         return Ruling.Take(found.first().name, far = far)
     }
 }
 
 /** Calculation. The ruling in the few words the chip has room for. */
 object RulingText {
+
+    private fun km(miles: Miles): String = String.format("%.1f 公里", miles.value / 0.621371)
+
 
     fun headline(ruling: Ruling, isMatch: Boolean = false): String = when (ruling) {
         // A Match is worth entering, not "taken": several drivers are shown the
@@ -131,6 +147,8 @@ object RulingText {
                 is NoGoHit.Pickup -> "取餐 " + hit.store + " 在「" + hit.box.label + "」里"
                 is NoGoHit.Dropoff -> "送餐点在「" + hit.box.label + "」里"
             }
+            is Ruling.Reason.LeadingAway ->
+                "离中心更远：现在 " + km(why.away.fromCar) + "，送完 " + km(why.away.fromDrop)
             is Ruling.Reason.FarTooCheap ->
                 "远区单每小时 $" + String.format("%.2f", why.perHour) +
                     "，低于 $" + String.format("%.0f", why.floor)

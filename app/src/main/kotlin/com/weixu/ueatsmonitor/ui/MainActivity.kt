@@ -308,6 +308,12 @@ private fun MonitorScreen(store: SettingsStore) {
                         scope.launch { store.setTimedCaptureEnabled(it) }
                     }
                     Hairline()
+                    SwitchRow(
+                        label = "回中心模式",
+                        hint = "只接离选区中心更近的单，远区也一样",
+                        checked = current.homewardEnabled,
+                    ) { scope.launch { store.setHomewardEnabled(it) } }
+                    Hairline()
                     SwitchRow("区域提示音", null, current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
