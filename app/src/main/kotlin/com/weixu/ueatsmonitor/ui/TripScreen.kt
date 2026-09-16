@@ -50,6 +50,9 @@ fun TripScreen() {
     val live = profiles.firstOrNull { it.active }
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    // The last suburb a finger landed on, named above the map: on a map this small
+    // a suburb is a few millimetres, and a miss has to be visible to be undone.
+    var touched: String? by remember { mutableStateOf(null) }
 
     if (live == null) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -95,7 +98,9 @@ fun TripScreen() {
                         color = Dash.Gold,
                     )
                     Text(
-                        text = if (excluded.isEmpty()) "个区，全都去" else "个区，点掉了 " + excluded.size + " 个",
+                        text = touched?.let { name ->
+                            name + (if (name in going) " 去" else " 不去")
+                        } ?: if (excluded.isEmpty()) "个区，全都去" else "个区，点掉了 " + excluded.size + " 个",
                         modifier = Modifier.padding(bottom = 6.dp),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Dash.Muted,
@@ -104,7 +109,26 @@ fun TripScreen() {
             }
             // The same outlines as the areas page, so what is left is a shape, not
             // a list of names to read one by one.
-            SuburbMap(chosen = going, shapes = shapes, dropped = all.toSet() - going)
+            SuburbMap(
+                chosen = going,
+                shapes = shapes,
+                dropped = all.toSet() - going,
+                onTap = { suburb ->
+                    // Only this set's suburbs; a finger in the next one along is a miss.
+                    if (suburb in all) {
+                        ExclusionStore.toggle(context, suburb)
+                        excluded = ExclusionStore.inForce(context)
+                        touched = suburb
+                    }
+                },
+                onLongPress = { suburb ->
+                    if (suburb in all) {
+                        ExclusionStore.keepOnly(context, suburb, all)
+                        excluded = ExclusionStore.inForce(context)
+                        touched = suburb
+                    }
+                },
+            )
         }
 
         Panel {

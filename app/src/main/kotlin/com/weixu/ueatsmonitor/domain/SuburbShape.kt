@@ -54,6 +54,12 @@ object MapProjection {
             x = left + ((point.longitude - box.minLon) * squeeze(box) * scale).toFloat(),
             y = top + ((box.maxLat - point.latitude) * scale).toFloat(),
         )
+
+        /** [place] read backwards, so a finger on the drawing is a place on the earth. */
+        fun placeOf(pixel: Pixel): GeoPoint = GeoPoint(
+            latitude = box.maxLat - (pixel.y - top) / scale,
+            longitude = box.minLon + (pixel.x - left) / (squeeze(box) * scale),
+        )
     }
 
     fun fit(box: GeoBox, width: Float, height: Float, padding: Float): Fit {
@@ -71,7 +77,7 @@ object MapProjection {
     }
 
     /** A degree of longitude is shorter than one of latitude, by this much. */
-    private fun squeeze(box: GeoBox): Double =
+    internal fun squeeze(box: GeoBox): Double =
         cos(Math.toRadians((box.minLat + box.maxLat) / 2))
 
     /** A single suburb still needs a span, or the scale is infinite. */
