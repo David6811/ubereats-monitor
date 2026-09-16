@@ -41,6 +41,12 @@ object ExclusionStore {
         write(context, Excluded(set, stampOf(context), Exclusions.keepOnly(all.toSet(), suburb)))
     }
 
+    /** Everything off, so the driver can tick back the two or three he wants. */
+    fun excludeAll(context: Context, all: List<String>) {
+        val set = Profiles.chosen(context) ?: return
+        write(context, Excluded(set, stampOf(context), all.toSet()))
+    }
+
     fun clear(context: Context) {
         runCatching { File(context.filesDir, FILE_NAME).delete() }
     }

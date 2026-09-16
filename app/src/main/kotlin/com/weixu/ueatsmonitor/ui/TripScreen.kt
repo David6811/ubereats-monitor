@@ -102,17 +102,25 @@ fun TripScreen() {
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SectionLabel("点一下不去 · 长按只留它")
+                    SectionLabel("点一下切换 · 长按只留它")
                     Text(
                         text = "只管这一趟。换选区或电脑推新规则，就全恢复。",
                         style = MaterialTheme.typography.bodySmall,
                         color = Dash.Muted,
                     )
                 }
-                if (excluded.isNotEmpty()) {
-                    GhostButton("恢复全部", color = Dash.Gold) {
-                        ExclusionStore.clear(context)
-                        excluded = ExclusionStore.inForce(context)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (going.isNotEmpty()) {
+                        GhostButton("全不选", color = Dash.Muted) {
+                            ExclusionStore.excludeAll(context, all)
+                            excluded = ExclusionStore.inForce(context)
+                        }
+                    }
+                    if (excluded.isNotEmpty()) {
+                        GhostButton("恢复全部", color = Dash.Gold) {
+                            ExclusionStore.clear(context)
+                            excluded = ExclusionStore.inForce(context)
+                        }
                     }
                 }
             }
