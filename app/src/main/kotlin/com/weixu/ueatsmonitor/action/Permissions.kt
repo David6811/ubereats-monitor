@@ -28,6 +28,26 @@ object Permissions {
                 context.checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
             }
 
+    /**
+     * "All the time", not "while using the app". The reader judges cards while
+     * Uber is in front and this app is in the background, and a foreground-only
+     * grant hands back no position at all there.
+     */
+    fun backgroundLocationGranted(context: Context): Boolean =
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q ||
+            context.checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /** The app's own page in the system settings, where "all the time" is chosen. */
+    fun openAppSettings(context: Context) {
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+
     fun microphoneGranted(context: Context): Boolean =
         context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED

@@ -349,16 +349,21 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
     val fix = remember { CurrentPosition(context).lastKnown() }
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val now = if (granted) CurrentPosition(context).lastKnown() else null
-        if (now != null && centre != null) save(true)
-        else android.widget.Toast.makeText(context, if (granted) "还没有定位，到车里开着定位再试" else "没有定位权限，回中心模式开不了", android.widget.Toast.LENGTH_LONG).show()
+        when {
+            !granted -> say(context, "没有定位权限，回中心模式开不了")
+            now == null -> say(context, "还没有定位，到车里开着定位再试")
+            !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
+            centre != null -> save(true)
+        }
     }
 
     SwitchRow(
         label = "回中心模式",
         hint = when {
             centre == null -> "这套选区没设中心，先在电脑上设一个"
+            !Permissions.backgroundLocationGranted(context) -> "定位要设成「始终允许」才有用，点这里去改"
             fix == null -> "手机还没有定位，开不了"
-            else -> "只接离中心（" + centre.latitude.toString().take(7) + "）更近的单，远区也一样"
+            else -> "只接离中心更近的单，远区也一样"
         },
         checked = enabled,
     ) { on ->
@@ -368,11 +373,23 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
                 android.widget.Toast.makeText(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送", android.widget.Toast.LENGTH_LONG).show()
             !Permissions.locationGranted(context) ->
                 askLocation.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            // Uber is in front while a card is judged, so "while using the app"
+            // hands back nothing. Only the system settings page can change that.
+            !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
             CurrentPosition(context).lastKnown() == null ->
-                android.widget.Toast.makeText(context, "手机还没有定位，到车里开着定位再试", android.widget.Toast.LENGTH_LONG).show()
+                say(context, "手机还没有定位，到车里开着定位再试")
             else -> save(true)
         }
     }
+}
+
+private fun say(context: Context, words: String) {
+    android.widget.Toast.makeText(context, words, android.widget.Toast.LENGTH_LONG).show()
+}
+
+private fun askForAllTheTime(context: Context) {
+    say(context, "把定位改成「始终允许」：权限 → 位置信息 → 始终允许")
+    Permissions.openAppSettings(context)
 }
 
 /**
