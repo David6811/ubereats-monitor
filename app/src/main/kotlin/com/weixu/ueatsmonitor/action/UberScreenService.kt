@@ -114,6 +114,7 @@ class UberScreenService : AccessibilityService() {
 
     /** The band of the last frame read by OCR that held no card. Zero means none. */
     private var lastFruitlessBand: Int = 0
+    private var lastFruitlessAtMillis: Long = 0L
 
     /**
      * An offer wakes a sleeping phone, and on the lock screen the window list is
@@ -232,7 +233,11 @@ class UberScreenService : AccessibilityService() {
         // be hiding - that is what blind shooting was for. When every window on
         // screen can be read and none of them is Uber's, there is nothing to find,
         // and a shot every two seconds over Maps was most of a shift's frames.
-        val unreadable = runCatching { windows.orEmpty().any { it.root == null } }.getOrDefault(true)
+        // A window with no root, and a window that will not even say which app it
+        // belongs to: either could be holding a card we cannot see.
+        val unreadable = runCatching {
+            windows.orEmpty().any { it.root == null || it.root?.packageName.isNullOrBlank() }
+        }.getOrDefault(true)
         val shootBlind = bursting || (screenLit && onShift && unreadable)
 
         val roots = (if (testing) all else uberRoots()).ifEmpty { if (shootBlind) all else emptyList() }
@@ -321,7 +326,11 @@ class UberScreenService : AccessibilityService() {
             // reading it again costs a fifth of a second each time. A card
             // appearing changes the band, so nothing waits on this.
             val signature = AcceptBand.signature(band)
-            val seenBefore = signature == lastFruitlessBand
+            // Forgotten after a few seconds: one reading that found nothing may
+            // have been the recogniser having a bad moment, and a card that sits
+            // there still must not be written off on the strength of it.
+            val seenBefore = signature == lastFruitlessBand &&
+                now - lastFruitlessAtMillis < FRUITLESS_MILLIS
             val button = AcceptBand.holdsButton(band) && !seenBefore
             val routine = now - lastRoutineAtMillis >= ROUTINE_MILLIS
 
@@ -345,7 +354,9 @@ class UberScreenService : AccessibilityService() {
             when {
                 screen != null && button ->
                     ScreenTextReader.read(screen) { ocrLines, millis ->
-                        lastFruitlessBand = if (OfferCardReader.read(ocrLines) == null) signature else 0
+                        val nothingThere = OfferCardReader.read(ocrLines) == null && ocrLines.isNotEmpty()
+                        lastFruitlessBand = if (nothingThere) signature else 0
+                        lastFruitlessAtMillis = now
                         finish(now, screen, headerHead, lines, text, ocrLines, millis, "button", green)
                     }
                 // A frame kept only to have something to look at afterwards. Its
@@ -739,6 +750,9 @@ class UberScreenService : AccessibilityService() {
 
         /** Written where the green share would go on a frame that took no screenshot. */
         const val NOT_SAMPLED = -1.0
+
+        /** How long a band read for nothing is remembered before it is read again. */
+        const val FRUITLESS_MILLIS = 6_000L
 
         /** Events arrive in floods; the poll is the real clock. */
         const val EVENT_POST_GAP_MILLIS = 300L
