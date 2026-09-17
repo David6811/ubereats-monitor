@@ -84,14 +84,14 @@ object JobStore {
     /** The delivery screen appeared: give the job the customer's real address. */
     fun markDelivered(context: Context, dropoff: Dropoff) {
         val jobs = list(context)
-        val next = JobBoard.delivered(jobs, dropoff, DropoffScreen.suburbOf(dropoff))
+        val next = JobBoard.delivered(jobs, dropoff, DropoffScreen.suburbOf(dropoff), System.currentTimeMillis())
         if (next != jobs) write(context, next)
     }
 
     /** The pickup screen appeared: mark the job it belongs to, if it is still here. */
     fun markTaken(context: Context, pickup: Pickup) {
         val jobs = list(context)
-        val next = JobBoard.taken(jobs, pickup)
+        val next = JobBoard.taken(jobs, pickup, System.currentTimeMillis())
         if (next != jobs) write(context, next)
     }
 

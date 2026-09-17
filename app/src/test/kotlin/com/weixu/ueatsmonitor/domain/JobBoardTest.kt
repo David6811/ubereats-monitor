@@ -15,6 +15,10 @@ class JobBoardTest {
         fromTree = false,
     )
 
+    private val NOW = 1_789_603_800_000L
+    private val HALF_AN_HOUR_AGO = NOW - 30L * 60 * 1000
+    private val DAY_BEFORE = NOW - 40L * 60 * 60 * 1000
+
     private val kebab = OfferRecord(
         isMatch = false,
         payout = "${'$'}9.20",
@@ -149,10 +153,33 @@ class JobBoardTest {
         val dropoff = Dropoff(customer = "Elisa N.", address = "10 Bushland Avenue, Clarinda Melbourne VIC", unit = null, note = null)
 
         // act
-        val next = JobBoard.delivered(board, dropoff, "Clarinda Melbourne")
+        val next = JobBoard.delivered(board, dropoff, "Clarinda Melbourne", now = 2_000)
 
         // assert
         assertEquals("10 Bushland Avenue, Clarinda Melbourne VIC", next.first().dropAddress)
+    }
+
+    @Test
+    fun `given a job to the same suburb taken two days ago, when today's delivery screen is read, then today's job takes it`() {
+        // arrange  the board of 17 Sep 10:10: $4.00 was taken on the 15th, $9.15 is today's
+        val old = Job(
+            DAY_BEFORE, pizza.copy(payout = "${'$'}4.00", dropoff = "Dandenong Road & Reilly Street, Springvale"),
+            taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
+        )
+        val today = Job(
+            HALF_AN_HOUR_AGO, pizza.copy(payout = "${'$'}9.15", dropoff = "Donald Street & Hanleth Avenue, Springvale"),
+            taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
+        )
+        val dropoff = Dropoff(customer = "SANDIL P.", address = "5 Ethel Court, Springvale Melbourne VIC", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(listOf(today, old), dropoff, "Springvale Melbourne", now = NOW)
+
+        // affirm  the two-day-old job is untouched
+        assertEquals(null, next.first { it.offer.payout == "${'$'}4.00" }.dropAddress)
+
+        // assert
+        assertEquals("5 Ethel Court, Springvale Melbourne VIC", next.first { it.offer.payout == "${'$'}9.15" }.dropAddress)
     }
 
     @Test
@@ -164,7 +191,7 @@ class JobBoardTest {
         val dropoff = Dropoff(customer = null, address = "1 Somewhere St, Frankston VIC", unit = null, note = null)
 
         // act
-        val next = JobBoard.delivered(board, dropoff, "Frankston")
+        val next = JobBoard.delivered(board, dropoff, "Frankston", now = 2_000)
 
         // assert
         assertEquals(board, next)
@@ -268,7 +295,7 @@ class JobBoardTest {
         )
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // affirm  the other job is untouched
         assertEquals(false, next[0].taken)
@@ -293,7 +320,7 @@ class JobBoardTest {
         )
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // assert
         assertEquals(true, next[0].taken)
@@ -306,7 +333,7 @@ class JobBoardTest {
         val pickup = Pickup(store = "Nashville KFC Style Chicken", address = "1 High St, Braeside VIC 3195", note = null)
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // assert
         assertEquals(board, next)
@@ -319,7 +346,7 @@ class JobBoardTest {
         val pickup = Pickup(store = "Nando's", address = "1 High St, Braeside VIC 3195", note = null)
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // assert
         assertEquals(board, next)
@@ -339,7 +366,7 @@ class JobBoardTest {
         )
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // affirm  the newer one, from the wrong branch, is left alone
         assertEquals(false, next[0].taken)
@@ -362,6 +389,7 @@ class JobBoardTest {
                 address = "317 Cheltenham Rd, Keysborough VIC 3173, Australia",
                 note = null,
             ),
+            now = 2_000,
         )
 
         // affirm  the shop's real address is on the job now
@@ -385,6 +413,7 @@ class JobBoardTest {
         val next = JobBoard.taken(
             board,
             Pickup(store = "Pizza Hut", address = "9 Smith St, Cheltenham VIC 3192, Australia", note = null),
+            now = 2_000,
         )
 
         // assert  guessing would send him to the wrong branch
@@ -404,7 +433,7 @@ class JobBoardTest {
         )
 
         // act
-        val next = JobBoard.taken(board, pickup)
+        val next = JobBoard.taken(board, pickup, now = 2_000)
 
         // assert
         assertEquals(true, next[0].taken)
@@ -425,7 +454,7 @@ class JobBoardTest {
         )
 
         // act
-        val next = JobBoard.delivered(board, dropoff, "Mentone")
+        val next = JobBoard.delivered(board, dropoff, "Mentone", now = 2_000)
 
         // affirm  the other job is untouched
         assertEquals(null, next[0].dropAddress)
@@ -444,7 +473,7 @@ class JobBoardTest {
         val dropoff = Dropoff("Lewis A.", "12/98 Collins St, Mentone VIC", null, null)
 
         // act
-        val next = JobBoard.delivered(board, dropoff, "Mentone")
+        val next = JobBoard.delivered(board, dropoff, "Mentone", now = 2_000)
 
         // affirm
         assertEquals(null, next[0].dropAddress)
@@ -460,7 +489,7 @@ class JobBoardTest {
         val dropoff = Dropoff("Lewis A.", "12/98 Collins St, Mentone VIC", null, null)
 
         // act
-        val next = JobBoard.delivered(board, dropoff, "Mentone")
+        val next = JobBoard.delivered(board, dropoff, "Mentone", now = 2_000)
 
         // assert
         assertEquals(board, next)

@@ -98,14 +98,15 @@ object JobBoard {
      * screen alone is not enough to build a job from, since it says nothing about
      * where the food is going or what it pays.
      */
-    fun taken(jobs: List<Job>, pickup: Pickup): List<Job> {
+    fun taken(jobs: List<Job>, pickup: Pickup, now: Long): List<Job> {
         val wanted = fold(pickup.store)
         if (wanted.length < MIN_STORE) return jobs
         val address = fold(pickup.address)
+        val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
 
         // Either name can be the longer one. OCR cuts the card's short: the card
         // said "Chemist2u) Pharmacy 4 Less" for "(Chemist2U) Pharmacy 4 Less Parkmore".
-        val named = jobs.indices.filter { index ->
+        val named = recent.filter { index ->
             val onCard = fold(jobs[index].offer.pickup)
             onCard.contains(wanted) || (onCard.length >= MIN_CARD_STORE && wanted.contains(onCard))
         }
@@ -147,14 +148,19 @@ object JobBoard {
      * is the newest whose destination names that suburb - and one already known
      * to be taken wins, since that is the one being delivered.
      */
-    fun delivered(jobs: List<Job>, dropoff: Dropoff, suburb: String?): List<Job> {
+    fun delivered(jobs: List<Job>, dropoff: Dropoff, suburb: String?, now: Long): List<Job> {
         if (suburb.isNullOrBlank()) return jobs
+
+        // Only what could still be in the car. The board keeps every offer of the
+        // last few days, and a job taken two days ago to the same suburb used to
+        // claim today's delivery, because a taken job wins over an untaken one.
+        val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
 
         // The delivery screen sometimes writes the city after the suburb -
         // "Clarinda Melbourne VIC" - while the card only ever said "Clarinda".
         // So the whole name is tried first, then shorter ones from its front.
         val matches = suburbNames(suburb).firstNotNullOfOrNull { wanted ->
-            jobs.indices.filter { at -> fold(jobs[at].offer.dropoff).contains(wanted) }
+            recent.filter { at -> fold(jobs[at].offer.dropoff).contains(wanted) }
                 .takeIf { it.isNotEmpty() }
         } ?: return jobs
         val at = matches.firstOrNull { jobs[it].taken } ?: matches.first()
@@ -186,6 +192,13 @@ object JobBoard {
 
     /** A suburb name shorter than this would match half of Melbourne by accident. */
     private const val MIN_SUBURB = 4
+
+    /**
+     * How long a job could still be the one being driven. Longer than any single
+     * delivery and shorter than a shift, so yesterday's job to the same suburb
+     * cannot claim today's screen.
+     */
+    private const val IN_HAND_MILLIS = 4L * 60 * 60 * 1000
 
     private fun fold(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
 
