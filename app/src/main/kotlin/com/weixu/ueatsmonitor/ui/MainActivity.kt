@@ -203,42 +203,35 @@ private fun StatusStrip() {
             Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
         )
     }
-    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
-            Spacer(Modifier.weight(1f))
-            if (live.second.isNotEmpty()) {
-                Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
-            }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        Spacer(Modifier.weight(1f))
+        WatchLamp(live.first)
+        if (live.second.isNotEmpty()) {
+            Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
         }
-        WatchBar(live.first)
     }
 }
 
-/** Dark and still while watching; bright, pulsing and tappable while not. */
+/**
+ * Quiet words while watching; a bright, pulsing, tappable block while not. The
+ * difference is carried by the tick or cross, the words and dark against bright.
+ */
 @Composable
-private fun WatchBar(watch: Watch) {
+private fun WatchLamp(watch: Watch) {
     val context = LocalContext.current
     when (watch) {
-        Watch.Watching -> Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(Dash.ControlShape)
-                .background(Dash.Raised)
-                .border(1.dp, Dash.Line, Dash.ControlShape)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "✓  正在监控",
-                style = MaterialTheme.typography.titleMedium,
-                color = Dash.Ink,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        Watch.Watching -> Text(
+            text = "✓ 在监控",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Dash.Ink,
+        )
         is Watch.NotWatching -> {
             val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
             val alpha by pulse.animateFloat(
@@ -250,27 +243,21 @@ private fun WatchBar(watch: Watch) {
                 ),
                 label = "alpha",
             )
-            Column(
+            Text(
+                text = "✕ 没在监控",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Dash.Ground,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .graphicsLayer { this.alpha = alpha }
                     .clip(Dash.ControlShape)
                     .background(Dash.Gold)
-                    .clickable { fix(context, watch.what) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Text(
-                    text = "✕  没在监控 — 点这里打开",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Dash.Ground,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = hintFor(watch.what),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Dash.Ground,
-                )
-            }
+                    .clickable {
+                        say(context, hintFor(watch.what))
+                        fix(context, watch.what)
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
         }
     }
 }
@@ -385,10 +372,6 @@ private fun MonitorScreen(store: SettingsStore) {
                     }
                     Hairline()
                     VoiceToggle(current.voiceEnabled) { scope.launch { store.setVoiceEnabled(it) } }
-                    Hairline()
-                    SwitchRow("测试模式", "任何 App 的画面都识别", current.testModeEnabled) {
-                        scope.launch { store.setTestModeEnabled(it) }
-                    }
                 }
             }
         }

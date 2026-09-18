@@ -26,7 +26,6 @@ class SettingsStore(private val context: Context) {
         val vibrateEnabled: Boolean,
         val areaSoundEnabled: Boolean,
         val recordScreenEnabled: Boolean,
-        val testModeEnabled: Boolean,
         val logEveryNotification: Boolean,
         /** Whether the microphone stays open for spoken commands. */
         val voiceEnabled: Boolean,
@@ -52,7 +51,6 @@ class SettingsStore(private val context: Context) {
             vibrateEnabled = prefs[VIBRATE_ENABLED] ?: false,
             areaSoundEnabled = prefs[AREA_SOUND_ENABLED] ?: true,
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
-            testModeEnabled = prefs[TEST_MODE] ?: false,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
             voiceEnabled = prefs[VOICE_ENABLED] ?: false,
             fuelPerKm = prefs[FUEL_PER_KM] ?: DEFAULT_FUEL_PER_KM,
@@ -76,8 +74,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setVibrateEnabled(enabled: Boolean) = putBoolean(VIBRATE_ENABLED, enabled)
 
     suspend fun setAreaSoundEnabled(enabled: Boolean) = putBoolean(AREA_SOUND_ENABLED, enabled)
-
-    suspend fun setTestModeEnabled(enabled: Boolean) = putBoolean(TEST_MODE, enabled)
 
     suspend fun setRecordScreenEnabled(enabled: Boolean) = putBoolean(RECORD_SCREEN, enabled)
 
@@ -108,7 +104,6 @@ class SettingsStore(private val context: Context) {
         private val VIBRATE_ENABLED = booleanPreferencesKey("vibrate_enabled")
         private val AREA_SOUND_ENABLED = booleanPreferencesKey("area_sound_enabled")
         private val RECORD_SCREEN = booleanPreferencesKey("record_screen")
-        private val TEST_MODE = booleanPreferencesKey("test_mode")
         private val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
         private val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
         private val HOMEWARD = booleanPreferencesKey("homeward")
