@@ -49,6 +49,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.weixu.ueatsmonitor.App
+import com.weixu.ueatsmonitor.domain.Missing
+import com.weixu.ueatsmonitor.domain.Watch
+import com.weixu.ueatsmonitor.domain.WatchJudge
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloat
 import android.app.Activity
 import android.content.Context
 import android.media.projection.MediaProjectionManager
@@ -179,56 +184,107 @@ private fun HomeTabs() {
     }
 }
 
-/** Is it watching, is it listening, which set is live - the three things worth a glance. */
+/**
+ * The name of the app, the live set, and underneath one bar that says whether an
+ * offer arriving now would get a verdict. Told by words, a tick or a cross, and
+ * dark against bright - never by hue alone, because the driver cannot tell red
+ * from green.
+ */
 @Composable
 private fun StatusStrip() {
     val context = LocalContext.current
-    val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
-    val live by rememberPolled(Triple(false, "", CaptureStatus.State.OFF), 2_000L) {
-        Triple(
-            Permissions.screenReadingGranted(context),
+    val live by rememberPolled(Pair<Watch, String>(Watch.Watching, ""), 2_000L) {
+        Pair(
+            WatchJudge.judge(
+                readerGranted = Permissions.screenReadingGranted(context),
+                sinceLastFrameMillis = System.currentTimeMillis() - CaptureStatus.lastFrameAtMillis,
+                overlayGranted = Permissions.overlayGranted(context),
+            ),
             Profiles.list(context).firstOrNull { it.active }?.name.orEmpty(),
-            // Stale means the loop stopped: say so rather than leave the last word up.
-            if (System.currentTimeMillis() - CaptureStatus.lastFrameAtMillis > STALE_MILLIS) {
-                CaptureStatus.State.OFF
-            } else {
-                CaptureStatus.state
-            },
         )
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
-        Spacer(Modifier.weight(1f))
-        LampLabel("读屏", live.first, Dash.Blue)
-        LampLabel(
-            label = when (live.third) {
-                CaptureStatus.State.WATCHING -> "看派单"
-                CaptureStatus.State.IDLE -> "截屏"
-                CaptureStatus.State.BROKEN -> "读屏断了"
-                CaptureStatus.State.OFF -> "截屏"
-            },
-            on = live.third == CaptureStatus.State.WATCHING || live.third == CaptureStatus.State.IDLE,
-            color = if (live.third == CaptureStatus.State.WATCHING) Dash.Gold else Dash.Blue,
-        )
-        LampLabel("语音", settings?.voiceEnabled == true, Dash.Gold)
-        if (live.second.isNotEmpty()) {
-            Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+            Spacer(Modifier.weight(1f))
+            if (live.second.isNotEmpty()) {
+                Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
+            }
+        }
+        WatchBar(live.first)
+    }
+}
+
+/** Dark and still while watching; bright, pulsing and tappable while not. */
+@Composable
+private fun WatchBar(watch: Watch) {
+    val context = LocalContext.current
+    when (watch) {
+        Watch.Watching -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(Dash.ControlShape)
+                .background(Dash.Raised)
+                .border(1.dp, Dash.Line, Dash.ControlShape)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "✓  正在监控",
+                style = MaterialTheme.typography.titleMedium,
+                color = Dash.Ink,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        is Watch.NotWatching -> {
+            val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
+            val alpha by pulse.animateFloat(
+                initialValue = 1f,
+                targetValue = 0.55f,
+                animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                    animation = androidx.compose.animation.core.tween<Float>(700),
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                ),
+                label = "alpha",
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { this.alpha = alpha }
+                    .clip(Dash.ControlShape)
+                    .background(Dash.Gold)
+                    .clickable { fix(context, watch.what) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    text = "✕  没在监控 — 点这里打开",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Dash.Ground,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = hintFor(watch.what),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Dash.Ground,
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun LampLabel(label: String, on: Boolean, color: androidx.compose.ui.graphics.Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Lamp(on, color)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = if (on) Dash.Ink else Dash.Muted)
-    }
+/** What to switch on once the system page opens, in the words that page shows. */
+private fun hintFor(missing: Missing): String = when (missing) {
+    Missing.READER -> "在「无障碍」里打开「接单助手」"
+    Missing.READER_STALLED -> "读屏卡住了：在「无障碍」里把「接单助手」关掉再打开"
+    Missing.OVERLAY -> "允许「接单助手」显示在其他应用上层"
+}
+
+private fun fix(context: Context, missing: Missing) = when (missing) {
+    Missing.READER, Missing.READER_STALLED -> Permissions.openAccessibilitySettings(context)
+    Missing.OVERLAY -> Permissions.openOverlaySettings(context)
 }
 
 @Composable
@@ -395,9 +451,6 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
         }
     }
 }
-
-/** Two loops without a frame: the reader has stopped, whatever it last said. */
-private const val STALE_MILLIS = 6_000L
 
 private fun say(context: Context, words: String) {
     android.widget.Toast.makeText(context, words, android.widget.Toast.LENGTH_LONG).show()
