@@ -73,6 +73,7 @@ class OverlayController(private val context: Context) {
      * to go would sit on the screen indefinitely.
      */
     fun show(state: State, ttlMillis: Long = TTL_MILLIS) {
+        if (System.currentTimeMillis() < quietUntilMillis) return
         if (!canDraw()) {
             Log.i(TAG, "overlay: show refused, no draw-over permission")
             return
@@ -97,6 +98,26 @@ class OverlayController(private val context: Context) {
     fun showingVerdict(): Boolean = showing.isNotEmpty() && showing != THINKING
 
     private val autoHide = Runnable { removeNow("deadline passed") }
+
+    /**
+     * Set when the driver closes the chip. It covers the top of the map, and
+     * while driving that can be the part he needs; closing it only quiets it
+     * for a while, so the next card still gets a verdict.
+     */
+    @Volatile
+    private var quietUntilMillis: Long = 0L
+
+    /** Fades the chip out rather than snapping it away, then keeps it off for [QUIET_MILLIS]. */
+    private fun closeByDriver() {
+        quietUntilMillis = System.currentTimeMillis() + QUIET_MILLIS
+        main.removeCallbacks(autoHide)
+        val chip = shown ?: return
+        chip.animate()
+            .alpha(0f)
+            .setDuration(FADE_MILLIS)
+            .withEndAction { if (shown === chip) removeNow("closed by driver") }
+            .start()
+    }
 
     private fun removeNow(why: String = "unsaid") {
         val chip = shown ?: return
@@ -131,7 +152,9 @@ class OverlayController(private val context: Context) {
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                // The verdict carries a close button, so it takes touches on
+                // its own area; the dots have nothing to press.
+                (if (verdict) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE) or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
@@ -212,7 +235,17 @@ class OverlayController(private val context: Context) {
                 setColor(face.fill)
                 setStroke(dp(2), face.edge)
             }
-            addView(shoulders(face.title, 26f, face.payout, 26f, face.ink))
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(
+                        shoulders(face.title, 26f, face.payout, 26f, face.ink),
+                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                    )
+                    addView(closeButton(face.ink))
+                }
+            )
             face.route?.let { route ->
                 addView(
                     line(route.text, 17f, face.ink).apply {
@@ -234,6 +267,18 @@ class OverlayController(private val context: Context) {
             }
             face.fromCentre?.let { addView(line(it, 16f, face.ink)) }
         }
+    }
+
+    /** A cross big enough to hit without looking long, beside the payout. */
+    private fun closeButton(ink: Int): View = TextView(context).apply {
+        text = "✕"
+        textSize = 22f
+        setTextColor(ink)
+        gravity = Gravity.CENTER
+        minWidth = dp(CLOSE_DP)
+        minHeight = dp(CLOSE_DP)
+        setPadding(dp(12), 0, 0, 0)
+        setOnClickListener { closeByDriver() }
     }
 
     /** One row with something on each shoulder: the left grows, the right hugs. */
@@ -319,5 +364,14 @@ class OverlayController(private val context: Context) {
 
         /** Two frames' worth of grace, so a missed frame does not make it flicker. */
         const val TTL_MILLIS = 4_500L
+
+        /** How long a closed chip stays away. */
+        const val QUIET_MILLIS = 20_000L
+
+        /** A gentle fade, not a snap. */
+        const val FADE_MILLIS = 400L
+
+        /** The close button's touch area, the size Android asks a tap target to be. */
+        const val CLOSE_DP = 48
     }
 }
