@@ -139,6 +139,125 @@ class OfferCardReaderTest {
         assertEquals(Cents(1803), card.payout)
     }
 
+    /**
+     * The card read off the tree at 09:15:54 on 18 Sept, transcribed exactly. The
+     * payout carries the currency in front of the sign, and nothing else about the
+     * card changed - which is the whole of why that offer went unseen.
+     */
+    @Test
+    fun `given a card whose payout names the currency, when read, then the payout is read`() {
+        // arrange
+        val lines = listOf(
+            "Delivery",
+            "Exclusive",
+            "A\$13.01",
+            "Est. earnings for completed trip",
+            "29 min (18.6 km) total",
+            "Mad Shak's Cafe",
+            "Coolibar Avenue & Railway Parade, Seaford",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals(Cents(1301), card!!.payout)
+    }
+
+    /**
+     * The second of the three cards of 18 Sept, read off the tree at 09:41:15 and
+     * transcribed exactly - a shopping order, so the bag weight sits between the
+     * dropoff and the button.
+     */
+    @Test
+    fun `given a named currency and a bag weight, when read, then the payout is read`() {
+        // arrange
+        val lines = listOf(
+            "Delivery",
+            "Exclusive",
+            "A\$11.09",
+            "Est. earnings for completed trip",
+            "25 min (10.0 km) total",
+            "Woolworths Seaford (VIC)",
+            "Carrington Crescent & Royston Court, Carrum Downs",
+            "Heavy (5-10 bags)",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals(Cents(1109), card!!.payout)
+    }
+
+    /**
+     * The third card of 18 Sept, at 09:53:44: an add-on to the trip already in
+     * hand, where every number on the card is written as an increment. The payout
+     * is what this stop adds, and that is the number to judge it by.
+     */
+    @Test
+    fun `given an add-on card whose payout is an increment, when read, then the increment is the payout`() {
+        // arrange
+        val lines = listOf(
+            "Delivery",
+            "Exclusive",
+            "+ A\$4",
+            "Est. earnings for completed trip",
+            "+ 6 min (+ 0.1 km) total",
+            "Woolworths Seaford (VIC)",
+            "Jacana Drive & Lewin Street, Carrum Downs",
+            "Customer verification",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // affirm
+        assertNotNull(card)
+
+        // assert
+        assertEquals(Cents(400), card!!.payout)
+    }
+
+    /**
+     * The navigation screen at 11:57 on 18 Sept, transcribed from the tree: the
+     * day's earnings at the top, and a merchant note with "accept" in a sentence.
+     * Read as a card, it held a verdict over the map for the whole drive.
+     */
+    @Test
+    fun `given a navigation screen whose note says accept, when read, then it is not a card`() {
+        // arrange
+        val lines = listOf(
+            "Home",
+            "A\$36.29",
+            "Search for places",
+            "Gladesville Boulevard",
+            "Third exit: Thompson Road",
+            "100 m",
+            "8 min",
+            "8.3 km",
+            "Merchant logo",
+            "Poveretti Pizzeria",
+            "243 Governor Road, Braeside, VIC 3195",
+            "- Please have your WARMER BAG ready to accept order, otherwise we will now allow you to pick up.",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // assert
+        assertNull(card)
+    }
+
     @Test
     fun `given the real offer card, when tested for presence, then Accept plus a payout is enough`() {
         // arrange

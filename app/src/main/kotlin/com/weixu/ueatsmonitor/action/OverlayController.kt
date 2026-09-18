@@ -3,6 +3,7 @@ package com.weixu.ueatsmonitor.action
 import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.util.Log
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -47,6 +48,13 @@ class OverlayController(private val context: Context) {
     private val main = Handler(Looper.getMainLooper())
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private var shown: View? = null
+
+    /**
+     * Read from the reader's own thread by [showingVerdict] and written here on
+     * main: without this the reader can see a stale empty string, decide no
+     * verdict is up, and take a verdict away that had only just gone up.
+     */
+    @Volatile
     private var showing: String = ""
 
     /** Kept so the beat stops when its dots leave the screen. */
@@ -65,29 +73,34 @@ class OverlayController(private val context: Context) {
      * to go would sit on the screen indefinitely.
      */
     fun show(state: State, ttlMillis: Long = TTL_MILLIS) {
-        if (!canDraw()) return
+        if (!canDraw()) {
+            Log.i(TAG, "overlay: show refused, no draw-over permission")
+            return
+        }
         val key = keyOf(state)
         main.post {
             if (key != showing || shown == null) {
-                removeNow()
+                removeNow("replaced")
                 val chip = buildChip(state)
                 runCatching { windowManager.addView(chip, layoutParams(state)) }
-                    .onSuccess { shown = chip; showing = key }
+                    .onSuccess { shown = chip; showing = key; Log.i(TAG, "overlay: added $key") }
+                    .onFailure { Log.w(TAG, "overlay: addView failed for $key", it) }
             }
             main.removeCallbacks(autoHide)
             main.postDelayed(autoHide, ttlMillis)
         }
     }
 
-    fun hide() = main.post(::removeNow)
+    fun hide() = main.post { removeNow("told to hide") }
 
     /** Whether a verdict is up right now, as opposed to nothing or "thinking". */
     fun showingVerdict(): Boolean = showing.isNotEmpty() && showing != THINKING
 
-    private val autoHide = Runnable { removeNow() }
+    private val autoHide = Runnable { removeNow("deadline passed") }
 
-    private fun removeNow() {
+    private fun removeNow(why: String = "unsaid") {
         val chip = shown ?: return
+        Log.i(TAG, "overlay: removed $showing - $why")
         shown = null
         showing = ""
         beating.forEach { it.cancel() }
@@ -291,6 +304,8 @@ class OverlayController(private val context: Context) {
         const val DOT_DIM = 0.25f
 
         private const val THINKING = "thinking"
+
+        private const val TAG = "UEatsMonitor"
 
         // Yellow appears nowhere on the offer card - Uber's is white, its Accept
         // button green and its Match button black - so this is the one fill the

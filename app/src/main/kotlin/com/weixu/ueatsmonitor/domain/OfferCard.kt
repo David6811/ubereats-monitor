@@ -55,9 +55,21 @@ object OfferCardReader {
      * What must not match is a past tense from elsewhere in the app: "Accepted",
      * "Acceptance", "Matched".
      */
-    private val ACCEPT = Regex("""(^|[^a-z])(accept|match)([^a-z]|$)""", RegexOption.IGNORE_CASE)
-    private val MATCH = Regex("""(^|[^a-z])match([^a-z]|$)""", RegexOption.IGNORE_CASE)
-    private val PAYOUT = Regex("""^[$＄]\s*(\d+(?:[.,]\d{1,2})?)$""")
+    /**
+     * The whole line, not a word in it. A merchant's note on the navigation screen
+     * said "have your warmer bag ready to accept order", and with the day's
+     * earnings above it that screen was taken for a card: the verdict sat over
+     * the map for as long as the note was there.
+     */
+    private val ACCEPT = Regex("""^(accept|match)(\s+\d+\s*s|,\s*button)?\s*$""", RegexOption.IGNORE_CASE)
+    private val MATCH = Regex("""^match\b""", RegexOption.IGNORE_CASE)
+    /**
+     * "$5", and the same amount with the currency named in front of the sign -
+     * "A$13.01", "AU$13.01", "NZ$9.50". Uber began writing the card that way on
+     * 18 Sept, and a payout it could not read left every offer that day with no
+     * card at all: no overlay, no chime, nothing on the board.
+     */
+    private val PAYOUT = Regex("""^[A-Za-z]{0,2}[$＄]\s*(\d+(?:[.,]\d{1,2})?)$""")
     /**
      * "18 min (8.6 km) total", and the long-haul form "1 hr 6 min (53.0 km) total".
      * Matched anywhere in the line: OCR prefixes it with clock-icon debris such as

@@ -28,6 +28,9 @@ import com.weixu.ueatsmonitor.domain.VerdictText
 import com.weixu.ueatsmonitor.domain.Suburb
 import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
+import com.weixu.ueatsmonitor.domain.Cents
+import com.weixu.ueatsmonitor.domain.Minutes
+import com.weixu.ueatsmonitor.domain.Miles
 import com.weixu.ueatsmonitor.domain.RoadIndex
 import com.weixu.ueatsmonitor.domain.SuburbIndex
 import com.weixu.ueatsmonitor.domain.Spot
@@ -162,6 +165,42 @@ class UberScreenService : AccessibilityService() {
                     addAction(android.content.Intent.ACTION_SCREEN_ON)
                     addAction(android.content.Intent.ACTION_USER_PRESENT)
                 },
+            )
+        }
+        runCatching {
+            registerReceiver(
+                verdictProbe,
+                android.content.IntentFilter(PROBE_ACTION),
+                android.content.Context.RECEIVER_EXPORTED,
+            )
+        }
+    }
+
+    /**
+     * A made-up verdict, on demand, so the chip can be looked at without waiting
+     * for a real offer:
+     *
+     *     adb shell am broadcast -a com.weixu.ueatsmonitor.SHOW_TEST_VERDICT
+     */
+    private val verdictProbe = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            val card = OfferCard(
+                isMatch = false,
+                payout = Cents(1301),
+                duration = Minutes(29),
+                distance = Miles(11.6),
+                pickup = "Mad Shak's Cafe",
+                dropoff = "Coolibar Avenue & Railway Parade, Seaford",
+                stops = listOf("Coolibar Avenue & Railway Parade, Seaford"),
+            )
+            Log.i(TAG, "probe: showing a made-up verdict, canDraw=" + overlay.canDraw())
+            overlay.show(
+                OverlayController.State.Decided(
+                    ruling = Ruling.Take("Seaford"),
+                    card = card,
+                    fromCentre = null,
+                ),
+                ttlMillis = 30_000L,
             )
         }
     }
@@ -710,6 +749,9 @@ class UberScreenService : AccessibilityService() {
         fun isRunning(): Boolean = live != null
 
         const val TAG = "UEatsMonitor"
+
+        /** The probe that puts a made-up verdict on screen. */
+        const val PROBE_ACTION = "com.weixu.ueatsmonitor.SHOW_TEST_VERDICT"
         /**
          * The keeper's clock pokes this service every second as well, and a
          * screenshot may be had only every two: looking twice a second listed
