@@ -126,9 +126,9 @@ class MainActivity : ComponentActivity() {
         // may only be started while the app is in front, so opening the app is
         // what brings it back.
         // Read from the store, not the live copy: straight after a reinstall the
-        // live copy is still empty when the first screen resumes. Not after a
-        // quit either: with screen reading off, the app is meant to be all off.
-        if (Permissions.microphoneGranted(this) && Permissions.screenReadingGranted(this)) {
+        // live copy is still empty when the first screen resumes. Voice follows
+        // its own switch and nothing else.
+        if (Permissions.microphoneGranted(this)) {
             lifecycleScope.launch {
                 if (App.instance.settingsStore.settings.first().voiceEnabled) {
                     runCatching { VoiceService.start(this@MainActivity) }
