@@ -728,11 +728,13 @@ class UberScreenService : AccessibilityService() {
         }
 
         /**
-         * Everything down: the overlays go, the keeper goes, and the service
+         * Everything down: the overlays go, the keeper and the microphone go, and the service
          * switches itself off. Turning it back on means Settings -> Accessibility,
          * because nothing in an app can grant itself that permission again.
          */
         fun stopEverything(context: Context) {
+            // A quit that left the microphone open was not a quit.
+            runCatching { VoiceService.stop(context) }
             val service = live
             if (service == null) {
                 CaptureKeeperService.stop(context)
