@@ -52,6 +52,13 @@ class VoiceService : Service() {
     private var offline = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
     private var running = false
 
+    /**
+     * How many sessions in a row the recognizer refused as busy. The on-device
+     * service can fill up with sessions nobody released - 396 of them on 18 Sept -
+     * and then refuses every start for good, silently, until it is restarted.
+     */
+    private var busyInARow = 0
+
     /** Set once this session has acted, so the final result does not act again. */
     private var actedThisSession = false
 
@@ -234,6 +241,24 @@ class VoiceService : Service() {
                 again(NEXT_MILLIS)
                 return
             }
+            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY && ++busyInARow >= BUSY_LIMIT) {
+                busyInARow = 0
+                recognizer?.destroy()
+                recognizer = null
+                if (offline) {
+                    // The default recognizer is a different app with its own capacity.
+                    Log.w(TAG, "voice: on-device recognizer stuck busy, using the network")
+                    offline = false
+                    announce("语音换成备用了")
+                    again(ERROR_BACKOFF_MILLIS)
+                } else {
+                    Log.w(TAG, "voice: every recognizer is busy, giving up")
+                    announce("语音命令用不了了")
+                    running = false
+                    main.postDelayed({ stopSelf() }, ERROR_BACKOFF_MILLIS)
+                }
+                return
+            }
             if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
                 recognizer?.destroy()
                 recognizer = null
@@ -241,7 +266,9 @@ class VoiceService : Service() {
             again(if (quiet) NEXT_MILLIS else ERROR_BACKOFF_MILLIS)
         }
 
-        override fun onReadyForSpeech(params: Bundle?) = Unit
+        override fun onReadyForSpeech(params: Bundle?) {
+            busyInARow = 0
+        }
         override fun onBeginningOfSpeech() = Unit
         override fun onRmsChanged(rmsdB: Float) = Unit
         override fun onBufferReceived(buffer: ByteArray?) = Unit
@@ -313,6 +340,24 @@ class VoiceService : Service() {
         }
     }
 
+    /** Said aloud, because the driver is not looking at the phone. A tone when there is no voice. */
+    private fun announce(words: String) {
+        Log.i(TAG, "voice: announcing $words")
+        val tts = speech
+        val voiced = speechReady && tts != null &&
+            tts.setLanguage(Locale.SIMPLIFIED_CHINESE) >= TextToSpeech.LANG_AVAILABLE
+        if (voiced && tts != null) {
+            val params = Bundle().apply { putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC) }
+            tts.speak(words, TextToSpeech.QUEUE_FLUSH, params, "announce-" + System.currentTimeMillis())
+            return
+        }
+        runCatching {
+            val tone = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
+            tone.startTone(ToneGenerator.TONE_PROP_NACK, 400)
+            main.postDelayed({ tone.release() }, TONE_MILLIS)
+        }
+    }
+
     private fun toast(text: String) = main.post {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
     }
@@ -341,6 +386,9 @@ class VoiceService : Service() {
         private const val NOTIFICATION_ID = 44
         private const val NEXT_MILLIS = 150L
         private const val ERROR_BACKOFF_MILLIS = 3_000L
+
+        /** Five refusals, about fifteen seconds: past a moment's contention, into stuck. */
+        private const val BUSY_LIMIT = 5
         private const val TONE_MILLIS = 500L
 
         /**
