@@ -322,10 +322,6 @@ private fun MonitorScreen(store: SettingsStore) {
                         ) { scope.launch { store.setFarEnabled(it) } }
                         Hairline()
                     }
-                    SwitchRow("每 2 秒截屏", "关掉就读不到派单卡片", current.timedCaptureEnabled) {
-                        scope.launch { store.setTimedCaptureEnabled(it) }
-                    }
-                    Hairline()
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     Hairline()
                     SwitchRow("区域提示音", null, current.areaSoundEnabled) {

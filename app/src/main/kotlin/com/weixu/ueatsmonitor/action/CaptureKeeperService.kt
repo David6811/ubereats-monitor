@@ -39,14 +39,6 @@ class CaptureKeeperService : Service() {
 
     private val tick = object : Runnable {
         override fun run() {
-            // Screenshots off, nothing to keep awake for: let the CPU sleep and only
-            // glance at the switch now and then. Back on, the lock and the beat
-            // come back within one idle tick.
-            if (!capturing()) {
-                releaseWake()
-                clock.postDelayed(this, IDLE_TICK_MILLIS)
-                return
-            }
             holdWake()
             ticks++
             UberScreenService.pokeFromKeeper()
@@ -57,17 +49,11 @@ class CaptureKeeperService : Service() {
         }
     }
 
-    private fun capturing(): Boolean = LiveSettings.current?.timedCaptureEnabled != false
-
     private fun holdWake() {
         val lock = wakeLock ?: return
         if (!lock.isHeld) lock.acquire()
     }
 
-    private fun releaseWake() {
-        val lock = wakeLock ?: return
-        if (lock.isHeld) lock.release()
-    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -163,7 +149,6 @@ class CaptureKeeperService : Service() {
         private const val CHANNEL = "keeper"
         private const val NOTIFICATION_ID = 43
         private const val TICK_MILLIS = 1_000L
-        private const val IDLE_TICK_MILLIS = 2_000L
         private const val NOTE_EVERY = 300L
 
         const val ACTION_STOP = "com.weixu.ueatsmonitor.STOP_KEEPER"

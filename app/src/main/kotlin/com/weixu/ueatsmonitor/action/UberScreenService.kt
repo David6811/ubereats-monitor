@@ -70,39 +70,28 @@ class UberScreenService : AccessibilityService() {
 
     private val poll = object : Runnable {
         override fun run() {
-            listenFor(capturing())
+            listen()
             look()
-            work.postDelayed(this, if (capturing()) POLL_MILLIS else IDLE_POLL_MILLIS)
+            work.postDelayed(this, POLL_MILLIS)
         }
     }
 
     @Volatile
-    private var listening: Boolean? = null
+    private var listening = false
 
     /**
-     * Every app's accessibility events arrive on this service's main thread, many
-     * a second, and each is parsed before it can be ignored. With screenshots off
-     * nothing reads them, so the service asks for none; that was most of the CPU
-     * left once the polling had stopped.
+     * Windows appearing is all that is wanted: the loop looks every two seconds by
+     * itself, and events only make it look sooner. Every app's text changes and
+     * scrolls were arriving here too, each one parsed on the main thread before it
+     * could be ignored, which was most of what the app spent with the screen on.
      */
-    private fun listenFor(on: Boolean) {
-        if (listening == on) return
+    private fun listen() {
+        if (listening) return
         val info = serviceInfo ?: return
-        // Windows appearing is all that is wanted: the loop looks every second by
-        // itself, and events only make it look sooner. Every app's text changes
-        // and scrolls were arriving here too, each one parsed before it could be
-        // ignored, which was most of what the app spent with the screen on.
-        info.eventTypes = if (on) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        } else {
-            0
-        }
+        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOWS_CHANGED
         runCatching { serviceInfo = info }
-            .onSuccess { listening = on; Log.i(TAG, "events " + (if (on) "on" else "off")) }
+            .onSuccess { listening = true; Log.i(TAG, "events on") }
     }
-
-    /** Screenshots on. Off, the service does no work at all - not even listing windows. */
-    private fun capturing(): Boolean = LiveSettings.current?.timedCaptureEnabled != false
 
     private var lastText: String = ""
     private var lastWindowSignature: String = ""
@@ -245,13 +234,6 @@ class UberScreenService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun look(force: Boolean = false) {
-        // Off means off, and before anything that costs: listing windows twice a
-        // second for a result that could never be used was most of what the app
-        // spent while idle.
-        if (!capturing()) {
-            CaptureStatus.note(System.currentTimeMillis(), CaptureStatus.State.OFF)
-            return
-        }
         val bursting = System.currentTimeMillis() < burstUntilMillis
         val all = runCatching { windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
         // During a burst take whatever windows are there - on the lock screen that
@@ -758,7 +740,6 @@ class UberScreenService : AccessibilityService() {
          * every window twice for one frame's worth of use.
          */
         const val POLL_MILLIS = 2_000L
-        const val IDLE_POLL_MILLIS = 2_000L
         /**
          * Measured on this phone over thirty seconds with Uber in front, counting
          * frames actually judged against screenshots the platform refused:
