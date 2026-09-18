@@ -79,7 +79,15 @@ class VoiceService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        goForeground()
+        // Android refuses the microphone to a service it restarts on its own, in
+        // the background. That refusal was thrown, and it took the whole process
+        // down with it - the screen reader included. Give up quietly instead;
+        // opening the app starts the voice again.
+        if (runCatching { goForeground() }.isFailure) {
+            Log.w(TAG, "voice: not allowed to start from the background")
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (!running) {
             running = true
             listen()

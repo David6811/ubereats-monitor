@@ -71,7 +71,7 @@ class UberScreenService : AccessibilityService() {
     private val poll = object : Runnable {
         override fun run() {
             listen()
-            look()
+            lookSafely()
             work.postDelayed(this, POLL_MILLIS)
         }
     }
@@ -122,7 +122,7 @@ class UberScreenService : AccessibilityService() {
                     burstUntilMillis = System.currentTimeMillis() + BURST_MILLIS
                     work.post {
                         ServiceJournal.note(this@UberScreenService, "屏幕亮起，密集截图 " + (BURST_MILLIS / 1000) + " 秒")
-                        look(force = true)
+                        lookSafely(force = true)
                     }
                 }
             }
@@ -228,10 +228,19 @@ class UberScreenService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (now - lastEventPostAtMillis < EVENT_POST_GAP_MILLIS) return
         lastEventPostAtMillis = now
-        work.post { look(force = fromUber && appeared) }
+        work.post { lookSafely(force = fromUber && appeared) }
     }
 
     override fun onInterrupt() = Unit
+
+    /**
+     * One frame going wrong must not end the shift. An exception on this thread
+     * kills the whole process, reader and all, so a card worded in some way no
+     * test has seen would take every card after it down too.
+     */
+    private fun lookSafely(force: Boolean = false) {
+        runCatching { look(force) }.onFailure { Log.e(TAG, "look failed, frame skipped", it) }
+    }
 
     private fun look(force: Boolean = false) {
         val bursting = System.currentTimeMillis() < burstUntilMillis
@@ -331,7 +340,7 @@ class UberScreenService : AccessibilityService() {
             return
         }
 
-        capture { screen ->
+        capture { screen -> runCatching {
             // One sample of the band, read twice: the same pixels answer both
             // questions, and getPixel over three hundred of them is not free.
             val band = if (screen != null) sampleBand(screen) else IntArray(0)
@@ -384,11 +393,28 @@ class UberScreenService : AccessibilityService() {
                 }
                 else -> runCatching { screen?.recycle() }
             }
-        }
+        }.onFailure { Log.e(TAG, "screenshot handling failed, frame skipped", it) } }
+    }
+
+    /** [decideAndRecord], on whichever thread the screenshot or OCR called back on, without taking the process down. */
+    private fun finish(
+        now: Long,
+        screen: Bitmap?,
+        headerHead: String,
+        treeLines: List<String>,
+        treeText: String,
+        ocrLines: List<String>,
+        ocrMillis: Long,
+        why: String,
+        greenFraction: Double,
+    ) {
+        runCatching {
+            decideAndRecord(now, screen, headerHead, treeLines, treeText, ocrLines, ocrMillis, why, greenFraction)
+        }.onFailure { Log.e(TAG, "finish failed, frame skipped", it) }
     }
 
     /** Decides once, on whichever source produced a card, and writes the record. */
-    private fun finish(
+    private fun decideAndRecord(
         now: Long,
         screen: Bitmap?,
         headerHead: String,
@@ -698,7 +724,7 @@ class UberScreenService : AccessibilityService() {
         /** Called once a second by [CaptureKeeperService], off the main thread. */
         fun pokeFromKeeper() {
             val service = live ?: return
-            service.work.post { service.look() }
+            service.work.post { service.lookSafely() }
         }
 
         /**
