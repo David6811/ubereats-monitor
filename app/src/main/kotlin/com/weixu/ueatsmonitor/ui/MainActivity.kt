@@ -230,7 +230,7 @@ private fun WatchLamp(watch: Watch) {
         Watch.Watching -> Text(
             text = "✓ 在监控",
             style = MaterialTheme.typography.bodyMedium,
-            color = Dash.Ink,
+            color = Dash.Muted,
         )
         is Watch.NotWatching -> {
             val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
