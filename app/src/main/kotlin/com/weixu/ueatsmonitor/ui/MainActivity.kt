@@ -495,7 +495,8 @@ private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             android.widget.Toast.makeText(context, "没有麦克风权限，语音命令开不了", android.widget.Toast.LENGTH_LONG).show()
         }
     }
-    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」", enabled) { on ->
+    var explaining by remember { mutableStateOf(false) }
+    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」「回中心」", enabled) { on ->
         if (!on) {
             save(false)
             VoiceService.stop(context)
@@ -506,7 +507,38 @@ private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             askMicrophone.launch(android.Manifest.permission.RECORD_AUDIO)
         }
     }
+    TextButton(onClick = { explaining = true }) { Text("能说什么？", color = Dash.Gold) }
+
+    if (explaining) {
+        AlertDialog(
+            onDismissRequest = { explaining = false },
+            title = { Text("语音命令") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VOICE_HELP.forEach { (say, does) ->
+                        Row {
+                            Text(say, Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                            Text(does, Modifier.weight(1.4f))
+                        }
+                    }
+                    Text(
+                        "前面加「切」「打开」也行，比如「切地图」。英文也听得懂：map、uber eats、application、centre。",
+                        color = Dash.Muted,
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { explaining = false }) { Text("知道了") } },
+        )
+    }
 }
+
+/** What each spoken command does, in the words the driver says. Kept beside [VoiceCommands]'s names. */
+private val VOICE_HELP = listOf(
+    "「地图」" to "切到谷歌地图",
+    "「送餐」" to "切到 Uber",
+    "「应用」" to "切回接单助手",
+    "「回中心」" to "导航回选区中心",
+)
 
 /**
  * Everything off at the end of a shift. Kept to the bottom of the last page and
