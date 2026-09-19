@@ -37,6 +37,10 @@ class SettingsStore(private val context: Context) {
         val farMinPerHour: Double,
         /** Only take what leaves him nearer the centre of the set he is working. */
         val homewardEnabled: Boolean,
+        /** On the homeward rule, a drop this close to the centre is taken even if it leads away. */
+        val homewardNearKm: Double,
+        /** On the homeward rule, a job longer than this is left. */
+        val homewardMaxMinutes: Int,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -57,6 +61,8 @@ class SettingsStore(private val context: Context) {
             timeFactor = prefs[TIME_FACTOR] ?: DEFAULT_TIME_FACTOR,
             farMinPerHour = prefs[FAR_MIN_PER_HOUR] ?: DEFAULT_FAR_MIN_PER_HOUR,
             homewardEnabled = prefs[HOMEWARD] ?: false,
+            homewardNearKm = prefs[HOMEWARD_NEAR_KM] ?: DEFAULT_HOMEWARD_NEAR_KM,
+            homewardMaxMinutes = prefs[HOMEWARD_MAX_MINUTES] ?: DEFAULT_HOMEWARD_MAX_MINUTES,
         )
     }
 
@@ -83,6 +89,13 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
 
+    suspend fun saveHomewardLimits(nearKm: Double, maxMinutes: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[HOMEWARD_NEAR_KM] = nearKm
+            prefs[HOMEWARD_MAX_MINUTES] = maxMinutes
+        }
+    }
+
     suspend fun saveTripCost(fuelPerKm: Double, timeFactor: Double, farMinPerHour: Double) {
         context.dataStore.edit { prefs ->
             prefs[FUEL_PER_KM] = fuelPerKm
@@ -107,6 +120,8 @@ class SettingsStore(private val context: Context) {
         private val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
         private val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
         private val HOMEWARD = booleanPreferencesKey("homeward")
+        private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
+        private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")
         private val TIME_FACTOR = doublePreferencesKey("time_factor")
         private val FAR_MIN_PER_HOUR = doublePreferencesKey("far_min_per_hour")
@@ -116,5 +131,7 @@ class SettingsStore(private val context: Context) {
         const val DEFAULT_FUEL_PER_KM = 0.2
         const val DEFAULT_TIME_FACTOR = 1.5
         const val DEFAULT_FAR_MIN_PER_HOUR = 10.0
+        const val DEFAULT_HOMEWARD_NEAR_KM = 4.0
+        const val DEFAULT_HOMEWARD_MAX_MINUTES = 20
     }
 }

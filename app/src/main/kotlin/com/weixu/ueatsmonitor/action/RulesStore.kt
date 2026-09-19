@@ -2,10 +2,10 @@ package com.weixu.ueatsmonitor.action
 
 import android.content.Context
 import android.util.Log
+import com.weixu.ueatsmonitor.domain.HomewardLimits
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.NoGoBox
-import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.TripCost
 import com.weixu.ueatsmonitor.domain.Rules
 import kotlinx.serialization.json.Json
@@ -48,7 +48,7 @@ object RulesStore {
     private var readWithCost: Pair<TripCost, Double>? = null
 
     @Volatile
-    private var readWithHomeward: GeoPoint? = null
+    private var readWithHomeward: HomewardLimits? = null
 
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
@@ -62,7 +62,11 @@ object RulesStore {
         val costNow = costOf(LiveSettings.current)
         // The set's own centre, but only while the switch is on: off, the rule
         // simply is not there.
-        val homewardNow = if (LiveSettings.current?.homewardEnabled == true) Profiles.centre(context) else null
+        val homewardNow = LiveSettings.current?.takeIf { it.homewardEnabled }?.let { settings ->
+            Profiles.centre(context)?.let { centre ->
+                HomewardLimits(centre, settings.homewardNearKm, settings.homewardMaxMinutes)
+            }
+        }
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
             excludedNow == readWithExcluded && farNow == readWithFar && costNow == readWithCost &&
             homewardNow == readWithHomeward
@@ -85,7 +89,7 @@ object RulesStore {
                 farSuburbs = far,
                 tripCost = costNow.first,
                 farMinPerHour = costNow.second,
-                homewardCentre = homewardNow,
+                homeward = homewardNow,
             )
         }
         cached = parsed
@@ -124,7 +128,7 @@ object RulesStore {
         noGoBoxes = emptyList(),
         tripCost = costOf(null).first,
         farMinPerHour = costOf(null).second,
-        homewardCentre = null,
+        homeward = null,
     )
 
     private fun parse(file: File): Rules {
@@ -177,7 +181,7 @@ object RulesStore {
                 // Filled from the phone's settings by current(), not the file.
                 tripCost = costOf(null).first,
                 farMinPerHour = costOf(null).second,
-                homewardCentre = null,
+                homeward = null,
             )
         }.getOrElse { empty() }
     }

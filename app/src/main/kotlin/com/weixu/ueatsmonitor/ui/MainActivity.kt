@@ -367,6 +367,9 @@ private fun MonitorScreen(store: SettingsStore) {
                         Hairline()
                     }
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
+                    if (current.homewardEnabled) {
+                        HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
+                    }
                     Hairline()
                     SwitchRow("区域提示音", null, current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
@@ -384,6 +387,37 @@ private fun MonitorScreen(store: SettingsStore) {
         }
 
         item { QuitCard() }
+    }
+}
+
+/**
+ * The two numbers the homeward rule bends on: a drop this near the centre is
+ * taken even if it leads away, and a job longer than this is left however near.
+ */
+@Composable
+private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
+    var near by remember { mutableStateOf("") }
+    var minutes by remember { mutableStateOf("") }
+
+    LaunchedEffect(settings.homewardNearKm, settings.homewardMaxMinutes) {
+        near = settings.homewardNearKm.toString()
+        minutes = settings.homewardMaxMinutes.toString()
+    }
+
+    Column(
+        modifier = Modifier.padding(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        ButtonRow {
+            DashField("离中心小于 公里 照接", near, Modifier.weight(1f)) { near = it }
+            DashField("超过 分钟 不接", minutes, Modifier.weight(1f)) { minutes = it }
+        }
+        GoldButton("保存", Modifier.fillMaxWidth()) {
+            onSave(
+                near.toDoubleOrNull()?.takeIf { it >= 0 } ?: settings.homewardNearKm,
+                minutes.toIntOrNull()?.takeIf { it > 0 } ?: settings.homewardMaxMinutes,
+            )
+        }
     }
 }
 

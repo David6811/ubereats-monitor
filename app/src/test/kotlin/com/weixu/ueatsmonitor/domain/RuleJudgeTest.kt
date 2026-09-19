@@ -320,7 +320,7 @@ class RuleJudgeTest {
     @Test
     fun `given the homeward switch on and a drop that leads away, when judged, then it is left`() {
         // arrange  the car is in Keysborough, the drop is out at Rowville, the centre is Aspendale Gardens
-        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homewardCentre = CENTRE)
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = HOMEWARD)
         val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
         val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = KEYSBOROUGH)
 
@@ -334,7 +334,7 @@ class RuleJudgeTest {
     @Test
     fun `given the homeward switch on and a drop that leads in, when judged, then it is taken`() {
         // arrange  the car is out at Rowville, the drop is in Keysborough
-        val rules = RULES.copy(homewardCentre = CENTRE)
+        val rules = RULES.copy(homeward = HOMEWARD)
         val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
         val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
 
@@ -348,7 +348,7 @@ class RuleJudgeTest {
     @Test
     fun `given the homeward switch on but no fix for the car, when judged, then it does not refuse`() {
         // arrange
-        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homewardCentre = CENTRE)
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = HOMEWARD)
         val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
         val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = null)
 
@@ -373,11 +373,75 @@ class RuleJudgeTest {
         assertEquals(Ruling.Take("Rowville"), ruling)
     }
 
+    @Test
+    fun `given the homeward switch on and a drop that leads away but lands near the centre, when judged, then it is taken`() {
+        // arrange  18 Sept, 12:13: the car about 2 km from the centre, the drop at Westbrook Drive about 3.3 km out
+        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = NEAR_CENTRE)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(homeward = HOMEWARD), GAZETTEER, stops)
+
+        // affirm  it really does lead away
+        assertTrue(HomewardRule.judge(NEAR_CENTRE, WESTBROOK_DRIVE, CENTRE) is Homeward.Further)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given the homeward switch on and a job over the time limit, when judged, then it is left however near`() {
+        // arrange  the same near drop, but the card says 37 minutes against a limit of 20
+        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
+            .copy(duration = Minutes(37))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = NEAR_CENTRE)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(homeward = HOMEWARD), GAZETTEER, stops)
+
+        // assert
+        assertEquals("要 37 分钟，超过 20 分钟", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given the homeward switch on and a job of exactly the time limit, when judged, then it is not refused for time`() {
+        // arrange  20 minutes against a limit of 20, and a drop that leads in
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough").copy(duration = Minutes(20))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(homeward = HOMEWARD), GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given the homeward switch on and no time on the card, when judged, then it is not refused for time`() {
+        // arrange
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough").copy(duration = null)
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(homeward = HOMEWARD), GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
     private companion object {
         /** Wells Rd, Aspendale Gardens - the centre drawn for the driver's own set. */
         val CENTRE = GeoPoint(-38.02506, 145.12873)
         val KEYSBOROUGH = GeoPoint(-38.0054, 145.1674)
         val ROWVILLE = GeoPoint(-37.9282, 145.2333)
+
+        /** About 2 km west of the centre - near where the car was at 12:13 on 18 Sept. */
+        val NEAR_CENTRE = GeoPoint(-38.0180, 145.1080)
+
+        /** Kawarra Drive & Westbrook Drive, Keysborough - about 3.3 km east of the centre. */
+        val WESTBROOK_DRIVE = GeoPoint(-38.0146, 145.1640)
+
+        val HOMEWARD = HomewardLimits(CENTRE, nearKm = 4.0, maxMinutes = 20)
 
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 
@@ -390,7 +454,7 @@ class RuleJudgeTest {
             noGoBoxes = emptyList(),
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
             farMinPerHour = 10.0,
-            homewardCentre = null,
+            homeward = null,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),

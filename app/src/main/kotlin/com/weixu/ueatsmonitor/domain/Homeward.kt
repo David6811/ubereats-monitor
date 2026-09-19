@@ -14,6 +14,19 @@ sealed interface Homeward {
 }
 
 /**
+ * Data. The homeward rule as the driver set it: where the middle is, how near
+ * to it a drop may land and still be taken even if it leads away, and how
+ * long a job may be when there is little of the shift left.
+ */
+data class HomewardLimits(
+    val centre: GeoPoint,
+    /** A drop this close to the centre is taken whether or not it leads away. */
+    val nearKm: Double,
+    /** A job the card says takes longer than this is left, however near. */
+    val maxMinutes: Int,
+)
+
+/**
  * Calculation. Whether taking this job would leave the driver nearer the centre
  * of his set than he is now.
  *

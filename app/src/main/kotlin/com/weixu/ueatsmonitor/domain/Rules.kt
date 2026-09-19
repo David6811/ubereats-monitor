@@ -32,11 +32,12 @@ data class Rules(
      */
     val farMinPerHour: Double,
     /**
-     * The middle of the set being worked, when the driver has asked to be taken
-     * back to it: an offer is then refused unless its drop leaves him nearer to
-     * this than he is now. Null when the switch is off or no centre was drawn.
+     * The homeward rule, when the driver has asked to be taken back to the
+     * middle of the set: an offer is then refused if it would take too long, or
+     * if its drop leaves him further out and is not near the middle anyway.
+     * Null when the switch is off or no centre was drawn.
      */
-    val homewardCentre: GeoPoint?,
+    val homeward: HomewardLimits?,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -59,6 +60,7 @@ sealed interface Ruling {
         data class InNoGoBox(val hit: NoGoHit) : Reason
         data class FarTooCheap(val perHour: Double, val floor: Double) : Reason
         data class LeadingAway(val away: Homeward.Further) : Reason
+        data class TooLong(val minutes: Int, val max: Int) : Reason
     }
 }
 
@@ -114,13 +116,30 @@ object RuleJudge {
             }
         }
 
-        // On the way back in, whichever set let it through. Unknown positions say
-        // nothing, so nothing is refused for them.
-        val homeward = HomewardRule.judge(stops.carAt, stops.dropoff?.at, rules.homewardCentre)
-        if (homeward is Homeward.Further) return Ruling.Leave(Ruling.Reason.LeadingAway(homeward))
+        // On the way back in, whichever set let it through.
+        rules.homeward?.let { limits -> homewardReason(card, stops, limits) }
+            ?.let { return Ruling.Leave(it) }
 
         return Ruling.Take(found.first().name, far = far)
     }
+
+    /**
+     * Too long first: however near it lands, a job that eats the time left is no
+     * good. Then leading away - unless the drop is near the middle anyway, where
+     * a short job is worth more than the few kilometres it costs. An unreadable
+     * time, or an unknown position, says nothing and refuses nothing.
+     */
+    private fun homewardReason(card: OfferCard, stops: Stops, limits: HomewardLimits): Ruling.Reason? {
+        val minutes = card.duration?.value
+        if (minutes != null && minutes > limits.maxMinutes) return Ruling.Reason.TooLong(minutes, limits.maxMinutes)
+        val homeward = HomewardRule.judge(stops.carAt, stops.dropoff?.at, limits.centre)
+        if (homeward is Homeward.Further && homeward.fromDrop.value * KM_PER_MILE >= limits.nearKm) {
+            return Ruling.Reason.LeadingAway(homeward)
+        }
+        return null
+    }
+
+    private const val KM_PER_MILE = 1.609344
 }
 
 /** Calculation. The ruling in the few words the chip has room for. */
@@ -149,6 +168,7 @@ object RulingText {
             }
             is Ruling.Reason.LeadingAway ->
                 "离中心更远：现在 " + km(why.away.fromCar) + "，送完 " + km(why.away.fromDrop)
+            is Ruling.Reason.TooLong -> "要 " + why.minutes + " 分钟，超过 " + why.max + " 分钟"
             is Ruling.Reason.FarTooCheap ->
                 "远区单每小时 $" + String.format("%.2f", why.perHour) +
                     "，低于 $" + String.format("%.0f", why.floor)
