@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
+import com.weixu.ueatsmonitor.domain.RuleName
 import com.weixu.ueatsmonitor.domain.JobDay
 import com.weixu.ueatsmonitor.domain.JobDays
 import java.time.LocalDate
@@ -188,7 +189,15 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { explaining = false },
             title = { Text(advice.orEmpty()) },
-            text = { Text(job.offer.why.orEmpty(), style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val why = job.offer.why.orEmpty()
+                    RuleName.of(why)?.let { rule ->
+                        Text("规则：$rule", style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
+                    }
+                    Text(why, style = MaterialTheme.typography.titleMedium)
+                }
+            },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { explaining = false }) { Text("知道了") }
             },
