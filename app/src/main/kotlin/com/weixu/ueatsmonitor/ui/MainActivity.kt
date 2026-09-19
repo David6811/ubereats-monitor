@@ -194,6 +194,7 @@ private fun HomeTabs() {
 @Composable
 private fun StatusStrip() {
     val context = LocalContext.current
+    val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
     val live by rememberPolled(Pair<Watch, String>(Watch.Watching, ""), 2_000L) {
         Pair(
             WatchJudge.judge(
@@ -213,6 +214,7 @@ private fun StatusStrip() {
     ) {
         Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
         Spacer(Modifier.weight(1f))
+        settings?.let { VoiceChip(it.voiceEnabled) }
         WatchLamp(live.first)
         if (live.second.isNotEmpty()) {
             Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
@@ -375,7 +377,7 @@ private fun MonitorScreen(store: SettingsStore) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
                     Hairline()
-                    VoiceToggle(current.voiceEnabled) { scope.launch { store.setVoiceEnabled(it) } }
+                    VoiceToggle(current.voiceEnabled)
                 }
             }
         }
@@ -485,28 +487,10 @@ private fun askForAllTheTime(context: Context) {
  * to open the microphone for a service started from the background.
  */
 @Composable
-private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
-    val context = LocalContext.current
-    val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            save(true)
-            VoiceService.start(context)
-        } else {
-            android.widget.Toast.makeText(context, "没有麦克风权限，语音命令开不了", android.widget.Toast.LENGTH_LONG).show()
-        }
-    }
+private fun VoiceToggle(enabled: Boolean) {
+    val switchVoice = rememberVoiceSwitch()
     var explaining by remember { mutableStateOf(false) }
-    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」「回中心」", enabled) { on ->
-        if (!on) {
-            save(false)
-            VoiceService.stop(context)
-        } else if (Permissions.microphoneGranted(context)) {
-            save(true)
-            VoiceService.start(context)
-        } else {
-            askMicrophone.launch(android.Manifest.permission.RECORD_AUDIO)
-        }
-    }
+    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」「回中心」", enabled, switchVoice)
     TextButton(onClick = { explaining = true }) { Text("能说什么？", color = Dash.Gold) }
 
     if (explaining) {
@@ -530,6 +514,58 @@ private fun VoiceToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             confirmButton = { TextButton(onClick = { explaining = false }) { Text("知道了") } },
         )
     }
+}
+
+/**
+ * Turns voice on or off, the same way from the settings page and the top of the
+ * app: on asks for the microphone first; the service is started and stopped
+ * here, while the app is on screen, because Android refuses to open the
+ * microphone for a service started from the background.
+ */
+@Composable
+private fun rememberVoiceSwitch(): (Boolean) -> Unit {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val store = App.instance.settingsStore
+    val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            scope.launch { store.setVoiceEnabled(true) }
+            VoiceService.start(context)
+        } else {
+            say(context, "没有麦克风权限，语音命令开不了")
+        }
+    }
+    return { on ->
+        if (!on) {
+            scope.launch { store.setVoiceEnabled(false) }
+            VoiceService.stop(context)
+        } else if (Permissions.microphoneGranted(context)) {
+            scope.launch { store.setVoiceEnabled(true) }
+            VoiceService.start(context)
+        } else {
+            askMicrophone.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
+    }
+}
+
+/**
+ * Voice on or off, at the top where a thumb finds it while driving. Said in
+ * words and by bright against dim, never by hue alone.
+ */
+@Composable
+private fun VoiceChip(enabled: Boolean) {
+    val switchVoice = rememberVoiceSwitch()
+    Text(
+        text = if (enabled) "语音开" else "语音关",
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (enabled) Dash.Ink else Dash.Muted,
+        fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
+        modifier = Modifier
+            .clip(Dash.ControlShape)
+            .border(1.dp, if (enabled) Dash.Gold else Dash.Line, Dash.ControlShape)
+            .clickable { switchVoice(!enabled) }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    )
 }
 
 /** What each spoken command does, in the words the driver says. Kept beside [VoiceCommands]'s names. */
