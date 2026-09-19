@@ -527,6 +527,7 @@ class OfferCardReaderTest {
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
             farMinPerHour = 10.0,
             homeward = null,
+            nearCentre = null,
         )
         val gazetteer = listOf(
             Suburb("Clayton South", GeoPoint(-37.9415, 145.1245)),

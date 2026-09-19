@@ -373,6 +373,16 @@ private fun MonitorScreen(store: SettingsStore) {
                         HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
                     }
                     Hairline()
+                    NearCentreToggle(current.nearCentreEnabled) { scope.launch { store.setNearCentreEnabled(it) } }
+                    if (current.nearCentreEnabled) {
+                        LimitsRow(
+                            kmLabel = "离中心 公里内 才接",
+                            minutesLabel = "分钟内 才接",
+                            km = current.nearCentreMaxKm,
+                            minutes = current.nearCentreMaxMinutes,
+                        ) { km, max -> scope.launch { store.saveNearCentreLimits(km, max) } }
+                    }
+                    Hairline()
                     SwitchRow("区域提示音", null, current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
@@ -398,12 +408,24 @@ private fun MonitorScreen(store: SettingsStore) {
  */
 @Composable
 private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
-    var near by remember { mutableStateOf("") }
-    var minutes by remember { mutableStateOf("") }
+    LimitsRow(
+        kmLabel = "离中心小于 公里 照接",
+        minutesLabel = "超过 分钟 不接",
+        km = settings.homewardNearKm,
+        minutes = settings.homewardMaxMinutes,
+        onSave = onSave,
+    )
+}
 
-    LaunchedEffect(settings.homewardNearKm, settings.homewardMaxMinutes) {
-        near = settings.homewardNearKm.toString()
-        minutes = settings.homewardMaxMinutes.toString()
+/** A kilometres field and a minutes field with one save button, for the rules that bend on two numbers. */
+@Composable
+private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes: Int, onSave: (Double, Int) -> Unit) {
+    var kmText by remember { mutableStateOf("") }
+    var minutesText by remember { mutableStateOf("") }
+
+    LaunchedEffect(km, minutes) {
+        kmText = km.toString()
+        minutesText = minutes.toString()
     }
 
     Column(
@@ -411,14 +433,36 @@ private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ButtonRow {
-            DashField("离中心小于 公里 照接", near, Modifier.weight(1f)) { near = it }
-            DashField("超过 分钟 不接", minutes, Modifier.weight(1f)) { minutes = it }
+            DashField(kmLabel, kmText, Modifier.weight(1f)) { kmText = it }
+            DashField(minutesLabel, minutesText, Modifier.weight(1f)) { minutesText = it }
         }
         GoldButton("保存", Modifier.fillMaxWidth()) {
             onSave(
-                near.toDoubleOrNull()?.takeIf { it >= 0 } ?: settings.homewardNearKm,
-                minutes.toIntOrNull()?.takeIf { it > 0 } ?: settings.homewardMaxMinutes,
+                kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: km,
+                minutesText.toIntOrNull()?.takeIf { it > 0 } ?: minutes,
             )
+        }
+    }
+}
+
+/**
+ * The near-centre switch. It needs only a centre drawn for the live set - not
+ * the car's position, since it judges the drop alone - so that is the one
+ * thing it can be missing.
+ */
+@Composable
+private fun NearCentreToggle(enabled: Boolean, save: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val centre = remember { Profiles.centre(context) }
+    SwitchRow(
+        label = "近中心模式",
+        hint = if (centre == null) "这套选区没设中心，先在电脑上设一个" else "只接离中心几公里内、时间短的单",
+        checked = enabled,
+    ) { on ->
+        when {
+            !on -> save(false)
+            centre == null -> say(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送")
+            else -> save(true)
         }
     }
 }

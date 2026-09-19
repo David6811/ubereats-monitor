@@ -77,7 +77,19 @@ class RuleNameTest {
         val rule = RuleName.of(why)
 
         // assert
-        assertEquals("回中心模式（时间太长）", rule)
+        assertEquals("回中心 / 近中心模式（时间太长）", rule)
+    }
+
+    @Test
+    fun `given a drop too far from the centre, when named, then it is the near-centre rule`() {
+        // arrange
+        val why = RulingText.reason(Ruling.Leave(Ruling.Reason.TooFarFromCentre(Miles(3.5), maxKm = 4.0)))
+
+        // act
+        val rule = RuleName.of(why)
+
+        // assert
+        assertEquals("近中心模式（送得太远）", rule)
     }
 
     @Test

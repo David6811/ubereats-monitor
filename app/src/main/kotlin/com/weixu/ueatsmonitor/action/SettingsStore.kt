@@ -41,6 +41,10 @@ class SettingsStore(private val context: Context) {
         val homewardNearKm: Double,
         /** On the homeward rule, a job longer than this is left. */
         val homewardMaxMinutes: Int,
+        /** Stay around the middle: only drops within a few km, on short jobs. */
+        val nearCentreEnabled: Boolean,
+        val nearCentreMaxKm: Double,
+        val nearCentreMaxMinutes: Int,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -63,6 +67,9 @@ class SettingsStore(private val context: Context) {
             homewardEnabled = prefs[HOMEWARD] ?: false,
             homewardNearKm = prefs[HOMEWARD_NEAR_KM] ?: DEFAULT_HOMEWARD_NEAR_KM,
             homewardMaxMinutes = prefs[HOMEWARD_MAX_MINUTES] ?: DEFAULT_HOMEWARD_MAX_MINUTES,
+            nearCentreEnabled = prefs[NEAR_CENTRE] ?: false,
+            nearCentreMaxKm = prefs[NEAR_CENTRE_MAX_KM] ?: DEFAULT_NEAR_CENTRE_MAX_KM,
+            nearCentreMaxMinutes = prefs[NEAR_CENTRE_MAX_MINUTES] ?: DEFAULT_NEAR_CENTRE_MAX_MINUTES,
         )
     }
 
@@ -88,6 +95,15 @@ class SettingsStore(private val context: Context) {
     suspend fun setVoiceEnabled(enabled: Boolean) = putBoolean(VOICE_ENABLED, enabled)
 
     suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
+
+    suspend fun setNearCentreEnabled(enabled: Boolean) = putBoolean(NEAR_CENTRE, enabled)
+
+    suspend fun saveNearCentreLimits(maxKm: Double, maxMinutes: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[NEAR_CENTRE_MAX_KM] = maxKm
+            prefs[NEAR_CENTRE_MAX_MINUTES] = maxMinutes
+        }
+    }
 
     suspend fun saveHomewardLimits(nearKm: Double, maxMinutes: Int) {
         context.dataStore.edit { prefs ->
@@ -122,6 +138,9 @@ class SettingsStore(private val context: Context) {
         private val HOMEWARD = booleanPreferencesKey("homeward")
         private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
+        private val NEAR_CENTRE = booleanPreferencesKey("near_centre")
+        private val NEAR_CENTRE_MAX_KM = doublePreferencesKey("near_centre_max_km")
+        private val NEAR_CENTRE_MAX_MINUTES = intPreferencesKey("near_centre_max_minutes")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")
         private val TIME_FACTOR = doublePreferencesKey("time_factor")
         private val FAR_MIN_PER_HOUR = doublePreferencesKey("far_min_per_hour")
@@ -133,5 +152,7 @@ class SettingsStore(private val context: Context) {
         const val DEFAULT_FAR_MIN_PER_HOUR = 10.0
         const val DEFAULT_HOMEWARD_NEAR_KM = 4.0
         const val DEFAULT_HOMEWARD_MAX_MINUTES = 20
+        const val DEFAULT_NEAR_CENTRE_MAX_KM = 4.0
+        const val DEFAULT_NEAR_CENTRE_MAX_MINUTES = 30
     }
 }

@@ -38,6 +38,12 @@ data class Rules(
      * Null when the switch is off or no centre was drawn.
      */
     val homeward: HomewardLimits?,
+    /**
+     * The near-centre rule, when the driver has asked to stay around the middle
+     * of the set: an offer is refused if its drop lands further out than this
+     * or the job takes too long. Null when the switch is off or no centre was drawn.
+     */
+    val nearCentre: NearCentreLimits?,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -61,6 +67,7 @@ sealed interface Ruling {
         data class FarTooCheap(val perHour: Double, val floor: Double) : Reason
         data class LeadingAway(val away: Homeward.Further) : Reason
         data class TooLong(val minutes: Int, val max: Int) : Reason
+        data class TooFarFromCentre(val fromDrop: Miles, val maxKm: Double) : Reason
     }
 }
 
@@ -120,6 +127,10 @@ object RuleJudge {
         rules.homeward?.let { limits -> homewardReason(card, stops, limits) }
             ?.let { return Ruling.Leave(it) }
 
+        // Staying around the middle, whichever set let it through.
+        rules.nearCentre?.let { limits -> nearCentreReason(card, stops, limits) }
+            ?.let { return Ruling.Leave(it) }
+
         return Ruling.Take(found.first().name, far = far)
     }
 
@@ -136,6 +147,19 @@ object RuleJudge {
         if (homeward is Homeward.Further && homeward.fromDrop.value * KM_PER_MILE >= limits.nearKm) {
             return Ruling.Reason.LeadingAway(homeward)
         }
+        return null
+    }
+
+    /**
+     * Too long first, then too far out. An unreadable time, or a drop the tables
+     * could not place, says nothing and refuses nothing.
+     */
+    private fun nearCentreReason(card: OfferCard, stops: Stops, limits: NearCentreLimits): Ruling.Reason? {
+        val minutes = card.duration?.value
+        if (minutes != null && minutes > limits.maxMinutes) return Ruling.Reason.TooLong(minutes, limits.maxMinutes)
+        val dropAt = stops.dropoff?.at ?: return null
+        val fromDrop = Geo.straightLine(dropAt, limits.centre)
+        if (fromDrop.value * KM_PER_MILE > limits.maxKm) return Ruling.Reason.TooFarFromCentre(fromDrop, limits.maxKm)
         return null
     }
 
@@ -169,6 +193,8 @@ object RulingText {
             is Ruling.Reason.LeadingAway ->
                 "离中心更远：现在 " + km(why.away.fromCar) + "，送完 " + km(why.away.fromDrop)
             is Ruling.Reason.TooLong -> "要 " + why.minutes + " 分钟，超过 " + why.max + " 分钟"
+            is Ruling.Reason.TooFarFromCentre ->
+                "送完离中心 " + km(why.fromDrop) + "，超过 " + String.format("%.0f", why.maxKm) + " 公里"
             is Ruling.Reason.FarTooCheap ->
                 "远区单每小时 $" + String.format("%.2f", why.perHour) +
                     "，低于 $" + String.format("%.0f", why.floor)

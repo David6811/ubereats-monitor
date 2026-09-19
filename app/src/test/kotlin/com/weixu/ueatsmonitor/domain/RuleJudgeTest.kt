@@ -65,7 +65,7 @@ class RuleJudgeTest {
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0, null), GAZETTEER, Stops.UNPLACED)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0, null, null), GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -429,6 +429,58 @@ class RuleJudgeTest {
         assertEquals(Ruling.Take("Keysborough"), ruling)
     }
 
+    @Test
+    fun `given the near-centre switch on and a drop within the limit, when judged, then it is taken`() {
+        // arrange  Westbrook Drive is about 3.3 km from the centre, under 4
+        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS), GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given the near-centre switch on and a drop beyond the limit, when judged, then it is left and the distance named`() {
+        // arrange  the Keysborough gazetteer point is about 4.0 km out; a 3 km limit refuses it
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS.copy(maxKm = 3.0)), GAZETTEER, stops)
+
+        // assert
+        assertEquals("送完离中心 4.0 公里，超过 3 公里", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given the near-centre switch on and a job over the time limit, when judged, then it is left however near`() {
+        // arrange
+        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
+            .copy(duration = Minutes(37))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS), GAZETTEER, stops)
+
+        // assert
+        assertEquals("要 37 分钟，超过 30 分钟", RulingText.reason(ruling))
+    }
+
+    @Test
+    fun `given the near-centre switch on and a drop the tables could not place, when judged, then it is not refused`() {
+        // arrange
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
+
+        // act
+        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS.copy(maxKm = 1.0)), GAZETTEER, Stops.UNPLACED)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
     private companion object {
         /** Wells Rd, Aspendale Gardens - the centre drawn for the driver's own set. */
         val CENTRE = GeoPoint(-38.02506, 145.12873)
@@ -442,6 +494,7 @@ class RuleJudgeTest {
         val WESTBROOK_DRIVE = GeoPoint(-38.0146, 145.1640)
 
         val HOMEWARD = HomewardLimits(CENTRE, nearKm = 4.0, maxMinutes = 20)
+        val NEAR_CENTRE_LIMITS = NearCentreLimits(CENTRE, maxKm = 4.0, maxMinutes = 30)
 
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 
@@ -455,6 +508,7 @@ class RuleJudgeTest {
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
             farMinPerHour = 10.0,
             homeward = null,
+            nearCentre = null,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),
