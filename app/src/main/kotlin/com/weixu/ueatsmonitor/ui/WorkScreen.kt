@@ -181,8 +181,19 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
     val context = LocalContext.current
     val advice = job.offer.ruling
     val good = advice?.startsWith("可以") == true
+    var explaining by remember { mutableStateOf(false) }
     // Tight on purpose: two jobs have to fit on one screen, because scrolling to
     // the second delivery is not something to do at a red light.
+    if (explaining) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { explaining = false },
+            title = { Text(advice.orEmpty()) },
+            text = { Text(job.offer.why.orEmpty(), style = MaterialTheme.typography.titleMedium) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { explaining = false }) { Text("知道了") }
+            },
+        )
+    }
     Panel(padding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), spacing = 8.dp) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -202,7 +213,13 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
                 Tag(if (job.taken) "已接" else "没接", ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
             }
             advice?.let {
-                Tag(it, ink = if (good) Dash.Blue else Dash.Orange, ground = if (good) Dash.BlueDeep else Dash.OrangeDeep)
+                // Tapped, it says why: the one question a refused job raises.
+                Tag(
+                    it,
+                    ink = if (good) Dash.Blue else Dash.Orange,
+                    ground = if (good) Dash.BlueDeep else Dash.OrangeDeep,
+                    modifier = Modifier.clickable(enabled = job.offer.why != null) { explaining = true },
+                )
             }
             Spacer(Modifier.weight(1f))
             Text(
