@@ -27,7 +27,7 @@ object Briefing {
         profileName: String?,
         offersToMention: Int = 4,
     ): String = buildString {
-        append("时间 ").append(CLOCK.format(Date(nowMillis))).append('\n')
+        append("时间 ").append(DAY.format(Date(nowMillis))).append(" ").append(CLOCK.format(Date(nowMillis))).append("，墨尔本\n")
         append(whereLine(where)).append('\n')
         if (!profileName.isNullOrBlank()) append("当前选区：").append(profileName).append('\n')
 
@@ -91,6 +91,7 @@ object Briefing {
     private fun km(miles: Miles): String = String.format(Locale.ROOT, "%.1f 公里", miles.value * 1.609344)
 
     private val CLOCK = SimpleDateFormat("HH:mm", Locale.ROOT)
+    private val DAY = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.SIMPLIFIED_CHINESE)
 
     /** A job taken longer ago than this is done, whatever the board still says. */
     private const val IN_HAND_MILLIS = 2L * 60 * 60 * 1000

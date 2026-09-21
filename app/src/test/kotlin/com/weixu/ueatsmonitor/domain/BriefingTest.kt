@@ -33,7 +33,7 @@ class BriefingTest {
         // assert  distance Keysborough -> centre is about 4.0 km (checked by hand with the haversine formula)
         assertEquals(
             """
-            时间 13:40
+            时间 2026年9月21日 星期一 13:40，墨尔本
             车的位置：在 Keysborough 附近，离选区中心 4.0 公里
             当前选区：ParkMore
 
