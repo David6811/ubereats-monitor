@@ -211,12 +211,13 @@ class VoiceService : Service() {
             val heard = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
             Log.i(TAG, "voice heard: $heard")
             // The sentence after a bare "你好" is the question, whatever it says.
-            if (System.currentTimeMillis() < questionUntilMillis && heard.isNotEmpty()) {
+            val command = VoiceCommands.parse(heard)
+            val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
+            if (System.currentTimeMillis() < questionUntilMillis && heard.isNotEmpty() && !bareWake) {
                 questionUntilMillis = 0L
                 understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
                 return
             }
-            val command = VoiceCommands.parse(heard)
             if (command != null) understood(command) else again(NEXT_MILLIS)
         }
 

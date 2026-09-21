@@ -5,6 +5,8 @@ import android.util.Log
 import com.weixu.ueatsmonitor.domain.Briefing
 import com.weixu.ueatsmonitor.domain.Geo
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -36,8 +38,9 @@ object Assistant {
     }
 
     suspend fun ask(context: Context, question: String): Reply = withContext(Dispatchers.IO) {
-        val token = Cloud.client.auth.currentAccessTokenOrNull()
-            ?: return@withContext Reply.Failed("没登录")
+        val token = accessToken() ?: return@withContext Reply.Failed("没登录").also {
+            Log.w(TAG, "assistant: no access token, session status " + Cloud.session.value)
+        }
         val body = JsonObject(
             mapOf(
                 "question" to JsonPrimitive(question),
@@ -68,6 +71,30 @@ object Assistant {
             } ?: Reply.Failed(reply["error"]?.jsonPrimitive?.content ?: "http " + connection.responseCode)
         }.getOrElse { Reply.Failed(it.message ?: it::class.simpleName.orEmpty()) }
             .also { Log.i(TAG, "assistant: q=\"$question\" -> $it") }
+    }
+
+    /**
+     * The signed-in driver's token. The saved session is loaded when the app
+     * process starts, but a process that Android started for the screen reader
+     * alone may not have finished that, and a token that expired while the
+     * phone was offline is only refreshed on the next tick: so wait a moment
+     * for a load, and ask for a refresh when the token is gone.
+     */
+    private suspend fun accessToken(): String? {
+        repeat(10) {
+            val status = Cloud.session.value
+            when (status) {
+                is SessionStatus.Authenticated -> return status.session.accessToken
+                is SessionStatus.RefreshFailure -> {
+                    runCatching { Cloud.client.auth.refreshCurrentSession() }
+                        .onFailure { Log.w(TAG, "assistant: refresh failed", it) }
+                    return Cloud.client.auth.currentAccessTokenOrNull()
+                }
+                is SessionStatus.NotAuthenticated -> return null
+                is SessionStatus.Initializing -> delay(300)
+            }
+        }
+        return Cloud.client.auth.currentAccessTokenOrNull()
     }
 
     /** The picture of now that goes with every question. */
