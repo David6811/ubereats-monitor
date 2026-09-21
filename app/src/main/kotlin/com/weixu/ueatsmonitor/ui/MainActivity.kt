@@ -60,6 +60,8 @@ import android.media.projection.MediaProjectionManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
+import com.weixu.ueatsmonitor.action.Cloud
+import io.github.jan.supabase.auth.status.SessionStatus
 import com.weixu.ueatsmonitor.action.CaptureStatus
 import com.weixu.ueatsmonitor.action.Chime
 import com.weixu.ueatsmonitor.action.CurrentPosition
@@ -142,7 +144,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             DashTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
-                    HomeTabs()
+                    Gate()
                 }
             }
         }
@@ -161,6 +163,21 @@ private enum class Place(val label: String, val glyph: androidx.compose.ui.graph
     TRIP("这趟", Icons.Filled.Check),
     AREAS("选区", Icons.Filled.LocationOn),
     SETTINGS("设置", Icons.Filled.Settings),
+}
+
+/**
+ * The login screen until the driver is signed in, then the app. While the
+ * saved session is still being read nothing is drawn, so the login screen does
+ * not flash past on every open.
+ */
+@Composable
+private fun Gate() {
+    val session by Cloud.session.collectAsStateWithLifecycle()
+    when (session) {
+        is SessionStatus.Authenticated -> HomeTabs()
+        is SessionStatus.NotAuthenticated -> LoginScreen()
+        is SessionStatus.Initializing, is SessionStatus.RefreshFailure -> Unit
+    }
 }
 
 /**
@@ -639,6 +656,10 @@ private fun QuitCard() {
             color = Dash.Muted,
         )
         GhostButton("退出并停止监控", Modifier.fillMaxWidth(), color = Dash.Orange) { asking = true }
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
+        GhostButton("退出登录", Modifier.fillMaxWidth()) {
+            scope.launch { runCatching { Cloud.signOut() }.onFailure { say(context, "退不出去：" + it.message) } }
+        }
     }
 
     if (asking) {
