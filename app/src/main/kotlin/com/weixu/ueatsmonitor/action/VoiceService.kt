@@ -471,6 +471,27 @@ class VoiceService : Service() {
             context.stopService(Intent(context, VoiceService::class.java))
         }
 
+        fun isRunning(): Boolean = live != null
+
+        /**
+         * Flips voice from the floating button, off the app's own screens. Turning
+         * it on starts the microphone service; Android may refuse that from the
+         * background, in which case the service stops itself quietly and
+         * [changed] finds it still off.
+         */
+        fun toggle(context: Context, changed: () -> Unit) {
+            val store = com.weixu.ueatsmonitor.App.instance.settingsStore
+            val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+            if (isRunning()) {
+                stop(context)
+                scope.launch { store.setVoiceEnabled(false) }
+            } else {
+                scope.launch { store.setVoiceEnabled(true) }
+                runCatching { start(context) }.onFailure { Log.w(TAG, "voice: start from the button refused", it) }
+            }
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(changed, 400L)
+        }
+
         /** Speaks [words] through the running voice service; a toast when it is not running. */
         fun say(context: Context, words: String) {
             val service = live

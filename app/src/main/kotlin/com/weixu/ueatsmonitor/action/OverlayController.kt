@@ -110,18 +110,7 @@ class OverlayController(private val context: Context) {
             return@post
         }
         if (!canDraw()) return@post
-        val button = TextView(context).apply {
-            text = "关导航"
-            textSize = 15f
-            setTextColor(INK)
-            setTypeface(typeface, Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(dp(14), dp(10), dp(14), dp(10))
-            background = GradientDrawable().apply {
-                cornerRadius = dp(14).toFloat()
-                setColor(FILL)
-                setStroke(dp(2), EDGE)
-            }
+        val navigation = toolButton("关导航").apply {
             setOnClickListener {
                 text = "关…"
                 MapsNavigation.stop(context) { pressed ->
@@ -129,6 +118,26 @@ class OverlayController(private val context: Context) {
                     android.widget.Toast.makeText(context, if (pressed) "已关导航" else "地图没在导航", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+        // Words and bright-against-dim, never hue: on is bold on the gold fill,
+        // off is muted on the dark one.
+        val voice = toolButton("").apply {
+            fun paint() {
+                val on = VoiceService.isRunning()
+                text = if (on) "语音开" else "语音关"
+                setTextColor(if (on) INK else Color.parseColor("#8F8C85"))
+                (background as GradientDrawable).setColor(if (on) FILL else Color.parseColor("#F0141416"))
+            }
+            paint()
+            setOnClickListener {
+                VoiceService.toggle(context) { paint() }
+                main.postDelayed({ paint() }, 1_500L)
+            }
+        }
+        val button = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(navigation)
+            addView(voice, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
         }
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -189,6 +198,20 @@ class OverlayController(private val context: Context) {
         beating.forEach { it.cancel() }
         beating = emptyList()
         runCatching { windowManager.removeView(chip) }
+    }
+
+    private fun toolButton(label: String): TextView = TextView(context).apply {
+        text = label
+        textSize = 15f
+        setTextColor(INK)
+        setTypeface(typeface, Typeface.BOLD)
+        gravity = Gravity.CENTER
+        setPadding(dp(14), dp(10), dp(14), dp(10))
+        background = GradientDrawable().apply {
+            cornerRadius = dp(14).toFloat()
+            setColor(FILL)
+            setStroke(dp(2), EDGE)
+        }
     }
 
     private fun keyOf(state: State): String = when (state) {
