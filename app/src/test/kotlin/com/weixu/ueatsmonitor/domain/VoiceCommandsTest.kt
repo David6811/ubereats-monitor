@@ -120,6 +120,7 @@ class VoiceCommandsTest {
                 VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH),
                 VoiceCommand.StopNavigation(SpokenLanguage.CHINESE),
                 VoiceCommand.StopNavigation(SpokenLanguage.ENGLISH),
+                VoiceCommand.Ask("现在送哪一单", SpokenLanguage.CHINESE),
             ),
             commands,
         )
@@ -243,6 +244,54 @@ class VoiceCommandsTest {
 
         // assert
         assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given 你好 and a question, when it is parsed, then the question goes to the assistant without the wake word`() {
+        // arrange
+        val heard = listOf("你好，现在送哪一单")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.Ask("现在送哪一单", SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given 你好 on its own, when it is parsed, then nothing happens yet`() {
+        // arrange
+        val heard = listOf("你好")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(null, command)
+    }
+
+    @Test
+    fun `given 你好 in the middle of a sentence, when it is parsed, then it is not a question`() {
+        // arrange  a greeting to a passenger that happens to name an app afterwards
+        val heard = listOf("跟你说你好切地图")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given a half-heard question, when it is parsed as partial, then it waits for the whole sentence`() {
+        // arrange
+        val heard = listOf("你好，现在送")
+
+        // act
+        val command = VoiceCommands.parsePartial(heard)
+
+        // assert
+        assertEquals(null, command)
     }
 
     @Test

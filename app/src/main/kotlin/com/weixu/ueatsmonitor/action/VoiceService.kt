@@ -22,6 +22,7 @@ import java.util.Locale
 import android.util.Log
 import android.widget.Toast
 import com.weixu.ueatsmonitor.domain.VoiceCommand
+import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.domain.VoiceTarget
 import com.weixu.ueatsmonitor.domain.VoiceCommands
 import com.weixu.ueatsmonitor.domain.SpokenLanguage
@@ -216,7 +217,7 @@ class VoiceService : Service() {
         override fun onPartialResults(partialResults: Bundle?) {
             if (actedThisSession) return
             val heard = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
-            val command = VoiceCommands.parse(heard) ?: return
+            val command = VoiceCommands.parsePartial(heard) ?: return
             Log.i(TAG, "voice heard (partial): $heard")
             understood(command)
         }
@@ -288,8 +289,34 @@ class VoiceService : Service() {
         actedThisSession = true
         main.removeCallbacksAndMessages(null)
         runCatching { recognizer?.cancel() }
+        if (command is VoiceCommand.Ask) {
+            // No "好" first: the answer is the confirmation. A tone says it was
+            // heard, listening stays off while the answer is fetched and spoken,
+            // and comes back when the speech ends - the same way as after "好".
+            tone(ToneGenerator.TONE_PROP_ACK)
+            asking.launch {
+                val words = when (val reply = Assistant.ask(this@VoiceService, command.question)) {
+                    is Assistant.Reply.Answer -> reply.words
+                    is Assistant.Reply.Failed -> "问不了：" + reply.why
+                }
+                main.post { announce(words) }
+            }
+            return
+        }
         confirm(command)
         act(command)
+    }
+
+    private val asking = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+    )
+
+    private fun tone(kind: Int) {
+        runCatching {
+            val tone = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
+            tone.startTone(kind, 150)
+            main.postDelayed({ tone.release() }, TONE_MILLIS)
+        }
     }
 
     private fun confirm(command: VoiceCommand) {
@@ -298,6 +325,7 @@ class VoiceService : Service() {
             is VoiceCommand.SwitchTo -> if (english) command.target.confirmEnglish else command.target.confirmChinese
             is VoiceCommand.DriveToCentre -> if (english) "OK, centre" else "好，回中心"
             is VoiceCommand.StopNavigation -> if (english) "OK, stopping" else "好，关导航"
+            is VoiceCommand.Ask -> ""
         }
         val tts = speech
         val voiced = speechReady && tts != null &&
@@ -330,6 +358,7 @@ class VoiceService : Service() {
                 Navigation.driveTo(this, centre)
                 toast("导航回中心")
             }
+            is VoiceCommand.Ask -> Unit // answered in understood()
             is VoiceCommand.StopNavigation -> {
                 // The cross can only be pressed while Maps is on screen, and while
                 // driving it is usually behind Uber. Bring it forward first, give

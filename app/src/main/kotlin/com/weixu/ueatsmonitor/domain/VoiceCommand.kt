@@ -31,6 +31,9 @@ sealed interface VoiceCommand {
 
     /** Press the cross on Google Maps' running navigation. */
     data class StopNavigation(override val language: SpokenLanguage) : VoiceCommand
+
+    /** A question for the assistant, after the wake word: "你好，现在送哪一单". */
+    data class Ask(val question: String, override val language: SpokenLanguage) : VoiceCommand
 }
 
 /**
@@ -74,12 +77,30 @@ object VoiceCommands {
         "switch to map", "switch to uber eats", "switch to application",
         "回中心", "centre",
         "关导航", "stop navigation",
+        "你好，现在送哪一单",
     )
+
+    /**
+     * The wake word for a question. Anything after it is the question, so it
+     * is matched on the raw sentence before folding, and only at the start:
+     * "你好" in the middle of a sentence is just a greeting.
+     */
+    private val WAKE = Regex("""^\s*(你好|哈喽|hello|hi)[\s,，、。!！]*(.*)$""", RegexOption.IGNORE_CASE)
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
     fun parse(guesses: List<String>): VoiceCommand? = guesses.firstNotNullOfOrNull(::parseOne)
 
+    /**
+     * Only the commands that can act on a half-heard sentence. A question is
+     * not one of them: acting on "你好，现在送" would answer the wrong question.
+     */
+    fun parsePartial(guesses: List<String>): VoiceCommand? = parse(guesses)?.takeUnless { it is VoiceCommand.Ask }
+
     private fun parseOne(sentence: String): VoiceCommand? {
+        WAKE.matchEntire(sentence)?.let { match ->
+            val question = match.groupValues[2].trim()
+            return if (question.isEmpty()) null else VoiceCommand.Ask(question, languageOf(sentence))
+        }
         val text = fold(sentence)
         if (STOP_NAVIGATION.any { text.contains(it) }) return VoiceCommand.StopNavigation(languageOf(sentence))
         // Before the apps: "回中心" names no app, and "中心" must not be taken
