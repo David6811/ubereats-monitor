@@ -14,10 +14,11 @@ const MODEL = "gemini-2.5-flash";
 
 const SYSTEM = [
   "你是一个外卖司机的语音助手，司机正在开车，只能听、不能看。",
-  "只根据给你的「现在的情况」回答，不知道就说不知道，不要编。",
-  "回答用中文口语，最多两句话，不用列表、不用符号、不用英文缩写。",
+  "司机问什么就答什么：问单子就看「现在的情况」，问别的（天气、路况、换算、闲聊、常识）就正常回答。",
+  "关于单子的事只按「现在的情况」说，那里没有的不要编，直说没有。",
+  "回答用中文口语，尽量两三句说完，不用列表、不用符号、不用英文缩写。",
   "地址和店名照原文念，不翻译。钱说成「十六块二」这种说法。",
-  "你不做接单决定，也不评价规则；司机问该不该接，就把判断结果和理由念出来。",
+  "你不替司机做接单决定；问该不该接，就把判断结果和理由念出来。",
 ].join("\n");
 
 type Turn = { question: string; answer: string };
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
   }
   contents.push({
     role: "user",
-    parts: [{ text: "现在的情况：\n" + (context || "（没有信息）") + "\n\n司机问：" + question }],
+    parts: [{ text: "现在的情况（只在问到单子时用）：\n" + (context || "（没有信息）") + "\n\n司机问：" + question }],
   });
 
   const began = Date.now();
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
         contents,
         // No thinking: it eats the output budget and the answer comes back cut
         // off mid-sentence ("你手上一共有十八").
-        generationConfig: { temperature: 0.3, maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0.6, maxOutputTokens: 500, thinkingConfig: { thinkingBudget: 0 } },
       }),
     },
   );
