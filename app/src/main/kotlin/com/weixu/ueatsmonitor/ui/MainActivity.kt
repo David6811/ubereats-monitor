@@ -61,6 +61,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
 import com.weixu.ueatsmonitor.action.Cloud
+import com.weixu.ueatsmonitor.action.RulesSync
 import io.github.jan.supabase.auth.status.SessionStatus
 import com.weixu.ueatsmonitor.action.CaptureStatus
 import com.weixu.ueatsmonitor.action.Chime
@@ -111,6 +112,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Opening the app is the moment the driver expects it to be current.
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) { RulesSync.pull(this@MainActivity) }
         // Asked whenever the app is opened afresh, so a permission lost in the
         // background is noticed. Once per activity: the permission dialog itself
         // pauses and resumes this screen, and a refusal would otherwise loop.
