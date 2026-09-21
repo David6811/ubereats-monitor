@@ -376,25 +376,8 @@ class VoiceService : Service() {
                 toast("导航回中心")
             }
             is VoiceCommand.Ask -> Unit // answered in understood()
-            is VoiceCommand.StopNavigation -> {
-                // The cross can only be pressed while Maps is on screen, and while
-                // driving it is usually behind Uber. Bring it forward first, give
-                // it a moment to draw, then press; one more try if it was slow.
-                if (!UberScreenService.stopMapsNavigation()) {
-                    bringForward(VoiceTarget.MAPS)
-                    main.postDelayed({
-                        if (UberScreenService.stopMapsNavigation()) {
-                            toast("已关导航")
-                            return@postDelayed
-                        }
-                        main.postDelayed({
-                            toast(if (UberScreenService.stopMapsNavigation()) "已关导航" else "地图没在导航")
-                        }, BRING_FORWARD_MILLIS)
-                    }, BRING_FORWARD_MILLIS)
-                } else {
-                    toast("已关导航")
-                }
-            }
+            is VoiceCommand.StopNavigation ->
+                MapsNavigation.stop(this) { pressed -> toast(if (pressed) "已关导航" else "地图没在导航") }
         }
     }
 
@@ -464,8 +447,6 @@ class VoiceService : Service() {
         /** How long after "你好" the driver has to ask the question. */
         private const val QUESTION_WINDOW_MILLIS = 8_000L
 
-        /** How long Maps takes to be on screen and readable after being asked forward. */
-        private const val BRING_FORWARD_MILLIS = 1_500L
 
         /** Five refusals, about fifteen seconds: past a moment's contention, into stuck. */
         private const val BUSY_LIMIT = 5

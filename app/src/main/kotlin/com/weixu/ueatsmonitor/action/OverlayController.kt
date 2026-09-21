@@ -94,6 +94,68 @@ class OverlayController(private val context: Context) {
 
     fun hide() = main.post { removeNow("told to hide") }
 
+    /**
+     * A still button at the right edge that ends a Maps navigation. Static:
+     * drawn once and left alone, so it costs nothing while it sits there -
+     * unlike the beating dot that once warmed the phone. Its window takes
+     * touches only on its own small area, well clear of Uber's card.
+     */
+    private var tools: View? = null
+
+    fun showTools(on: Boolean) = main.post {
+        if (on == (tools != null)) return@post
+        if (!on) {
+            tools?.let { runCatching { windowManager.removeView(it) } }
+            tools = null
+            return@post
+        }
+        if (!canDraw()) return@post
+        val button = TextView(context).apply {
+            text = "关导航"
+            textSize = 15f
+            setTextColor(INK)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(FILL)
+                setStroke(dp(2), EDGE)
+            }
+            setOnClickListener {
+                text = "关…"
+                MapsNavigation.stop(context) { pressed ->
+                    text = "关导航"
+                    android.widget.Toast.makeText(context, if (pressed) "已关导航" else "地图没在导航", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            android.graphics.PixelFormat.TRANSLUCENT,
+        ).apply {
+            // Right edge, a third of the way down: under the verdict chip, above
+            // the offer card, beside nothing Uber asks to be pressed.
+            gravity = Gravity.TOP or Gravity.END
+            x = dp(8)
+            y = context.resources.displayMetrics.heightPixels / 3
+        }
+        runCatching { windowManager.addView(button, params) }
+            .onSuccess { tools = button }
+            .onFailure { Log.w(TAG, "overlay: tools addView failed", it) }
+    }
+
     /** Whether a verdict is up right now, as opposed to nothing or "thinking". */
     fun showingVerdict(): Boolean = showing.isNotEmpty() && showing != THINKING
 

@@ -266,6 +266,9 @@ class UberScreenService : AccessibilityService() {
         val screenLit = runCatching {
             getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
         }.getOrDefault(false)
+        // The floating tools are for the shift: up while Uber has been seen
+        // lately, gone otherwise, so they do not sit on every app all day.
+        overlay.showTools(onShift && screenLit)
         // A window the system lists but will not let us read is where a card could
         // be hiding - that is what blind shooting was for. When every window on
         // screen can be read and none of them is Uber's, there is nothing to find,
@@ -796,7 +799,7 @@ class UberScreenService : AccessibilityService() {
             return pressed
         }
 
-        private const val MAPS_PACKAGE = "com.google.android.apps.maps"
+        private const val MAPS_PACKAGE = MapsNavigation.PACKAGE
 
         /** How Maps labels the cross, in the two languages the phone may be in. */
         private val CLOSE_NAVIGATION = listOf("Close navigation", "关闭导航", "结束导航")
