@@ -29,6 +29,8 @@ class SettingsStore(private val context: Context) {
         val logEveryNotification: Boolean,
         /** Whether the microphone stays open for spoken commands. */
         val voiceEnabled: Boolean,
+        /** The email last signed in with, filled in for next time. Never the password. */
+        val lastEmail: String,
         /** Dollars of petrol per kilometre, driven out and back. */
         val fuelPerKm: Double,
         /** The card's minutes times this is the trip there and back. */
@@ -61,6 +63,7 @@ class SettingsStore(private val context: Context) {
             recordScreenEnabled = prefs[RECORD_SCREEN] ?: false,
             logEveryNotification = prefs[LOG_EVERYTHING] ?: false,
             voiceEnabled = prefs[VOICE_ENABLED] ?: false,
+            lastEmail = prefs[LAST_EMAIL] ?: "",
             fuelPerKm = prefs[FUEL_PER_KM] ?: DEFAULT_FUEL_PER_KM,
             timeFactor = prefs[TIME_FACTOR] ?: DEFAULT_TIME_FACTOR,
             farMinPerHour = prefs[FAR_MIN_PER_HOUR] ?: DEFAULT_FAR_MIN_PER_HOUR,
@@ -93,6 +96,10 @@ class SettingsStore(private val context: Context) {
     suspend fun setLogEveryNotification(enabled: Boolean) = putBoolean(LOG_EVERYTHING, enabled)
 
     suspend fun setVoiceEnabled(enabled: Boolean) = putBoolean(VOICE_ENABLED, enabled)
+
+    suspend fun setLastEmail(email: String) {
+        context.dataStore.edit { prefs -> prefs[LAST_EMAIL] = email }
+    }
 
     suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
 
@@ -135,6 +142,7 @@ class SettingsStore(private val context: Context) {
         private val RECORD_SCREEN = booleanPreferencesKey("record_screen")
         private val LOG_EVERYTHING = booleanPreferencesKey("log_everything")
         private val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+        private val LAST_EMAIL = androidx.datastore.preferences.core.stringPreferencesKey("last_email")
         private val HOMEWARD = booleanPreferencesKey("homeward")
         private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")

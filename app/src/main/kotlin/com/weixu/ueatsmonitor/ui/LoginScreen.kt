@@ -22,7 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.action.Cloud
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -35,7 +38,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen() {
     val scope = rememberCoroutineScope()
+    val store = App.instance.settingsStore
     var email by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { email = store.settings.first().lastEmail }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
@@ -51,6 +56,7 @@ fun LoginScreen() {
         busy = true
         scope.launch {
             runCatching { action() }
+                .onSuccess { store.setLastEmail(trimmedEmail) }
                 .onFailure { problem = plainWords(what, it) }
             busy = false
         }
