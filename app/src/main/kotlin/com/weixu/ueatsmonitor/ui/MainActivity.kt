@@ -408,6 +408,10 @@ private fun MonitorScreen(store: SettingsStore) {
                     }
                     Hairline()
                     VoiceToggle(current.voiceEnabled)
+                    Hairline()
+                    SwitchRow("悬浮按钮", "跑单时右上角的「关导航」「语音」", current.toolsEnabled) {
+                        scope.launch { store.setToolsEnabled(it) }
+                    }
                 }
             }
         }

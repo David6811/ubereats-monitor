@@ -52,6 +52,8 @@ class SettingsStore(private val context: Context) {
         val nearCentreEnabled: Boolean,
         val nearCentreMaxKm: Double,
         val nearCentreMaxMinutes: Int,
+        /** The floating 关导航 / 语音 buttons over other apps during a shift. */
+        val toolsEnabled: Boolean,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -79,6 +81,7 @@ class SettingsStore(private val context: Context) {
             nearCentreEnabled = prefs[NEAR_CENTRE] ?: false,
             nearCentreMaxKm = prefs[NEAR_CENTRE_MAX_KM] ?: DEFAULT_NEAR_CENTRE_MAX_KM,
             nearCentreMaxMinutes = prefs[NEAR_CENTRE_MAX_MINUTES] ?: DEFAULT_NEAR_CENTRE_MAX_MINUTES,
+            toolsEnabled = prefs[TOOLS] ?: true,
         )
     }
 
@@ -117,6 +120,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
 
     suspend fun setNearCentreEnabled(enabled: Boolean) = putBoolean(NEAR_CENTRE, enabled)
+
+    suspend fun setToolsEnabled(enabled: Boolean) = putBoolean(TOOLS, enabled)
 
     suspend fun saveNearCentreLimits(maxKm: Double, maxMinutes: Int) {
         context.dataStore.edit { prefs ->
@@ -161,6 +166,7 @@ class SettingsStore(private val context: Context) {
         private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
         private val NEAR_CENTRE = booleanPreferencesKey("near_centre")
+        private val TOOLS = booleanPreferencesKey("tools")
         private val NEAR_CENTRE_MAX_KM = doublePreferencesKey("near_centre_max_km")
         private val NEAR_CENTRE_MAX_MINUTES = intPreferencesKey("near_centre_max_minutes")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")

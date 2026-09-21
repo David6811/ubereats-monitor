@@ -154,11 +154,11 @@ class OverlayController(private val context: Context) {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
-            // Right edge, a third of the way down: under the verdict chip, above
-            // the offer card, beside nothing Uber asks to be pressed.
+            // Top right corner, just under the status bar and clear of the
+            // verdict chip's own row; nothing Uber asks to be pressed lives there.
             gravity = Gravity.TOP or Gravity.END
             x = dp(8)
-            y = context.resources.displayMetrics.heightPixels / 3
+            y = dp(TOOLS_TOP_DP)
         }
         runCatching { windowManager.addView(button, params) }
             .onSuccess { tools = button }
@@ -425,6 +425,9 @@ class OverlayController(private val context: Context) {
          * text is what once put a suburb where a shop name belonged.
          */
         const val TOP_PIXELS = 20
+
+        /** Below the status bar; the verdict chip starts at 20 px and is a row tall. */
+        const val TOOLS_TOP_DP = 36
 
         /** Far enough in from the edge to clear the heartbeat dot's own window. */
         const val DOTS_FROM_EDGE_DP = 44
