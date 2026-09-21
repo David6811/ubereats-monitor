@@ -173,6 +173,10 @@ class UberScreenService : AccessibilityService() {
      */
     private val verdictProbe = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            if (intent?.getBooleanExtra("stopNav", false) == true) {
+                work.post { Log.i(TAG, "probe: stop navigation -> " + stopMapsNavigation()) }
+                return
+            }
             val card = OfferCard(
                 isMatch = false,
                 payout = Cents(1301),
@@ -770,7 +774,13 @@ class UberScreenService : AccessibilityService() {
                         label.equals(words, ignoreCase = true) && (node.isClickable || node.parent?.isClickable == true)
                     }
                 }
-            } ?: return false
+            }
+            if (cross == null) {
+                // Say what Maps did show, so the label can be corrected without guessing.
+                val labels = maps.flatMap { ScreenReader.readAll(it) }.distinct()
+                Log.i(TAG, "maps: no close button among " + maps.size + " window(s); labels=" + labels.joinToString(" | "))
+                return false
+            }
             val target = if (cross.isClickable) cross else cross.parent
             val pressed = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             Log.i(TAG, "maps: close navigation pressed=" + pressed)

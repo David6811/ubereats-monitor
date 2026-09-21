@@ -22,6 +22,7 @@ import java.util.Locale
 import android.util.Log
 import android.widget.Toast
 import com.weixu.ueatsmonitor.domain.VoiceCommand
+import com.weixu.ueatsmonitor.domain.VoiceTarget
 import com.weixu.ueatsmonitor.domain.VoiceCommands
 import com.weixu.ueatsmonitor.domain.SpokenLanguage
 
@@ -316,18 +317,7 @@ class VoiceService : Service() {
         Log.i(TAG, "voice command: $command")
         when (command) {
             is VoiceCommand.SwitchTo -> {
-                val launch = packageManager.getLaunchIntentForPackage(command.target.packageName)
-                if (launch == null) {
-                    toast("没找到" + command.target.spoken)
-                    return
-                }
-                runCatching {
-                    startActivity(
-                        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-                    )
-                }.onFailure { Log.w(TAG, "voice: switch failed", it) }
-                toast("切到" + command.target.spoken)
+                if (bringForward(command.target)) toast("切到" + command.target.spoken)
             }
             is VoiceCommand.DriveToCentre -> {
                 val centre = Profiles.centre(this)
@@ -339,10 +329,41 @@ class VoiceService : Service() {
                 toast("导航回中心")
             }
             is VoiceCommand.StopNavigation -> {
-                val pressed = UberScreenService.stopMapsNavigation()
-                toast(if (pressed) "已关导航" else "地图没在导航")
+                // The cross can only be pressed while Maps is on screen, and while
+                // driving it is usually behind Uber. Bring it forward first, give
+                // it a moment to draw, then press; one more try if it was slow.
+                if (!UberScreenService.stopMapsNavigation()) {
+                    bringForward(VoiceTarget.MAPS)
+                    main.postDelayed({
+                        if (UberScreenService.stopMapsNavigation()) {
+                            toast("已关导航")
+                            return@postDelayed
+                        }
+                        main.postDelayed({
+                            toast(if (UberScreenService.stopMapsNavigation()) "已关导航" else "地图没在导航")
+                        }, BRING_FORWARD_MILLIS)
+                    }, BRING_FORWARD_MILLIS)
+                } else {
+                    toast("已关导航")
+                }
             }
         }
+    }
+
+    /** Puts [target] on screen. False when it is not installed. */
+    private fun bringForward(target: VoiceTarget): Boolean {
+        val launch = packageManager.getLaunchIntentForPackage(target.packageName)
+        if (launch == null) {
+            toast("没找到" + target.spoken)
+            return false
+        }
+        runCatching {
+            startActivity(
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+            )
+        }.onFailure { Log.w(TAG, "voice: switch failed", it) }
+        return true
     }
 
     /** Said aloud, because the driver is not looking at the phone. A tone when there is no voice. */
@@ -391,6 +412,9 @@ class VoiceService : Service() {
         private const val NOTIFICATION_ID = 44
         private const val NEXT_MILLIS = 150L
         private const val ERROR_BACKOFF_MILLIS = 3_000L
+
+        /** How long Maps takes to be on screen and readable after being asked forward. */
+        private const val BRING_FORWARD_MILLIS = 1_500L
 
         /** Five refusals, about fifteen seconds: past a moment's contention, into stuck. */
         private const val BUSY_LIMIT = 5
