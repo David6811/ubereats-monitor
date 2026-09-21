@@ -658,7 +658,10 @@ private fun QuitCard() {
         GhostButton("退出并停止监控", Modifier.fillMaxWidth(), color = Dash.Orange) { asking = true }
         val scope = androidx.compose.runtime.rememberCoroutineScope()
         GhostButton("退出登录", Modifier.fillMaxWidth()) {
-            scope.launch { runCatching { Cloud.signOut() }.onFailure { say(context, "退不出去：" + it.message) } }
+            scope.launch {
+                App.instance.settingsStore.forgetLogin()
+                runCatching { Cloud.signOut() }.onFailure { say(context, "退不出去：" + it.message) }
+            }
         }
     }
 

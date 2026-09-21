@@ -40,7 +40,6 @@ fun LoginScreen() {
     val scope = rememberCoroutineScope()
     val store = App.instance.settingsStore
     var email by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { email = store.settings.first().lastEmail }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
@@ -56,9 +55,20 @@ fun LoginScreen() {
         busy = true
         scope.launch {
             runCatching { action() }
-                .onSuccess { store.setLastEmail(trimmedEmail) }
+                .onSuccess { store.rememberLogin(trimmedEmail, password) }
                 .onFailure { problem = plainWords(what, it) }
             busy = false
+        }
+    }
+
+    // Both remembered: sign in by itself, so the screen is seen once and never
+    // at the wheel. A failure leaves them filled in with the reason underneath.
+    LaunchedEffect(Unit) {
+        val saved = store.settings.first()
+        email = saved.lastEmail
+        password = saved.lastPassword
+        if (saved.lastEmail.isNotEmpty() && saved.lastPassword.isNotEmpty()) {
+            attempt("登录") { Cloud.signIn(saved.lastEmail, saved.lastPassword) }
         }
     }
 
