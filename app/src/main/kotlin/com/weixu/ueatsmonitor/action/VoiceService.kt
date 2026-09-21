@@ -294,6 +294,7 @@ class VoiceService : Service() {
         val words = when (command) {
             is VoiceCommand.SwitchTo -> if (english) command.target.confirmEnglish else command.target.confirmChinese
             is VoiceCommand.DriveToCentre -> if (english) "OK, centre" else "好，回中心"
+            is VoiceCommand.StopNavigation -> if (english) "OK, stopping" else "好，关导航"
         }
         val tts = speech
         val voiced = speechReady && tts != null &&
@@ -336,6 +337,10 @@ class VoiceService : Service() {
                 }
                 Navigation.driveTo(this, centre)
                 toast("导航回中心")
+            }
+            is VoiceCommand.StopNavigation -> {
+                val pressed = UberScreenService.stopMapsNavigation()
+                toast(if (pressed) "已关导航" else "地图没在导航")
             }
         }
     }

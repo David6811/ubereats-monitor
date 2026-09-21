@@ -28,6 +28,9 @@ sealed interface VoiceCommand {
 
     /** Drive back to the middle of the set being worked, as drawn on the laptop. */
     data class DriveToCentre(override val language: SpokenLanguage) : VoiceCommand
+
+    /** Press the cross on Google Maps' running navigation. */
+    data class StopNavigation(override val language: SpokenLanguage) : VoiceCommand
 }
 
 /**
@@ -47,6 +50,12 @@ object VoiceCommands {
     private val CENTRE_NAMES = listOf("回中心", "中心", "回工作点", "centre", "center")
 
     /**
+     * Before the apps, and before the centre: "关导航" names Maps by its
+     * Chinese name, and must not be taken for switching to it.
+     */
+    private val STOP_NAVIGATION = listOf("关导航", "关闭导航", "停止导航", "结束导航", "stopnavigation", "endnavigation", "closenavigation")
+
+    /**
      * Chinese first. A sentence half in English - "切到 Google Map" - is the one a
      * Chinese recognizer gets wrong, so every app has a plain Chinese name to say.
      * The English ones stay for when the recognizer does write them.
@@ -64,6 +73,7 @@ object VoiceCommands {
         "map", "uber eats", "application",
         "switch to map", "switch to uber eats", "switch to application",
         "回中心", "centre",
+        "关导航", "stop navigation",
     )
 
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
@@ -71,6 +81,7 @@ object VoiceCommands {
 
     private fun parseOne(sentence: String): VoiceCommand? {
         val text = fold(sentence)
+        if (STOP_NAVIGATION.any { text.contains(it) }) return VoiceCommand.StopNavigation(languageOf(sentence))
         // Before the apps: "回中心" names no app, and "中心" must not be taken
         // for one either.
         if (CENTRE_NAMES.any { text.contains(it) }) return VoiceCommand.DriveToCentre(languageOf(sentence))

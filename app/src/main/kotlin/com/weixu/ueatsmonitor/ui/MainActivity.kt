@@ -570,7 +570,7 @@ private fun VoiceToggle(enabled: Boolean) {
                         }
                     }
                     Text(
-                        "前面加「切」「打开」也行，比如「切地图」。英文也听得懂：map、uber eats、application、centre。",
+                        "前面加「切」「打开」也行，比如「切地图」。英文也听得懂：map、uber eats、application、centre、stop navigation。",
                         color = Dash.Muted,
                     )
                 }
@@ -638,6 +638,7 @@ private val VOICE_HELP = listOf(
     "「送餐」" to "切到 Uber",
     "「应用」" to "切回接单助手",
     "「回中心」" to "导航回选区中心",
+    "「关导航」" to "关掉谷歌地图的导航",
 )
 
 /**

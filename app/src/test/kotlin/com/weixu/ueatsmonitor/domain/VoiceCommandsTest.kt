@@ -118,6 +118,8 @@ class VoiceCommandsTest {
                 VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
                 VoiceCommand.DriveToCentre(SpokenLanguage.CHINESE),
                 VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH),
+                VoiceCommand.StopNavigation(SpokenLanguage.CHINESE),
+                VoiceCommand.StopNavigation(SpokenLanguage.ENGLISH),
             ),
             commands,
         )
@@ -205,6 +207,42 @@ class VoiceCommandsTest {
 
         // assert
         assertEquals(VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH), command)
+    }
+
+    @Test
+    fun `given 关导航, when it is parsed, then it stops the navigation rather than switching to maps`() {
+        // arrange  "导航" alone is a name for Maps
+        val heard = listOf("关导航")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.StopNavigation(SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given stop navigation in english, when it is parsed, then it is answered in english`() {
+        // arrange
+        val heard = listOf("Stop navigation")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.StopNavigation(SpokenLanguage.ENGLISH), command)
+    }
+
+    @Test
+    fun `given 打开导航, when it is parsed, then it still switches to maps`() {
+        // arrange
+        val heard = listOf("打开导航")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE), command)
     }
 
     @Test

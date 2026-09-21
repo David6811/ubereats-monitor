@@ -752,6 +752,37 @@ class UberScreenService : AccessibilityService() {
         /** Whether the reader is connected right now. */
         fun isRunning(): Boolean = live != null
 
+        /**
+         * The one thing this service ever presses: the cross that ends a Google
+         * Maps navigation, so the driver need not reach for it. Nothing in
+         * Uber's windows is ever touched. True when the cross was found and pressed.
+         */
+        fun stopMapsNavigation(): Boolean {
+            val service = live ?: return false
+            val maps = runCatching {
+                service.windows.orEmpty().mapNotNull { it.root }
+                    .filter { it.packageName?.toString() == MAPS_PACKAGE }
+            }.getOrDefault(emptyList())
+            val cross = maps.firstNotNullOfOrNull { root ->
+                CLOSE_NAVIGATION.firstNotNullOfOrNull { words ->
+                    root.findAccessibilityNodeInfosByText(words).orEmpty().firstOrNull { node ->
+                        val label = (node.contentDescription ?: node.text)?.toString().orEmpty()
+                        label.equals(words, ignoreCase = true) && (node.isClickable || node.parent?.isClickable == true)
+                    }
+                }
+            } ?: return false
+            val target = if (cross.isClickable) cross else cross.parent
+            val pressed = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            Log.i(TAG, "maps: close navigation pressed=" + pressed)
+            ServiceJournal.note(service, if (pressed) "已按下地图的关闭导航" else "地图的关闭导航按不动")
+            return pressed
+        }
+
+        private const val MAPS_PACKAGE = "com.google.android.apps.maps"
+
+        /** How Maps labels the cross, in the two languages the phone may be in. */
+        private val CLOSE_NAVIGATION = listOf("Close navigation", "关闭导航", "结束导航")
+
         const val TAG = "UEatsMonitor"
 
         /** The probe that puts a made-up verdict on screen. */
