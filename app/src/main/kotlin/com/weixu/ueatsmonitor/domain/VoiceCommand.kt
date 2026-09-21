@@ -32,7 +32,12 @@ sealed interface VoiceCommand {
     /** Press the cross on Google Maps' running navigation. */
     data class StopNavigation(override val language: SpokenLanguage) : VoiceCommand
 
-    /** A question for the assistant, after the wake word: "你好，现在送哪一单". */
+    /**
+     * A question for the assistant, after the wake word: "你好，现在送哪一单".
+     * The recognizer usually ends the sentence at the pause after "你好", so the
+     * question is often empty here and arrives as the next sentence: the
+     * service then treats whatever it hears next as the question.
+     */
     data class Ask(val question: String, override val language: SpokenLanguage) : VoiceCommand
 }
 
@@ -98,8 +103,7 @@ object VoiceCommands {
 
     private fun parseOne(sentence: String): VoiceCommand? {
         WAKE.matchEntire(sentence)?.let { match ->
-            val question = match.groupValues[2].trim()
-            return if (question.isEmpty()) null else VoiceCommand.Ask(question, languageOf(sentence))
+            return VoiceCommand.Ask(match.groupValues[2].trim(), languageOf(sentence))
         }
         val text = fold(sentence)
         if (STOP_NAVIGATION.any { text.contains(it) }) return VoiceCommand.StopNavigation(languageOf(sentence))

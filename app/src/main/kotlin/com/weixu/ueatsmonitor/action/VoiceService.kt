@@ -210,6 +210,12 @@ class VoiceService : Service() {
             if (actedThisSession) return
             val heard = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
             Log.i(TAG, "voice heard: $heard")
+            // The sentence after a bare "你好" is the question, whatever it says.
+            if (System.currentTimeMillis() < questionUntilMillis && heard.isNotEmpty()) {
+                questionUntilMillis = 0L
+                understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
+                return
+            }
             val command = VoiceCommands.parse(heard)
             if (command != null) understood(command) else again(NEXT_MILLIS)
         }
@@ -289,6 +295,14 @@ class VoiceService : Service() {
         actedThisSession = true
         main.removeCallbacksAndMessages(null)
         runCatching { recognizer?.cancel() }
+        if (command is VoiceCommand.Ask && command.question.isEmpty()) {
+            // "你好" and a pause: the question is coming. A tone says go ahead, and
+            // the next sentence heard within a few seconds is taken as it.
+            tone(ToneGenerator.TONE_PROP_BEEP)
+            questionUntilMillis = System.currentTimeMillis() + QUESTION_WINDOW_MILLIS
+            again(NEXT_MILLIS)
+            return
+        }
         if (command is VoiceCommand.Ask) {
             // No "好" first: the answer is the confirmation. A tone says it was
             // heard, listening stays off while the answer is fetched and spoken,
@@ -306,6 +320,9 @@ class VoiceService : Service() {
         confirm(command)
         act(command)
     }
+
+    /** Until when the next sentence heard is the question that followed a bare "你好". */
+    private var questionUntilMillis: Long = 0L
 
     private val asking = kotlinx.coroutines.CoroutineScope(
         kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
@@ -443,6 +460,9 @@ class VoiceService : Service() {
         private const val NOTIFICATION_ID = 44
         private const val NEXT_MILLIS = 150L
         private const val ERROR_BACKOFF_MILLIS = 3_000L
+
+        /** How long after "你好" the driver has to ask the question. */
+        private const val QUESTION_WINDOW_MILLIS = 8_000L
 
         /** How long Maps takes to be on screen and readable after being asked forward. */
         private const val BRING_FORWARD_MILLIS = 1_500L

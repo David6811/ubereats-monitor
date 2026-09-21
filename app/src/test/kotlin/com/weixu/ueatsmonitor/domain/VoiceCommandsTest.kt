@@ -259,15 +259,15 @@ class VoiceCommandsTest {
     }
 
     @Test
-    fun `given 你好 on its own, when it is parsed, then nothing happens yet`() {
-        // arrange
+    fun `given 你好 on its own, when it is parsed, then it is a question still to be asked`() {
+        // arrange  the recognizer ends the sentence at the pause after the wake word
         val heard = listOf("你好")
 
         // act
         val command = VoiceCommands.parse(heard)
 
         // assert
-        assertEquals(null, command)
+        assertEquals(VoiceCommand.Ask("", SpokenLanguage.CHINESE), command)
     }
 
     @Test
