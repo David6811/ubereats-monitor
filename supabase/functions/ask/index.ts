@@ -62,7 +62,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
         contents,
-        generationConfig: { temperature: 0.3, maxOutputTokens: 200 },
+        // No thinking: it eats the output budget and the answer comes back cut
+        // off mid-sentence ("你手上一共有十八").
+        generationConfig: { temperature: 0.3, maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
       }),
     },
   );

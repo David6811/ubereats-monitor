@@ -21,7 +21,10 @@ import kotlinx.coroutines.flow.StateFlow
 object Cloud {
 
     private const val URL = "https://umumewxrzwqxbcvttmmf.supabase.co"
-    private const val PUBLISHABLE_KEY = "sb_publishable_ctg4zQ0W9kCNTH8IPg7fGg_8o25NAjr"
+    const val PUBLISHABLE_KEY = "sb_publishable_ctg4zQ0W9kCNTH8IPg7fGg_8o25NAjr"
+
+    /** Where an edge function of ours answers. */
+    fun functionUrl(name: String): String = "$URL/functions/v1/$name"
 
     val client: SupabaseClient by lazy {
         createSupabaseClient(supabaseUrl = URL, supabaseKey = PUBLISHABLE_KEY) {

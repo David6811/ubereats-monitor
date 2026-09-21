@@ -70,6 +70,7 @@ class VoiceService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        live = this
         askForOfflineChinese()
         speech = TextToSpeech(this) { status ->
             val tts = speech ?: return@TextToSpeech
@@ -104,6 +105,7 @@ class VoiceService : Service() {
     }
 
     override fun onDestroy() {
+        live = null
         running = false
         main.removeCallbacksAndMessages(null)
         recognizer?.destroy()
@@ -438,5 +440,20 @@ class VoiceService : Service() {
         fun stop(context: Context) {
             context.stopService(Intent(context, VoiceService::class.java))
         }
+
+        /** Speaks [words] through the running voice service; a toast when it is not running. */
+        fun say(context: Context, words: String) {
+            val service = live
+            if (service == null) {
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    Toast.makeText(context, words, Toast.LENGTH_LONG).show()
+                }
+                return
+            }
+            service.main.post { service.announce(words) }
+        }
+
+        @Volatile
+        private var live: VoiceService? = null
     }
 }

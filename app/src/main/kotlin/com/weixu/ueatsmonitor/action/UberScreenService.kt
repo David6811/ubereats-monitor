@@ -37,6 +37,7 @@ import com.weixu.ueatsmonitor.domain.Spot
 import com.weixu.ueatsmonitor.domain.StoreKinds
 import com.weixu.ueatsmonitor.domain.Stops
 import java.util.concurrent.Executors
+import kotlinx.coroutines.launch
 
 /**
  * Action. Records what the Uber apps show, because a foreground offer card never
@@ -173,6 +174,13 @@ class UberScreenService : AccessibilityService() {
      */
     private val verdictProbe = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            intent?.getStringExtra("ask")?.let { question ->
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    val reply = Assistant.ask(this@UberScreenService, question)
+                    if (reply is Assistant.Reply.Answer) VoiceService.say(this@UberScreenService, reply.words)
+                }
+                return
+            }
             if (intent?.getBooleanExtra("stopNav", false) == true) {
                 work.post { Log.i(TAG, "probe: stop navigation -> " + stopMapsNavigation()) }
                 return
