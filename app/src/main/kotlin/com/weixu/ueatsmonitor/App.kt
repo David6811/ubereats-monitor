@@ -10,6 +10,8 @@ import com.weixu.ueatsmonitor.action.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 
 /** Action. Wires the two long-lived pieces of state before any screen or service runs. */
@@ -30,8 +32,17 @@ class App : Application() {
         // Every sign-in, including the saved session on start-up, brings the
         // cloud's rules down to the file the judge reads.
         background.launch {
+            var watching: Job? = null
             Cloud.session.collect { status ->
-                if (status is SessionStatus.Authenticated) RulesSync.pull(this@App)
+                if (status is SessionStatus.Authenticated) {
+                    RulesSync.pull(this@App)
+                    if (watching?.isActive != true) {
+                        watching = launch { RulesSync.watch(this@App, this) ; awaitCancellation() }
+                    }
+                } else {
+                    watching?.cancel()
+                    watching = null
+                }
             }
         }
     }

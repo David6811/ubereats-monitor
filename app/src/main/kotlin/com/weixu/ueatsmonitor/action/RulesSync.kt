@@ -3,6 +3,15 @@ package com.weixu.ueatsmonitor.action
 import android.content.Context
 import android.util.Log
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -66,6 +75,32 @@ object RulesSync {
                     else -> Unit
                 }
             }
+    }
+
+    /**
+     * Pulls again the moment the driver's row changes in the cloud - the laptop
+     * saved - for as long as [scope] lives. The pull on opening the app stays as
+     * the fallback for whatever a dropped socket missed.
+     */
+    fun watch(context: Context, scope: CoroutineScope) {
+        val userId = Cloud.userId() ?: return
+        scope.launch {
+            runCatching {
+                val channel = Cloud.client.channel("rules-$userId")
+                channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = TABLE
+                    filter("user_id", FilterOperator.EQ, userId)
+                }.onEach { change ->
+                    Log.i(TAG, "rules sync: cloud changed (" + change::class.simpleName + ")")
+                    // On its own coroutine. Pulling inside the handler, which runs on
+                    // the socket's own loop, stalled that loop: the first change
+                    // arrived and every one after it was never delivered.
+                    launch { pull(context) }
+                }.catch { Log.w(TAG, "rules sync: watch broke", it) }.launchIn(this)
+                channel.subscribe(blockUntilSubscribed = true)
+                Log.i(TAG, "rules sync: watching the cloud")
+            }.onFailure { Log.w(TAG, "rules sync: could not watch the cloud", it) }
+        }
     }
 
     /**
