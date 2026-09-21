@@ -136,6 +136,8 @@ class OverlayController(private val context: Context) {
         }
         val button = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            // See-through, so what Uber draws under the corner still shows.
+            alpha = TOOLS_ALPHA
             addView(navigation)
             addView(voice, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
         }
@@ -425,6 +427,9 @@ class OverlayController(private val context: Context) {
          * text is what once put a suburb where a shop name belonged.
          */
         const val TOP_PIXELS = 20
+
+        /** Enough to read at a glance, thin enough to see the map through. */
+        const val TOOLS_ALPHA = 0.7f
 
         /** Below the status bar; the verdict chip starts at 20 px and is a row tall. */
         const val TOOLS_TOP_DP = 36
