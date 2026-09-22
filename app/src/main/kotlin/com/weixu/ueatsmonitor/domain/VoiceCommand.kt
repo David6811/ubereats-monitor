@@ -74,6 +74,20 @@ object VoiceCommands {
         VoiceTarget.SELF to listOf("接单助手", "助手", "应用", "我们的", "application", "app"),
     )
 
+    /**
+     * Everything the recogniser listens for between questions, in Mandarin
+     * only: with so few phrases a small model is sure of them. "你好" is here
+     * because it opens the door to the whole language for the question after it.
+     */
+    val GRAMMAR: List<String> = listOf(
+        "你好",
+        "切地图", "切优步", "切送餐", "切应用", "切助手",
+        "打开地图", "打开送餐", "打开应用", "回到应用", "回到地图",
+        "地图", "送餐", "助手", "应用", "优步",
+        "回中心", "回工作点",
+        "关导航", "关闭导航", "停止导航", "结束导航",
+    )
+
     /** The short sentences to say, and to steer the recognizer towards. */
     val PHRASES: List<String> = listOf(
         "切地图", "切优步", "切送餐", "切应用", "切助手",
@@ -102,6 +116,9 @@ object VoiceCommands {
     fun parsePartial(guesses: List<String>): VoiceCommand? = parse(guesses)?.takeUnless { it is VoiceCommand.Ask }
 
     private fun parseOne(sentence: String): VoiceCommand? {
+        // A short sentence that ends in the wake word is the wake word, whatever
+        // stray character the recogniser put in front of it.
+        if (sentence.length <= 4 && sentence.endsWith("你好")) return VoiceCommand.Ask("", languageOf(sentence))
         WAKE.matchEntire(sentence)?.let { match ->
             return VoiceCommand.Ask(match.groupValues[2].trim(), languageOf(sentence))
         }

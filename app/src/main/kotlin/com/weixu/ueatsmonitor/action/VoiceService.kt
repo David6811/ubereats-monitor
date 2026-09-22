@@ -12,11 +12,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import org.vosk.Model
-import org.vosk.Recognizer
-import org.vosk.android.RecognitionListener
-import org.vosk.android.SpeechService
 import org.vosk.android.StorageService
-import org.json.JSONObject
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.media.AudioManager
@@ -48,7 +44,7 @@ class VoiceService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
     private var model: Model? = null
-    private var ears: SpeechService? = null
+    private var ears: Ears? = null
     private var running = false
 
     /** Set once a sentence has been acted on, so its final result does not act again. */
@@ -99,7 +95,6 @@ class VoiceService : Service() {
         running = false
         main.removeCallbacksAndMessages(null)
         ears?.stop()
-        ears?.shutdown()
         ears = null
         model?.close()
         model = null
@@ -135,52 +130,21 @@ class VoiceService : Service() {
 
     private fun open(model: Model) {
         if (ears != null) return
-        runCatching {
-            val recognizer = Recognizer(model, SAMPLE_RATE)
-            SpeechService(recognizer, SAMPLE_RATE).also {
-                it.startListening(listener)
-                ears = it
-                Log.i(TAG, "voice: listening (vosk)")
-            }
-        }.onFailure {
-            Log.e(TAG, "voice: could not open the microphone", it)
-            toast("打不开麦克风，语音命令用不了")
-            stopSelf()
-        }
+        ears = Ears(model, VoiceCommands.GRAMMAR, onPartial = ::partial, onSentence = { sentence(listOf(it)) }).also { it.start() }
+        Log.i(TAG, "voice: listening (vosk)")
     }
 
     /** Listening carries on after the phone has spoken. */
     private fun resume() {
         actedThisSentence = false
-        ears?.setPause(false)
+        ears?.pause(false)
     }
 
-    /** Vosk writes Mandarin one character at a time: "你 好 地 图". */
-    private fun heardIn(hypothesis: String?): List<String> {
-        val text = runCatching { JSONObject(hypothesis ?: return emptyList()).optString("text") }
-            .getOrDefault("").orEmpty().replace(" ", "").trim()
-        return if (text.isEmpty()) emptyList() else listOf(text)
-    }
-
-    private val listener = object : RecognitionListener {
-        override fun onResult(hypothesis: String?) = sentence(heardIn(hypothesis))
-        override fun onFinalResult(hypothesis: String?) = sentence(heardIn(hypothesis))
-
-        override fun onPartialResult(hypothesis: String?) {
-            if (actedThisSentence) return
-            val heard = runCatching { JSONObject(hypothesis ?: return).optString("partial") }
-                .getOrDefault("").orEmpty().replace(" ", "").trim()
-            if (heard.isEmpty()) return
-            val command = VoiceCommands.parsePartial(listOf(heard)) ?: return
-            Log.i(TAG, "voice heard (partial): $heard")
-            understood(command)
-        }
-
-        override fun onError(exception: Exception?) {
-            Log.w(TAG, "voice: recognizer error", exception)
-        }
-
-        override fun onTimeout() = Unit
+    private fun partial(heard: String) {
+        if (actedThisSentence) return
+        val command = VoiceCommands.parsePartial(listOf(heard)) ?: return
+        Log.i(TAG, "voice heard (partial): $heard")
+        understood(command)
     }
 
     /** A whole sentence, at the pause after it. */
@@ -196,6 +160,7 @@ class VoiceService : Service() {
         val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
         if (System.currentTimeMillis() < questionUntilMillis && !bareWake) {
             questionUntilMillis = 0L
+            ears?.listenTo(VoiceCommands.GRAMMAR)
             understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
             return
         }
@@ -210,14 +175,17 @@ class VoiceService : Service() {
     private fun understood(command: VoiceCommand) {
         actedThisSentence = true
         main.removeCallbacksAndMessages(null)
-        ears?.setPause(true)
+        ears?.pause(true)
+        ears?.forget()
         if (command is VoiceCommand.Ask && command.question.isEmpty()) {
             // "你好" and a pause: the question is coming. It answers "你好" back -
             // a clip rendered once and shipped in the app, not synthesised each
             // time - and the next sentence heard within a few seconds is taken as it.
             greet()
             questionUntilMillis = System.currentTimeMillis() + QUESTION_WINDOW_MILLIS
+            ears?.listenTo(null)
             main.postDelayed({ resume() }, GREET_MILLIS)
+            main.postDelayed({ if (questionUntilMillis != 0L) { questionUntilMillis = 0L; ears?.listenTo(VoiceCommands.GRAMMAR) } }, QUESTION_WINDOW_MILLIS)
             return
         }
         if (command is VoiceCommand.Ask) {
@@ -379,7 +347,6 @@ class VoiceService : Service() {
         /** The Mandarin model in assets, and the folder it is unpacked to under files/. */
         private const val MODEL_ASSET = "model-cn"
         private const val MODEL_DIR = "model-cn"
-        private const val SAMPLE_RATE = 16000.0f
 
         private val ENGLISH: Locale = Locale("en", "AU")
 

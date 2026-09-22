@@ -6,7 +6,8 @@ import com.weixu.ueatsmonitor.domain.Briefing
 import com.weixu.ueatsmonitor.domain.Geo
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -81,21 +82,22 @@ object Assistant {
      * for a load, and ask for a refresh when the token is gone.
      */
     private suspend fun accessToken(): String? {
-        repeat(10) {
-            val status = Cloud.session.value
-            when (status) {
-                is SessionStatus.Authenticated -> return status.session.accessToken
-                is SessionStatus.RefreshFailure -> {
-                    runCatching { Cloud.client.auth.refreshCurrentSession() }
-                        .onFailure { Log.w(TAG, "assistant: refresh failed", it) }
-                    return Cloud.client.auth.currentAccessTokenOrNull()
-                }
-                is SessionStatus.NotAuthenticated -> return null
-                is SessionStatus.Initializing -> delay(300)
+        val status = withTimeoutOrNull(SESSION_WAIT_MILLIS) {
+            Cloud.session.first { it !is SessionStatus.Initializing }
+        } ?: Cloud.session.value
+        return when (status) {
+            is SessionStatus.Authenticated -> status.session.accessToken
+            is SessionStatus.RefreshFailure -> {
+                runCatching { Cloud.client.auth.refreshCurrentSession() }
+                    .onFailure { Log.w(TAG, "assistant: refresh failed", it) }
+                Cloud.client.auth.currentAccessTokenOrNull()
             }
+            else -> Cloud.client.auth.currentAccessTokenOrNull()
         }
-        return Cloud.client.auth.currentAccessTokenOrNull()
     }
+
+    /** A fresh process loads the saved session in well under this. */
+    private const val SESSION_WAIT_MILLIS = 10_000L
 
     /** The picture of now that goes with every question. */
     fun briefing(context: Context): String {

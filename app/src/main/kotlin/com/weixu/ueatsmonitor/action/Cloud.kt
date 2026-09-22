@@ -28,7 +28,14 @@ object Cloud {
 
     val client: SupabaseClient by lazy {
         createSupabaseClient(supabaseUrl = URL, supabaseKey = PUBLISHABLE_KEY) {
-            install(Auth)
+            install(Auth) {
+                // The library forgets the session whenever no screen of ours is
+                // showing, on the assumption that an app in the background is
+                // idle. This one is not: the reader, the voice and the rules
+                // watch all run behind Uber, and each needs the session there.
+                enableLifecycleCallbacks = false
+                alwaysAutoRefresh = true
+            }
             install(Postgrest)
             install(Realtime)
         }
