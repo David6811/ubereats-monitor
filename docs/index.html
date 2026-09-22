@@ -1323,10 +1323,27 @@ footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; 
     return d;
   }
 
+  /**
+   * Every set's centre, then the places saved by hand, with the same spot not
+   * listed twice. The circle and the centre picker both offer this list.
+   */
+  function knownPlaces(){
+    var out = [];
+    function add(place){
+      if (out.some(function(p){ return Math.abs(p.lat - place.lat) < 0.0005 && Math.abs(p.lon - place.lon) < 0.0005; })) return;
+      out.push(place);
+    }
+    profiles().forEach(function(profile){
+      if (profile.centre) add({ label: (profile.centre.label || "中心") + "（" + profile.name + "）", lat: profile.centre.lat, lon: profile.centre.lon });
+    });
+    (state.places || []).forEach(add);
+    return out;
+  }
+
   function drawPlaces(){
     var pick = $("placePick");
     pick.textContent = "";
-    (state.places || []).forEach(function(place, index){
+    knownPlaces().forEach(function(place, index){
       var option = document.createElement("option");
       option.value = String(index);
       option.textContent = place.label;
@@ -1341,7 +1358,7 @@ footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; 
   }
 
   function usePlace(index){
-    var place = (state.places || [])[index];
+    var place = knownPlaces()[index];
     if (!place) return;
     $("anchorLat").value = place.lat;
     $("anchorLon").value = place.lon;
@@ -1421,7 +1438,7 @@ footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; 
   function drawCentrePlaces(){
     var row = $("centrePicks");
     row.textContent = "";
-    (state.places || []).forEach(function(place){
+    knownPlaces().forEach(function(place){
       var b = document.createElement("button");
       b.className = "btn plain";
       b.textContent = place.label.split(",")[0];
