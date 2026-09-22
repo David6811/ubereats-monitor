@@ -306,10 +306,9 @@ class VoiceService : Service() {
             return
         }
         if (command is VoiceCommand.Ask) {
-            // No "好" first: the answer is the confirmation. A tone says it was
-            // heard, listening stays off while the answer is fetched and spoken,
-            // and comes back when the speech ends - the same way as after "好".
-            tone(ToneGenerator.TONE_PROP_ACK)
+            // Nothing first: the answer is the confirmation. Listening stays off
+            // while the answer is fetched and spoken, and comes back when the
+            // speech ends - the same way as after "好".
             asking.launch {
                 val words = when (val reply = Assistant.ask(this@VoiceService, command.question)) {
                     is Assistant.Reply.Answer -> reply.words
