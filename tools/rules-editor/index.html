@@ -79,6 +79,18 @@ main > section:not(.mapsection){max-width:1100px}
 .mapsection{width:100%}
 .kv{display:grid; grid-template-columns:max-content 1fr; gap:10px 18px; align-items:center; max-width:640px}
 .kv .eyebrow{padding:0}
+table.jobs{width:100%; border-collapse:collapse; font-size:13px}
+table.jobs th{text-align:left; color:var(--ink-3); font-weight:600; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:8px 10px; border-bottom:1px solid var(--line)}
+table.jobs td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+table.jobs tr:hover td{background:var(--sunk)}
+table.jobs .money{color:var(--gold); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
+table.jobs .when{color:var(--ink-3); white-space:nowrap; font-variant-numeric:tabular-nums}
+table.jobs .yes{color:var(--blue)} table.jobs .no{color:var(--orange)}
+table.jobs .taken{border:1px solid rgba(232,182,76,.5); color:var(--gold); border-radius:8px; padding:0 8px; font-size:11px; font-weight:600; margin-left:6px}
+table.jobs td.yes, table.jobs td.no, table.jobs td:last-child{white-space:nowrap}
+table.jobs .why{color:var(--ink-2); max-width:34ch}
+table.jobs .note{color:var(--ink-3); font-size:12px; display:block; margin-top:2px}
+table.jobs a{color:var(--ink); text-decoration:none}
 section{
   background:var(--panel); border:1px solid var(--line); border-radius:var(--r-panel);
   padding:22px 24px;
@@ -343,8 +355,22 @@ body.mapfull h2{font-size:16px}
   </section>
 
   <section data-page="jobs">
-    <h2>单子</h2>
-    <p class="hint">手机上的单还没上云，先在手机 App 的「工作」页看。等上了云，这里会列出每一单和判断理由。</p>
+    <h2>单子<span class="count" id="jobsCount"></span></h2>
+    <p class="hint">手机看到的每一张派单，几秒内到这里。接了的、没接的、为什么。</p>
+    <div class="row" style="margin-bottom:6px">
+      <span class="chips" style="margin:0" id="jobsFilter">
+        <span class="chip" data-shelf="all" data-on="1">全部</span>
+        <span class="chip" data-shelf="taken">接了</span>
+        <span class="chip" data-shelf="worth">建议接</span>
+        <span class="chip" data-shelf="leave">建议不接</span>
+      </span>
+      <span class="spacer"></span>
+      <button class="btn plain" id="jobsRefresh">刷新</button>
+    </div>
+    <table class="jobs" id="jobsTable">
+      <thead><tr><th>时间</th><th>钱</th><th>取餐</th><th>送到</th><th>判断</th><th>理由</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
   </section>
 
   <section data-page="account">
@@ -502,7 +528,60 @@ body.mapfull h2{font-size:16px}
       $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : "还没保存过";
     }
     if (name === "params") $("farOver").value = (far().overDollars || 30);
+    if (name === "jobs") loadJobs();
   }
+
+  /* ---- the board, as the phone pushed it ---- */
+  var jobsAll = [], jobsShelf = "all";
+  function loadJobs(){
+    $("jobsCount").textContent = "（取…）";
+    API.jobs().then(function(data){
+      jobsAll = data.jobs || [];
+      if (data.detail) say(data.detail, "bad");
+      drawJobsTable();
+    });
+  }
+  function dayOf(millis){
+    var d = new Date(millis);
+    return (d.getMonth() + 1) + "/" + d.getDate() + " " + clockOf(millis);
+  }
+  function drawJobsTable(){
+    var rows = jobsAll.filter(function(j){
+      var good = (j.ruling || "").indexOf("可以") === 0;
+      return jobsShelf === "all" || (jobsShelf === "taken" && j.taken) ||
+        (jobsShelf === "worth" && good) || (jobsShelf === "leave" && !good);
+    });
+    $("jobsCount").textContent = "（" + rows.length + " 单）";
+    var body = $("jobsTable").querySelector("tbody");
+    body.textContent = "";
+    rows.forEach(function(j){
+      var tr = document.createElement("tr");
+      var good = (j.ruling || "").indexOf("可以") === 0;
+      function cell(text, cls){ var td = document.createElement("td"); if (cls) td.className = cls; td.textContent = text || ""; tr.appendChild(td); return td; }
+      cell(dayOf(j.at), "when");
+      cell(j.payout, "money");
+      var pick = cell(j.pickup); if (j.address) { var n = document.createElement("span"); n.className = "note"; n.textContent = j.address; pick.appendChild(n); }
+      var drop = cell(j.dropAddress || j.dropoff);
+      if (j.dropNote || j.dropNoteCn) { var dn = document.createElement("span"); dn.className = "note"; dn.textContent = "留言：" + (j.dropNoteCn || j.dropNote); drop.appendChild(dn); }
+      var r = cell(j.ruling || "—", good ? "yes" : "no");
+      if (j.taken) { var t = document.createElement("span"); t.className = "taken"; t.textContent = "接了"; r.appendChild(t); }
+      cell(j.why, "why");
+      var td = document.createElement("td");
+      var a = document.createElement("a");
+      a.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((j.dropAddress || j.dropoff) + ", Victoria, Australia");
+      a.target = "_blank"; a.rel = "noopener"; a.textContent = "地图";
+      td.appendChild(a); tr.appendChild(td);
+      body.appendChild(tr);
+    });
+  }
+  document.querySelectorAll("#jobsFilter .chip").forEach(function(c){
+    c.addEventListener("click", function(){
+      jobsShelf = c.dataset.shelf;
+      document.querySelectorAll("#jobsFilter .chip").forEach(function(o){ o.dataset.on = o === c ? "1" : "0"; });
+      drawJobsTable();
+    });
+  });
+  $("jobsRefresh").addEventListener("click", loadJobs);
   document.querySelectorAll("#menu button[data-page]").forEach(function(b){
     b.addEventListener("click", function(){ showPage(b.dataset.page); });
   });

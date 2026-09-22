@@ -58,6 +58,9 @@ object JobStore {
 
     fun clear(context: Context) = write(context, emptyList())
 
+    /** Sends the whole board up as it is, without changing it. */
+    fun pushAll(context: Context) = write(context, list(context))
+
     /**
      * Puts a Chinese rendering of each note beside the original. Translation is
      * asynchronous and can take a moment, so the board is read again when the
@@ -122,6 +125,7 @@ object JobStore {
         }
         runCatching { File(context.filesDir, FILE_NAME).writeText(array.toString()) }
             .onFailure { Log.w("UEatsMonitor", "jobs: could not write the board", it) }
+        JobsSync.push(array)
     }
 
     private fun jobOf(element: kotlinx.serialization.json.JsonElement): Job? = runCatching {

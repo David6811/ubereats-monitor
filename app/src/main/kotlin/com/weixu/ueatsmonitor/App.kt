@@ -2,6 +2,7 @@ package com.weixu.ueatsmonitor
 
 import android.app.Application
 import com.weixu.ueatsmonitor.action.Cloud
+import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.LiveSettings
 import com.weixu.ueatsmonitor.action.RulesSync
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -36,6 +37,9 @@ class App : Application() {
             Cloud.session.collect { status ->
                 if (status is SessionStatus.Authenticated) {
                     RulesSync.pull(this@App)
+                    // The board as it stands goes up on every sign-in, so a fresh
+                    // account starts with what the phone already knows.
+                    JobStore.pushAll(this@App)
                     if (watching?.isActive != true) {
                         watching = launch { RulesSync.watch(this@App, this) ; awaitCancellation() }
                     }

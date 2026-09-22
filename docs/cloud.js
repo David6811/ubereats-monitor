@@ -85,8 +85,14 @@
       });
     },
 
-    /** The phone's board has not moved to the cloud yet. */
-    jobs: function(){ return Promise.resolve({ jobs: [], detail: "手机上的单还没上云，暂时看不了" }); },
+    /** Every offer the phone saw, newest first, as the phone wrote it. */
+    jobs: function(){
+      return client.from("jobs").select("at, job, updated_at").order("at", { ascending: false }).limit(500)
+        .then(function(res){
+          if (res.error) return { jobs: [], detail: res.error.message };
+          return { jobs: res.data.map(function(r){ return r.job; }) };
+        });
+    },
 
     /**
      * Writes the whole rules object as the driver's row. Refused when the row
