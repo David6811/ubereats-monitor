@@ -420,7 +420,7 @@ body.mapfull h2{font-size:16px}
   </label>
   <div class="row">
     <button class="btn plain" id="newCancel">取消</button>
-    <button class="btn" id="newGo">建好并切过去</button>
+    <button class="btn" id="newGo">建好</button>
   </div>
 </dialog>
 
@@ -1128,11 +1128,12 @@ body.mapfull h2{font-size:16px}
     var inside = state.suburbs.filter(function(sb){
       return kmBetween(newCentre.lat, newCentre.lon, sb.lat, sb.lon) <= km;
     }).map(function(sb){ return sb.name; });
-    stash();
+    // Added to the list and left there: the set in use stays in use, and the
+    // driver picks the new one from the list when he wants it.
     profiles().push({ name: name, suburbs: inside, centre: newCentre });
     $("newSet").close();
-    switchTo(name);
-    say("「" + name + "」建好了：中心 " + newCentre.label + "，" + inside.length + " 个区", "ok");
+    drawProfiles();
+    say("「" + name + "」建好了：中心 " + newCentre.label + "，" + inside.length + " 个区，在列表里", "ok");
   });
 
   /** Keeps the set you are leaving up to date before loading the next one. */
