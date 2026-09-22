@@ -295,6 +295,30 @@ class VoiceCommandsTest {
     }
 
     @Test
+    fun `given 不聊了, when checked, then it ends the conversation`() {
+        // arrange
+        val heard = "不聊了"
+
+        // act
+        val goodbye = VoiceCommands.isGoodbye(heard)
+
+        // assert
+        assertEquals(true, goodbye)
+    }
+
+    @Test
+    fun `given a long sentence that happens to contain 好了, when checked, then it is a question, not a goodbye`() {
+        // arrange
+        val heard = "餐准备好了没有"
+
+        // act
+        val goodbye = VoiceCommands.isGoodbye(heard)
+
+        // assert
+        assertEquals(false, goodbye)
+    }
+
+    @Test
     fun `given an app named in passing with no verb, when it is parsed, then nothing happens`() {
         // arrange
         val heard = listOf("这个地图不太准")

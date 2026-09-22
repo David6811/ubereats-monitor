@@ -138,6 +138,7 @@ class VoiceService : Service() {
     private fun resume() {
         actedThisSentence = false
         ears?.pause(false)
+        afterSpeaking?.let { afterSpeaking = null; it() }
     }
 
     private fun partial(heard: String) {
@@ -155,16 +156,49 @@ class VoiceService : Service() {
             actedThisSentence = false
             return
         }
-        // The sentence after a bare "你好" is the question, whatever it says.
+        // Inside a conversation every sentence is a question - unless it is the
+        // driver saying he is done, or "你好" again.
         val command = VoiceCommands.parse(heard)
         val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
-        if (System.currentTimeMillis() < questionUntilMillis && !bareWake) {
-            questionUntilMillis = 0L
-            ears?.listenTo(VoiceCommands.GRAMMAR)
+        if (inConversation() && !bareWake) {
+            if (VoiceCommands.isGoodbye(heard.first())) {
+                endConversation()
+                ears?.pause(true)
+                ears?.forget()
+                confirmWords("好")
+                return
+            }
             understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
             return
         }
         if (command != null) understood(command)
+    }
+
+    /**
+     * A conversation: opened by "你好", kept open for a few seconds after each
+     * answer so the next question needs no "你好", closed by silence or by
+     * the driver saying he is done. While it is open the recogniser hears the
+     * whole language; outside it, only the command phrases.
+     */
+    private fun inConversation(): Boolean = System.currentTimeMillis() < conversationUntilMillis
+
+    private fun keepConversation(millis: Long) {
+        conversationUntilMillis = System.currentTimeMillis() + millis
+        ears?.listenTo(null)
+        main.removeCallbacks(closeConversation)
+        main.postDelayed(closeConversation, millis)
+    }
+
+    private fun endConversation() {
+        conversationUntilMillis = 0L
+        main.removeCallbacks(closeConversation)
+        ears?.listenTo(VoiceCommands.GRAMMAR)
+    }
+
+    private val closeConversation = Runnable {
+        if (inConversation()) return@Runnable
+        Log.i(TAG, "voice: conversation closed")
+        endConversation()
     }
 
     /**
@@ -182,22 +216,23 @@ class VoiceService : Service() {
             // a clip rendered once and shipped in the app, not synthesised each
             // time - and the next sentence heard within a few seconds is taken as it.
             greet()
-            questionUntilMillis = System.currentTimeMillis() + QUESTION_WINDOW_MILLIS
-            ears?.listenTo(null)
+            keepConversation(QUESTION_WINDOW_MILLIS)
             main.postDelayed({ resume() }, GREET_MILLIS)
-            main.postDelayed({ if (questionUntilMillis != 0L) { questionUntilMillis = 0L; ears?.listenTo(VoiceCommands.GRAMMAR) } }, QUESTION_WINDOW_MILLIS)
             return
         }
         if (command is VoiceCommand.Ask) {
             // Nothing first: the answer is the confirmation. Listening stays off
             // while the answer is fetched and spoken, and comes back when the
-            // speech ends - the same way as after "好".
+            // speech ends. The conversation then stays open a few seconds more
+            // for a follow-up, and the clock is stopped while the phone speaks.
+            main.removeCallbacks(closeConversation)
+            conversationUntilMillis = Long.MAX_VALUE
             asking.launch {
                 val words = when (val reply = Assistant.ask(this@VoiceService, command.question)) {
                     is Assistant.Reply.Answer -> reply.words
                     is Assistant.Reply.Failed -> "问不了：" + reply.why
                 }
-                main.post { announce(words) }
+                main.post { announce(words); afterSpeaking = { keepConversation(FOLLOW_UP_MILLIS) } }
             }
             return
         }
@@ -205,8 +240,11 @@ class VoiceService : Service() {
         act(command)
     }
 
-    /** Until when the next sentence heard is the question that followed a bare "你好". */
-    private var questionUntilMillis: Long = 0L
+    /** Until when the driver is in a conversation with the assistant. */
+    private var conversationUntilMillis: Long = 0L
+
+    /** Run once when the phone finishes speaking, then cleared. */
+    private var afterSpeaking: (() -> Unit)? = null
 
     private val asking = kotlinx.coroutines.CoroutineScope(
         kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
@@ -292,6 +330,8 @@ class VoiceService : Service() {
         return true
     }
 
+    private fun confirmWords(words: String) = announce(words)
+
     /** Said aloud, because the driver is not looking at the phone. A tone when there is no voice. */
     private fun announce(words: String) {
         Log.i(TAG, "voice: announcing $words")
@@ -339,6 +379,9 @@ class VoiceService : Service() {
         private const val NOTIFICATION_ID = 44
         /** How long after "你好" the driver has to ask the question. */
         private const val QUESTION_WINDOW_MILLIS = 8_000L
+
+        /** How long after an answer the next sentence still counts as a follow-up. */
+        private const val FOLLOW_UP_MILLIS = 5_000L
 
         /** The bundled greeting is half a second; listen again once it is over. */
         private const val GREET_MILLIS = 700L

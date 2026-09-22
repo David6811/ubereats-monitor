@@ -93,7 +93,7 @@ class Ears(
             Log.e(TAG, "ears: microphone would not open")
             return
         }
-        val recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), grammar(phrases))
+        var recognizer = recognizerFor(phrases)
         var listening: List<String>? = phrases
         val chunk = ShortArray(CHUNK_SAMPLES)
         // The chunk before the one that crossed the line: the first syllable of
@@ -111,10 +111,14 @@ class Ears(
                 if (rewire) {
                     rewire = false
                     if (wanted != listening) {
-                        recognizer.setGrammar(grammar(wanted))
+                        // A new recogniser rather than setGrammar: once opened to
+                        // the whole language, this one would not go back to the list.
+                        recognizer.close()
+                        recognizer = recognizerFor(wanted)
                         listening = wanted
+                    } else {
+                        recognizer.reset()
                     }
-                    recognizer.reset()
                     fed = false
                     hangover = 0
                 }
@@ -168,8 +172,11 @@ class Ears(
      * "[unk]" lets anything else come out as unknown instead of as the
      * nearest phrase. Null means the whole language.
      */
-    private fun grammar(phrases: List<String>?): String {
-        if (phrases == null) return "[]"
+    private fun recognizerFor(phrases: List<String>?): Recognizer =
+        if (phrases == null) Recognizer(model, SAMPLE_RATE.toFloat())
+        else Recognizer(model, SAMPLE_RATE.toFloat(), grammar(phrases))
+
+    private fun grammar(phrases: List<String>): String {
         val spaced = phrases.map { it.toCharArray().joinToString(" ") } + "[unk]"
         return spaced.joinToString(",", "[", "]") { "\"" + it + "\"" }
     }

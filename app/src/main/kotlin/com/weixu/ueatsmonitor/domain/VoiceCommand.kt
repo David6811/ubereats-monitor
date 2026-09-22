@@ -106,6 +106,14 @@ object VoiceCommands {
      */
     private val WAKE = Regex("""^\s*(你好|哈喽|hello|hi)[\s,，、。!！]*(.*)$""", RegexOption.IGNORE_CASE)
 
+    /** What ends a conversation with the assistant. */
+    private val GOODBYES = listOf("不聊了", "好了", "没了", "没有了", "谢谢", "结束", "拜拜", "就这样")
+
+    fun isGoodbye(sentence: String): Boolean {
+        val text = fold(sentence)
+        return text.length <= 5 && GOODBYES.any { text.contains(it) }
+    }
+
     /** The recognizer offers several guesses, best first; the first that reads as a command wins. */
     fun parse(guesses: List<String>): VoiceCommand? = guesses.firstNotNullOfOrNull(::parseOne)
 
