@@ -55,6 +55,8 @@ h1::before{content:"";display:inline-block;width:10px;height:10px;border-radius:
 .btn.plain{background:transparent;border-color:var(--line-2);color:var(--ink);font-size:13.5px;font-weight:500;padding:7px 14px}
 .btn.plain:hover{border-color:var(--ink-3);filter:none;background:var(--sunk)}
 .btn:disabled{opacity:.45;cursor:default}
+.btn.far{border-style:dashed;border-color:rgba(240,136,62,.6);color:var(--orange)}
+.btn.far[data-on="1"]{background:var(--orange-deep);border-style:solid}
 .btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* The map is the work surface and takes the window; prose stays at a readable
@@ -285,7 +287,6 @@ body.mapfull h2{font-size:16px}
   <button data-page="stores">不接的店</button>
   <button data-page="params">规则参数</button>
   <button data-page="jobs">单子</button>
-  <span class="eyebrow">你</span>
   <button data-page="account">账号</button>
 </nav>
 <main>
@@ -948,6 +949,12 @@ body.mapfull h2{font-size:16px}
     });
   }
 
+  /**
+   * The sets as a list to pick from, not a row of chips: a driver keeps a set
+   * per kind of shift, and a dozen chips with crosses on them read as a mess.
+   * The picked one is the one the phone judges by and the map shows; the far
+   * set is a separate mode, since it is not a shift but an exception to one.
+   */
   function drawProfiles(){
     var bar = $("profileBar");
     bar.textContent = "";
@@ -956,59 +963,39 @@ body.mapfull h2{font-size:16px}
     label.textContent = "选区方案";
     bar.appendChild(label);
 
+    var pick = document.createElement("select");
+    pick.id = "profilePick";
     profiles().forEach(function(profile){
-      var chip = document.createElement("span");
-      chip.className = "prof";
-      // Filled means the phone judges by this one; the ring means the map is
-      // showing it. Picking the far set to edit changes only the ring.
-      chip.dataset.on = profile.name === state.rules.active ? "1" : "0";
-      chip.dataset.editing =
-        (!state.editing && profile.name === state.rules.active) ? "1" : "0";
-      chip.textContent = profile.name;
-      chip.addEventListener("click", function(){ switchTo(profile.name); });
-      chip.addEventListener("dblclick", function(){
-        var name = (prompt("改名", profile.name) || "").trim();
-        if (!name || name === profile.name) return;
-        if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
-        if (state.rules.active === profile.name) state.rules.active = name;
-        profile.name = name;
-        drawProfiles();
-      });
-      chip.title = profile.suburbs.length + " 个区 · " +
-        (profile.centre ? "中心：" + (profile.centre.label || "已设") : "没设中心") +
-        " · 双击改名";
-      if (profiles().length > 1) {
-        var kill = document.createElement("span");
-        kill.className = "x";
-        kill.textContent = "×";
-        kill.title = "删除这套";
-        kill.addEventListener("click", function(e){
-          e.stopPropagation();
-          if (!confirm("删除方案「" + profile.name + "」？")) return;
-          state.rules.profiles = profiles().filter(function(p){ return p.name !== profile.name; });
-          if (state.rules.active === profile.name) switchTo(profiles()[0].name);
-          else drawProfiles();
-        });
-        chip.appendChild(kill);
-      }
-      bar.appendChild(chip);
+      var option = document.createElement("option");
+      option.value = profile.name;
+      option.textContent = profile.name + "（" + profile.suburbs.length + " 个区" +
+        (profile.centre ? "，有中心" : "") + "）";
+      option.selected = profile.name === state.rules.active;
+      pick.appendChild(option);
     });
+    pick.disabled = state.editing === FAR;
+    pick.addEventListener("change", function(){ switchTo(this.value); });
+    bar.appendChild(pick);
 
-    var farChip = document.createElement("span");
-    farChip.className = "prof far";
-    // The far set is never "live": it applies to any offer over the threshold,
-    // whichever ordinary set is in force. So it only ever carries the ring.
-    farChip.dataset.editing = state.editing === FAR ? "1" : "0";
-    farChip.textContent = FAR;
-    farChip.title = far().suburbs.length + " 个区 · 金额超过 $" +
-      (far().overDollars || 30) + " 的单改用这一组，删不掉";
-    farChip.addEventListener("click", editFar);
-    bar.appendChild(farChip);
-
-    var add = document.createElement("button");
-    add.className = "btn plain";
-    add.textContent = "把现在的选区另存为…";
-    add.addEventListener("click", function(){
+    function button(text, plain, onClick){
+      var b = document.createElement("button");
+      b.className = "btn plain";
+      b.textContent = text;
+      b.addEventListener("click", onClick);
+      bar.appendChild(b);
+      return b;
+    }
+    button("改名", true, function(){
+      var current = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+      if (!current) return;
+      var name = (prompt("改名", current.name) || "").trim();
+      if (!name || name === current.name) return;
+      if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
+      current.name = name;
+      state.rules.active = name;
+      drawProfiles();
+    });
+    button("另存为…", true, function(){
       var name = (prompt("这套叫什么？", "") || "").trim();
       if (!name) return;
       var existing = profiles().filter(function(p){ return p.name === name; })[0];
@@ -1018,7 +1005,22 @@ body.mapfull h2{font-size:16px}
       drawProfiles();
       say("已存为「" + name + "」", "ok");
     });
-    bar.appendChild(add);
+    if (profiles().length > 1) {
+      button("删除", true, function(){
+        var name = state.rules.active;
+        if (!confirm("删除方案「" + name + "」？")) return;
+        state.rules.profiles = profiles().filter(function(p){ return p.name !== name; });
+        switchTo(profiles()[0].name);
+      });
+    }
+
+    var farButton = button(
+      state.editing === FAR ? "回到方案" : "改远区（>$" + (far().overDollars || 30) + "）", true,
+      function(){ if (state.editing === FAR) switchTo(state.rules.active); else editFar(); }
+    );
+    farButton.className = "btn plain far";
+    farButton.dataset.on = state.editing === FAR ? "1" : "0";
+    farButton.title = far().suburbs.length + " 个区 · 金额超过门槛的单改用这一组，不分方案";
   }
 
   /** Keeps the set you are leaving up to date before loading the next one. */
