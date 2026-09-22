@@ -59,9 +59,26 @@ h1::before{content:"";display:inline-block;width:10px;height:10px;border-radius:
 
 /* The map is the work surface and takes the window; prose stays at a readable
    width beside it. */
-main{padding:24px 28px; display:flex; flex-direction:column; gap:20px}
+.shell{display:flex; align-items:flex-start}
+nav#menu{
+  position:sticky; top:66px; width:200px; flex:none; padding:18px 12px;
+  display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--line);
+  min-height:calc(100vh - 66px);
+}
+nav#menu button{
+  text-align:left; background:transparent; border:1px solid transparent; color:var(--ink-2);
+  border-radius:var(--r-ctl); padding:10px 14px; font:inherit; font-size:14px; cursor:pointer;
+}
+nav#menu button:hover{background:var(--sunk); color:var(--ink)}
+nav#menu button[data-on="1"]{background:var(--gold-deep); border-color:rgba(232,182,76,.35); color:var(--gold); font-weight:600}
+nav#menu .eyebrow{padding:14px 14px 4px}
+main{flex:1; min-width:0; padding:24px 28px; display:flex; flex-direction:column; gap:20px}
+main > section{display:none}
+main > section[data-shown="1"]{display:block}
 main > section:not(.mapsection){max-width:1100px}
 .mapsection{width:100%}
+.kv{display:grid; grid-template-columns:max-content 1fr; gap:10px 18px; align-items:center; max-width:640px}
+.kv .eyebrow{padding:0}
 section{
   background:var(--panel); border:1px solid var(--line); border-radius:var(--r-panel);
   padding:22px 24px;
@@ -246,12 +263,21 @@ body.mapfull h2{font-size:16px}
   <span class="spacer"></span>
   <span id="phone">账号：…</span>
   <span id="status"></span>
-  <button class="btn plain" id="signOut" hidden>退出登录</button>
   <button class="btn" id="save">保存</button>
 </header>
 
+<div class="shell">
+<nav id="menu">
+  <button data-page="areas">选区</button>
+  <button data-page="centre">中心</button>
+  <button data-page="stores">不接的店</button>
+  <button data-page="params">规则参数</button>
+  <button data-page="jobs">单子</button>
+  <span class="eyebrow">你</span>
+  <button data-page="account">账号</button>
+</nav>
 <main>
-  <section class="mapsection">
+  <section class="mapsection" data-page="areas centre">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
     <div class="maptools">
       <span id="profileBar"></span>
@@ -268,7 +294,7 @@ body.mapfull h2{font-size:16px}
     <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
   </section>
 
-  <section>
+  <section data-page="stores">
     <h2>市中心成片拉黑</h2>
     <p class="hint">
       这两条商业街停车最难。清单全列出来给你看：自带停车场的<b>不拉黑</b>，
@@ -277,7 +303,7 @@ body.mapfull h2{font-size:16px}
     <div id="cores"></div>
   </section>
 
-  <section>
+  <section data-page="stores">
     <h2>不接的店<span class="count" id="storeCount"></span></h2>
     <p class="hint">
       取餐点名字里含有这些字就不接。整个商场可以一次拉黑。<b>店库里没有的，直接照派单卡上写的打进去</b> ——
@@ -300,8 +326,40 @@ body.mapfull h2{font-size:16px}
     </div>
   </section>
 
+  <section data-page="params">
+    <h2>规则参数</h2>
+    <p class="hint">改完记得点右上角「保存」。</p>
+    <div class="kv">
+      <span class="eyebrow">远区门槛 $</span>
+      <input type="number" id="farOver" min="0" step="1" style="max-width:140px">
+    </div>
+    <p class="hint" style="margin-top:10px">派单金额超过这个数，就改用「远区」那一套选区来判。</p>
+    <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="eyebrow">在手机上改的</div>
+      <p class="hint" style="margin:6px 0 0">
+        回中心模式、近中心模式的公里数和分钟数，油钱、时间倍数、远区每小时最低 —— 这些在手机 App 的「设置」页改，跑单时顺手就能调。
+      </p>
+    </div>
+  </section>
 
+  <section data-page="jobs">
+    <h2>单子</h2>
+    <p class="hint">手机上的单还没上云，先在手机 App 的「工作」页看。等上了云，这里会列出每一单和判断理由。</p>
+  </section>
+
+  <section data-page="account">
+    <h2>账号</h2>
+    <div class="kv">
+      <span class="eyebrow">邮箱</span><span id="accountEmail" class="mono"></span>
+      <span class="eyebrow">规则最后保存</span><span id="accountStamp" class="mono"></span>
+    </div>
+    <p class="hint" style="margin-top:16px">手机 App 用同一个邮箱登录，规则就是同一份。</p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn plain" id="signOut">退出登录</button>
+    </div>
+  </section>
 </main>
+</div>
 
 <dialog id="login">
   <h2>登录</h2>
@@ -421,7 +479,42 @@ body.mapfull h2{font-size:16px}
   $("signOut").addEventListener("click", function(){ API.signOut().then(function(){ location.reload(); }); });
   load();
 
+  /* ---- the menu: one page at a time; the map is shared by 选区 and 中心 ---- */
+  var page = "areas";
+  function showPage(name){
+    page = name;
+    document.querySelectorAll("#menu button[data-page]").forEach(function(b){
+      b.dataset.on = b.dataset.page === name ? "1" : "0";
+    });
+    document.querySelectorAll("main > section[data-page]").forEach(function(s){
+      s.dataset.shown = s.dataset.page.split(" ").indexOf(name) >= 0 ? "1" : "0";
+    });
+    try { localStorage.setItem("page", name); } catch (e) {}
+    // Hidden, the map's box was zero; once it is back on screen it must be
+    // measured again and shown the chosen set, or it sits zoomed into nothing.
+    if (map && (name === "areas" || name === "centre")) {
+      setTimeout(function(){ map.invalidateSize(); fitToChosen(); }, 30);
+    }
+    // The centre page is the map with the centre panel open; leaving closes it.
+    if (typeof showCentre === "function" && map) showCentre(name === "centre");
+    if (name === "account") {
+      $("accountEmail").textContent = state.user || "";
+      $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : "还没保存过";
+    }
+    if (name === "params") $("farOver").value = (far().overDollars || 30);
+  }
+  document.querySelectorAll("#menu button[data-page]").forEach(function(b){
+    b.addEventListener("click", function(){ showPage(b.dataset.page); });
+  });
+  $("farOver").addEventListener("change", function(){
+    var v = parseFloat(this.value);
+    if (!isNaN(v) && v >= 0) { far().overDollars = v; say("远区门槛改成 $" + v + "，记得保存"); }
+  });
+
   function fill(){
+    // Leaflet measures its box when it is made: the map's section must be on
+    // screen then, whichever page is opened afterwards.
+    document.querySelector("main > section.mapsection").dataset.shown = "1";
     drawStores();
     drawDenied();
     drawAlwaysOk();
@@ -432,6 +525,9 @@ body.mapfull h2{font-size:16px}
     drawPlaces();
     drawProfiles();
     drawCores();
+    var remembered = "areas";
+    try { remembered = localStorage.getItem("page") || "areas"; } catch (e) {}
+    showPage(remembered);
   }
 
   function counts(){
@@ -763,7 +859,6 @@ body.mapfull h2{font-size:16px}
       ["clearAll", "全部取消"],
       ["full", "全屏"],
       ["circleTool", "量范围"],
-      ["centreTool", "设中心"],
       ["noGoTool", "画不接单框"],
     ].forEach(function(pair){
       var button = document.createElement("button");
@@ -1056,9 +1151,8 @@ body.mapfull h2{font-size:16px}
 
   function showCentre(on){
     if (on) showCircle(false);
+    if (centreOn === on) return;
     centreOn = on;
-    $("centreTool").classList.toggle("armed", on);
-    $("centreTool").textContent = on ? "收起" : "设中心";
     if (on) {
       $("pickLat").value = ""; $("pickLon").value = ""; $("pickLabel").value = "";
       $("centrePicked").textContent = "还没选位置。";
@@ -1180,8 +1274,7 @@ body.mapfull h2{font-size:16px}
   // One at a time: they sit in the same corner and both want the map's click.
   $("circleTool").addEventListener("click", function(){ showCircle(!circleOn); });
   $("circleClose").addEventListener("click", function(){ showCircle(false); });
-  $("centreTool").addEventListener("click", function(){ showCentre(!centreOn); });
-  $("centreClose").addEventListener("click", function(){ showCentre(false); });
+  $("centreClose").addEventListener("click", function(){ showPage("areas"); });
   $("noGoTool").addEventListener("click", function(){
     if (circleOn) showCircle(false);
     if (centreOn) showCentre(false);
