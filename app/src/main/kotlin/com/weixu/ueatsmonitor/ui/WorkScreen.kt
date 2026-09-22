@@ -267,6 +267,20 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             onMap = { Navigation.showPlace(context, dropoff) },
         )
         job.dropNote?.let { Note("客户留言", it, job.dropNoteCn) }
+        // A batched offer's other deliveries. The card named one destination;
+        // the rest turned up on their own delivery screens.
+        job.extraDrops.forEach { drop ->
+            Stop(
+                title = "同单再送",
+                place = drop.address,
+                detail = drop.unit,
+                confirmed = true,
+                first = false,
+                onDrive = { Navigation.driveTo(context, drop.address) },
+                onMap = { Navigation.showPlace(context, drop.address) },
+            )
+            drop.note?.let { Note("客户留言", it, null) }
+        }
         // The shop's own words about where to park, which is the one thing no
         // map or table of ours can tell him.
         job.note?.let { Note("店家留言", it, job.noteCn) }

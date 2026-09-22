@@ -25,7 +25,16 @@ data class Job(
     /** The two notes in Chinese, once the phone has translated them. */
     val noteCn: String?,
     val dropNoteCn: String?,
+    /**
+     * The other deliveries of a batched offer. Uber's card for "Delivery (2)"
+     * names one destination only; the second appears on its own delivery screen
+     * half an hour later, naming a suburb no job on the board mentions.
+     */
+    val extraDrops: List<Drop>,
 )
+
+/** Data. One more delivery of the same offer: where it goes and what the customer wrote. */
+data class Drop(val address: String, val unit: String?, val note: String?)
 
 /** Data. What the rules said about an offer. The machine's opinion, and only that. */
 enum class Advice {
@@ -177,6 +186,25 @@ object JobBoard {
                 dropUnit = dropoff.unit,
                 dropNote = dropoff.note,
             )
+        }
+    }
+
+    /**
+     * A delivery screen whose suburb no job names. On a batched offer -
+     * "Delivery (2)" - the card names one destination and the second turns up
+     * only here, so it is kept against the job in hand rather than thrown away.
+     * Nothing is claimed when there is more than one job it could belong to.
+     */
+    fun alsoDelivered(jobs: List<Job>, dropoff: Dropoff, now: Long): List<Job> {
+        val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
+        val inHand = recent.filter { jobs[it].taken }
+        val at = inHand.singleOrNull() ?: return jobs
+        val already = jobs[at].dropAddress == dropoff.address ||
+            jobs[at].extraDrops.any { it.address == dropoff.address }
+        if (jobs[at].dropAddress == null || already) return jobs
+        return jobs.mapIndexed { index, job ->
+            if (index != at) job
+            else job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
         }
     }
 

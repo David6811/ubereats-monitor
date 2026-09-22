@@ -594,6 +594,12 @@ body[data-page="areas"] footer{display:none}
       var pick = cell(j.pickup); if (j.address) { var n = document.createElement("span"); n.className = "note"; n.textContent = j.address; pick.appendChild(n); }
       var drop = cell(j.dropAddress || j.dropoff);
       if (j.dropNote || j.dropNoteCn) { var dn = document.createElement("span"); dn.className = "note"; dn.textContent = "留言：" + (j.dropNoteCn || j.dropNote); drop.appendChild(dn); }
+      (j.extraDrops || []).forEach(function(d){
+        var more = document.createElement("span");
+        more.className = "note";
+        more.textContent = "同单再送：" + d.address + (d.unit ? "，" + d.unit : "") + (d.note ? "，" + d.note : "");
+        drop.appendChild(more);
+      });
       var r = cell(j.ruling || "—", good ? "yes" : "no");
       if (j.taken) { var t = document.createElement("span"); t.className = "taken"; t.textContent = "接了"; r.appendChild(t); }
       cell(j.why, "why");

@@ -5,6 +5,7 @@ import android.util.Log
 import com.weixu.ueatsmonitor.domain.Job
 import com.weixu.ueatsmonitor.domain.JobBoard
 import com.weixu.ueatsmonitor.domain.OfferRecord
+import com.weixu.ueatsmonitor.domain.Drop
 import com.weixu.ueatsmonitor.domain.Dropoff
 import com.weixu.ueatsmonitor.domain.DropoffScreen
 import com.weixu.ueatsmonitor.domain.Pickup
@@ -46,7 +47,7 @@ object JobStore {
                 atMillis, offer,
                 taken = false, address = null, note = null,
                 dropAddress = null, dropUnit = null, dropNote = null,
-                noteCn = null, dropNoteCn = null,
+                noteCn = null, dropNoteCn = null, extraDrops = emptyList(),
             ),
         )
         write(context, next)
@@ -87,7 +88,10 @@ object JobStore {
     /** The delivery screen appeared: give the job the customer's real address. */
     fun markDelivered(context: Context, dropoff: Dropoff) {
         val jobs = list(context)
-        val next = JobBoard.delivered(jobs, dropoff, DropoffScreen.suburbOf(dropoff), System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        val named = JobBoard.delivered(jobs, dropoff, DropoffScreen.suburbOf(dropoff), now)
+        // No job names this suburb: the second half of a batched offer.
+        val next = if (named != jobs) named else JobBoard.alsoDelivered(jobs, dropoff, now)
         if (next != jobs) write(context, next)
     }
 
@@ -112,6 +116,17 @@ object JobStore {
                         job.dropNote?.let { put("dropNote", JsonPrimitive(it)) }
                         job.noteCn?.let { put("noteCn", JsonPrimitive(it)) }
                         job.dropNoteCn?.let { put("dropNoteCn", JsonPrimitive(it)) }
+                        if (job.extraDrops.isNotEmpty()) {
+                            put("extraDrops", buildJsonArray {
+                                job.extraDrops.forEach { drop ->
+                                    add(buildJsonObject {
+                                        put("address", JsonPrimitive(drop.address))
+                                        drop.unit?.let { put("unit", JsonPrimitive(it)) }
+                                        drop.note?.let { put("note", JsonPrimitive(it)) }
+                                    })
+                                }
+                            })
+                        }
                         put("match", JsonPrimitive(job.offer.isMatch))
                         put("payout", JsonPrimitive(job.offer.payout))
                         put("pickup", JsonPrimitive(job.offer.pickup))
@@ -140,6 +155,14 @@ object JobStore {
             dropNote = entry["dropNote"]?.jsonPrimitive?.content,
             noteCn = entry["noteCn"]?.jsonPrimitive?.content,
             dropNoteCn = entry["dropNoteCn"]?.jsonPrimitive?.content,
+            extraDrops = entry["extraDrops"]?.jsonArray?.map { drop ->
+                val one = drop.jsonObject
+                Drop(
+                    address = one["address"]!!.jsonPrimitive.content,
+                    unit = one["unit"]?.jsonPrimitive?.content,
+                    note = one["note"]?.jsonPrimitive?.content,
+                )
+            }.orEmpty(),
             offer = OfferRecord(
                 isMatch = entry["match"]?.jsonPrimitive?.content == "true",
                 payout = entry["payout"]!!.jsonPrimitive.content,

@@ -68,6 +68,12 @@ object Briefing {
         append("送餐：").append(job.dropAddress ?: job.offer.dropoff)
         job.dropUnit?.let { append("，").append(it) }
         append("，").append(if (job.dropAddress != null) "已在送餐页面" else "还没到送餐页面").append("。")
+        job.extraDrops.forEach { drop ->
+            append("同一单还要送：").append(drop.address)
+            drop.unit?.let { append("，").append(it) }
+            drop.note?.let { append("，客户留言：").append(it) }
+            append("。")
+        }
         (job.noteCn ?: job.note)?.let { append("商家留言：").append(it).append("。") }
         (job.dropNoteCn ?: job.dropNote)?.let { append("客户留言：").append(it).append("。") }
     }

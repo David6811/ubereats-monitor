@@ -32,22 +32,22 @@ class JobBoardTest {
     @Test
     fun `given a job on the board, when a second one arrives, then both are held`() {
         // arrange
-        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert  newest first
-        assertEquals(listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)), next)
+        assertEquals(listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())), next)
     }
 
     @Test
     fun `given the same card read again, when it is added, then the board does not change`() {
         // arrange
-        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(3_000, pizza.copy(pickup = "9 Mario's Pizza And Pasta"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(3_000, pizza.copy(pickup = "9 Mario's Pizza And Pasta"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert
         assertEquals(board, next)
@@ -56,10 +56,10 @@ class JobBoardTest {
     @Test
     fun `given a card whose address OCR read differently, when it is added, then the board does not change`() {
         // arrange
-        val board = listOf(Job(1_789_181_933_388, pizza.copy(dropoff = "a Ashleigh Street & Jean Court, sb Keysborough"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_789_181_933_388, pizza.copy(dropoff = "a Ashleigh Street & Jean Court, sb Keysborough"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(1_789_181_938_491, pizza.copy(dropoff = "Ashleigh Street & Jean Court, Keysborough J./KTT|T3.T0"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(1_789_181_938_491, pizza.copy(dropoff = "Ashleigh Street & Jean Court, Keysborough J./KTT|T3.T0"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert
         assertEquals(board, next)
@@ -68,10 +68,10 @@ class JobBoardTest {
     @Test
     fun `given the same money again an hour later, when it is added, then it is a second job`() {
         // arrange
-        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(3_601_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(3_601_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert
         assertEquals(listOf<Long>(3_601_000, 1_000), next.map { it.atMillis })
@@ -81,11 +81,11 @@ class JobBoardTest {
     fun `given twenty offers on the board, when one more arrives, then none falls off`() {
         // arrange
         val board = (20 downTo 1).map { at ->
-            Job(at.toLong(), pizza.copy(dropoff = "Street $at"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+            Job(at.toLong(), pizza.copy(dropoff = "Street $at"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
         }
 
         // act
-        val next = JobBoard.add(board, Job(99, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(99, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert  20 already there + the new one
         assertEquals(21, next.size)
@@ -104,10 +104,10 @@ class JobBoardTest {
             dropoff = "Latrobe Street & Phillip Street, Mentone",
             fromTree = true,
         )
-        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(5_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(5_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // affirm  still one job, keeping the time it first appeared
         assertEquals(listOf<Long>(1_000), next.map { it.atMillis })
@@ -121,10 +121,10 @@ class JobBoardTest {
         // arrange  "${'$'}8.06" came off the picture as "${'$'}8.O6"
         val seen = pizza.copy(payout = "${'$'}8.O6", dropoff = "Nepean Hwy, Moorabbin", fromTree = false)
         val read = pizza.copy(payout = "${'$'}8.06", dropoff = "Nepean Hwy, Moorabbin", fromTree = true)
-        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(3_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(3_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert
         assertEquals(listOf("${'$'}8.06"), next.map { it.offer.payout })
@@ -135,10 +135,10 @@ class JobBoardTest {
         // arrange
         val read = pizza.copy(pickup = "Royal Stacks (Moorabbin)", fromTree = true)
         val seen = pizza.copy(pickup = "9 Royal Stacks (Moorabbin)", fromTree = false)
-        val board = listOf(Job(1_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, read, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
-        val next = JobBoard.add(board, Job(3_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val next = JobBoard.add(board, Job(3_000, seen, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // assert
         assertEquals(listOf("Royal Stacks (Moorabbin)"), next.map { it.offer.pickup })
@@ -148,7 +148,7 @@ class JobBoardTest {
     fun `given a delivery screen that names the city after the suburb, when it is read, then the job still matches`() {
         // arrange  the card of 16 Sep 10:40 said Clarinda; the delivery screen said "Clarinda Melbourne VIC"
         val board = listOf(
-            Job(1_000, pizza.copy(dropoff = "Bourke Road & Glenelg Drive, Clarinda"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(1_000, pizza.copy(dropoff = "Bourke Road & Glenelg Drive, Clarinda"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val dropoff = Dropoff(customer = "Elisa N.", address = "10 Bushland Avenue, Clarinda Melbourne VIC", unit = null, note = null)
 
@@ -165,10 +165,12 @@ class JobBoardTest {
         val old = Job(
             DAY_BEFORE, pizza.copy(payout = "${'$'}4.00", dropoff = "Dandenong Road & Reilly Street, Springvale"),
             taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
+            extraDrops = emptyList(),
         )
         val today = Job(
             HALF_AN_HOUR_AGO, pizza.copy(payout = "${'$'}9.15", dropoff = "Donald Street & Hanleth Avenue, Springvale"),
             taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
+            extraDrops = emptyList(),
         )
         val dropoff = Dropoff(customer = "SANDIL P.", address = "5 Ethel Court, Springvale Melbourne VIC", unit = null, note = null)
 
@@ -186,7 +188,7 @@ class JobBoardTest {
     fun `given a delivery in a suburb no job names, when it is read, then no job is touched`() {
         // arrange
         val board = listOf(
-            Job(1_000, pizza.copy(dropoff = "Cole Street, Noble Park"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(1_000, pizza.copy(dropoff = "Cole Street, Noble Park"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val dropoff = Dropoff(customer = null, address = "1 Somewhere St, Frankston VIC", unit = null, note = null)
 
@@ -200,19 +202,19 @@ class JobBoardTest {
     @Test
     fun `given two jobs, when one is cleared, then the other stays`() {
         // arrange
-        val board = listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()), Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
         val next = JobBoard.remove(board, 2_000)
 
         // assert
-        assertEquals(listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)), next)
+        assertEquals(listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())), next)
     }
 
     @Test
     fun `given a job the rules would take, when the worth-taking shelf is asked, then it holds it`() {
         // arrange
-        val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.WORTH_TAKING.holds(job)
@@ -224,7 +226,7 @@ class JobBoardTest {
     @Test
     fun `given a job the rules refuse, when the not-worth-taking shelf is asked, then it holds it`() {
         // arrange
-        val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.NOT_WORTH_TAKING.holds(job)
@@ -236,7 +238,7 @@ class JobBoardTest {
     @Test
     fun `given a job the rules refused but he took anyway, when every shelf is asked, then both the taken and the refused one hold it`() {
         // arrange
-        val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza.copy(ruling = "不要接单"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.values().filter { it.holds(job) }
@@ -248,7 +250,7 @@ class JobBoardTest {
     @Test
     fun `given a job the rules would take and he took, when every shelf is asked, then both the taken and the worth-taking one hold it`() {
         // arrange
-        val job = Job(1_000, pizza, taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza, taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.values().filter { it.holds(job) }
@@ -260,7 +262,7 @@ class JobBoardTest {
     @Test
     fun `given a job nobody took, when the taken shelf is asked, then it does not hold it`() {
         // arrange
-        val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.TAKEN.holds(job)
@@ -272,7 +274,7 @@ class JobBoardTest {
     @Test
     fun `given a job read before the rules ruled, when the not-worth-taking shelf is asked, then it holds it`() {
         // arrange
-        val job = Job(1_000, pizza.copy(ruling = null), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val job = Job(1_000, pizza.copy(ruling = null), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
 
         // act
         val held = Shelf.NOT_WORTH_TAKING.holds(job)
@@ -285,8 +287,8 @@ class JobBoardTest {
     fun `given the pickup screen for a job on the board, when it is applied, then that job is taken`() {
         // arrange
         val board = listOf(
-            Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
-            Job(1_000, pizza.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(2_000, kebab, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
+            Job(1_000, pizza.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val pickup = Pickup(
             store = "Guzman y Gomez",
@@ -308,10 +310,58 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a batched offer's second delivery, when its screen is read, then it is kept against the job in hand`() {
+        // arrange  22 Sept 16:22: one card, "Delivery (2)", naming Keysborough only
+        val job = Job(
+            1_000, pizza.copy(pickup = "Oporto (Springvale)", dropoff = "Linden Drive & Rosette Crescent, Keysborough"),
+            taken = true, address = "17 Springvale road, Springvale", note = null,
+            dropAddress = "4 Rosette Cct, Keysborough VIC", dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(),
+        )
+        val second = Dropoff(customer = "Rocco T.", address = "2-4 Hutton Street, Dandenong Melbourne VIC", unit = "11", note = "Meet outside")
+
+        // act
+        val next = JobBoard.alsoDelivered(listOf(job), second, now = 2_000)
+
+        // assert
+        assertEquals(listOf(Drop("2-4 Hutton Street, Dandenong Melbourne VIC", "11", "Meet outside")), next[0].extraDrops)
+    }
+
+    @Test
+    fun `given the same second delivery read twice, when it is applied again, then it is kept once`() {
+        // arrange
+        val drop = Drop("2-4 Hutton Street, Dandenong Melbourne VIC", "11", null)
+        val job = Job(
+            1_000, pizza.copy(pickup = "Oporto (Springvale)"), taken = true, address = "17 Springvale road", note = null,
+            dropAddress = "4 Rosette Cct, Keysborough VIC", dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = listOf(drop),
+        )
+
+        // act
+        val next = JobBoard.alsoDelivered(listOf(job), Dropoff(null, drop.address, drop.unit, null), now = 2_000)
+
+        // assert
+        assertEquals(1, next[0].extraDrops.size)
+    }
+
+    @Test
+    fun `given two jobs in hand, when a delivery screen names neither suburb, then nothing is claimed`() {
+        // arrange  which of the two it belongs to cannot be told, and guessing sends him to the wrong door
+        val one = Job(1_000, pizza, taken = true, address = null, note = null, dropAddress = "1 A St, Noble Park", dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
+        val two = Job(1_500, kebab, taken = true, address = null, note = null, dropAddress = "2 B St, Keysborough", dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
+
+        // act
+        val next = JobBoard.alsoDelivered(listOf(two, one), Dropoff(null, "9 C St, Dandenong", null, null), now = 2_000)
+
+        // assert
+        assertEquals(listOf(two, one), next)
+    }
+
+    @Test
     fun `given a second order from the shop already being collected, when its pickup screen arrives, then the second job is taken`() {
         // arrange  21 Sept 16:59: the first Coles order was collected, the second added at the same counter
-        val first = Job(1_000, pizza.copy(pickup = "Coles - Keysborough", dropoff = "13 Everitt St, Dandenong"), taken = true, address = "317 Cheltenham Rd, Keysborough 3173", note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
-        val second = Job(2_000, kebab.copy(pickup = "Coles - Keysborough", dropoff = "Alma Crescent & Cyril Grove, Noble Park"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val first = Job(1_000, pizza.copy(pickup = "Coles - Keysborough", dropoff = "13 Everitt St, Dandenong"), taken = true, address = "317 Cheltenham Rd, Keysborough 3173", note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
+        val second = Job(2_000, kebab.copy(pickup = "Coles - Keysborough", dropoff = "Alma Crescent & Cyril Grove, Noble Park"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
         val pickup = Pickup(store = "Coles - Keysborough", address = "317 Cheltenham Rd, Keysborough 3173", note = "Enter the car park via Kingsclere Avenue")
 
         // act
@@ -328,7 +378,7 @@ class JobBoardTest {
     fun `given a card whose shop name OCR cut short, when the full name's pickup arrives, then that job is taken`() {
         // arrange  the card and pickup screen of 13 Sept 18:56
         val board = listOf(
-            Job(1_000, pizza.copy(pickup = "Chemist2u) Pharmacy 4 Less"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(1_000, pizza.copy(pickup = "Chemist2u) Pharmacy 4 Less"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val pickup = Pickup(
             store = "(Chemist2U) Pharmacy 4 Less Parkmore",
@@ -346,7 +396,7 @@ class JobBoardTest {
     @Test
     fun `given a short shop name on a card, when a longer name containing it is picked up, then nothing is claimed`() {
         // arrange
-        val board = listOf(Job(1_000, pizza.copy(pickup = "KFC"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza.copy(pickup = "KFC"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
         val pickup = Pickup(store = "Nashville KFC Style Chicken", address = "1 High St, Braeside VIC 3195", note = null)
 
         // act
@@ -359,7 +409,7 @@ class JobBoardTest {
     @Test
     fun `given a pickup for a shop not on the board, when it is applied, then nothing changes`() {
         // arrange
-        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
         val pickup = Pickup(store = "Nando's", address = "1 High St, Braeside VIC 3195", note = null)
 
         // act
@@ -373,8 +423,8 @@ class JobBoardTest {
     fun `given two offers from one chain, when the pickup names a branch, then the matching branch is taken`() {
         // arrange  the newer offer is the other branch; the accepted one is older
         val board = listOf(
-            Job(2_000, pizza.copy(pickup = "Guzman y Gomez (Springvale)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
-            Job(1_000, kebab.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(2_000, pizza.copy(pickup = "Guzman y Gomez (Springvale)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
+            Job(1_000, kebab.copy(pickup = "9 Guzman y Gomez (Dingley Village)"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val pickup = Pickup(
             store = "Guzman y Gomez",
@@ -396,7 +446,7 @@ class JobBoardTest {
     fun `given a shop the card names by its shopping centre, when the pickup arrives, then that job is taken`() {
         // arrange  the centre is Parkmore; the street it stands on is in Keysborough
         val card = pizza.copy(pickup = "Pizza Hut (Parkmore)", dropoff = "Bevan Avenue, Clayton South")
-        val board = listOf(Job(1_000, card, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, card, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
 
         // act
         val next = JobBoard.taken(
@@ -422,8 +472,8 @@ class JobBoardTest {
         val here = pizza.copy(pickup = "Pizza Hut (Parkmore)", dropoff = "Bevan Avenue, Clayton South")
         val there = pizza.copy(pickup = "Pizza Hut (Southland)", dropoff = "Como Parade, Mentone")
         val board = listOf(
-            Job(2_000, here, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
-            Job(1_000, there, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(2_000, here, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
+            Job(1_000, there, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
 
         // act
@@ -441,7 +491,7 @@ class JobBoardTest {
     fun `given a card that names no branch, when the pickup arrives, then the name alone is enough`() {
         // arrange
         val board = listOf(
-            Job(1_000, pizza.copy(pickup = "Guzman y Gomez"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(1_000, pizza.copy(pickup = "Guzman y Gomez"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val pickup = Pickup(
             store = "Guzman y Gomez",
@@ -460,8 +510,8 @@ class JobBoardTest {
     fun `given the delivery screen, when it is applied, then the job to that suburb gets the real address`() {
         // arrange
         val board = listOf(
-            Job(2_000, kebab.copy(dropoff = "Corrigan Road, Noble Park"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
-            Job(1_000, pizza.copy(dropoff = "Collins Street, Mentone"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(2_000, kebab.copy(dropoff = "Corrigan Road, Noble Park"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
+            Job(1_000, pizza.copy(dropoff = "Collins Street, Mentone"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val dropoff = Dropoff(
             customer = "Lewis A.",
@@ -484,8 +534,8 @@ class JobBoardTest {
     fun `given two jobs to one suburb, when a delivery arrives, then the one already taken wins`() {
         // arrange
         val board = listOf(
-            Job(2_000, kebab.copy(dropoff = "Elsewhere, Mentone"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
-            Job(1_000, pizza.copy(dropoff = "Collins Street, Mentone"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null),
+            Job(2_000, kebab.copy(dropoff = "Elsewhere, Mentone"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
+            Job(1_000, pizza.copy(dropoff = "Collins Street, Mentone"), taken = true, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()),
         )
         val dropoff = Dropoff("Lewis A.", "12/98 Collins St, Mentone VIC", null, null)
 
@@ -502,7 +552,7 @@ class JobBoardTest {
     @Test
     fun `given a delivery to a suburb no job is going to, when it is applied, then nothing changes`() {
         // arrange
-        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null))
+        val board = listOf(Job(1_000, pizza, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList()))
         val dropoff = Dropoff("Lewis A.", "12/98 Collins St, Mentone VIC", null, null)
 
         // act
