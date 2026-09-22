@@ -161,6 +161,13 @@ class VoiceService : Service() {
         val command = VoiceCommands.parse(heard)
         val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
         if (inConversation() && !bareWake) {
+            // A command said mid-conversation is still a command; it also ends
+            // the conversation, since the driver has moved on.
+            if (command != null && command !is VoiceCommand.Ask) {
+                endConversation()
+                understood(command)
+                return
+            }
             if (VoiceCommands.isGoodbye(heard.first())) {
                 endConversation()
                 ears?.pause(true)

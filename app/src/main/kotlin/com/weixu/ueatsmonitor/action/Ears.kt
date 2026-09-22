@@ -93,7 +93,12 @@ class Ears(
             Log.e(TAG, "ears: microphone would not open")
             return
         }
-        var recognizer = recognizerFor(phrases)
+        // The command recogniser is always there. Opened to the whole language,
+        // a second one listens beside it: a small model hears "切地图" as
+        // "七力度" when it may say anything, and as "切地图" when it may say
+        // only the commands, so the command one is believed first.
+        val commands = recognizerFor(phrases)
+        var free: Recognizer? = null
         var listening: List<String>? = phrases
         val chunk = ShortArray(CHUNK_SAMPLES)
         // The chunk before the one that crossed the line: the first syllable of
@@ -111,19 +116,17 @@ class Ears(
                 if (rewire) {
                     rewire = false
                     if (wanted != listening) {
-                        // A new recogniser rather than setGrammar: once opened to
-                        // the whole language, this one would not go back to the list.
-                        recognizer.close()
-                        recognizer = recognizerFor(wanted)
+                        free?.close()
+                        free = if (wanted == null) recognizerFor(null) else null
                         listening = wanted
-                    } else {
-                        recognizer.reset()
                     }
+                    commands.reset()
+                    free?.reset()
                     fed = false
                     hangover = 0
                 }
                 if (paused) {
-                    if (fed) { recognizer.reset(); fed = false }
+                    if (fed) { commands.reset(); free?.reset(); fed = false }
                     hangover = 0
                     continue
                 }
@@ -136,35 +139,53 @@ class Ears(
                 if (hangover == 0) {
                     if (fed) {
                         fed = false
-                        deliver(recognizer.finalResult, "text", onSentence)
+                        sentenceFrom(text(commands.finalResult, "text"), free?.let { text(it.finalResult, "text") })
                     }
                     System.arraycopy(chunk, 0, before, 0, read)
                     beforeRead = read
                     continue
                 }
                 if (!fed && beforeRead > 0) {
-                    recognizer.acceptWaveForm(before, beforeRead)
+                    commands.acceptWaveForm(before, beforeRead)
+                    free?.acceptWaveForm(before, beforeRead)
                     beforeRead = 0
                 }
                 fed = true
-                if (recognizer.acceptWaveForm(chunk, read)) {
-                    deliver(recognizer.result, "text", onSentence)
+                val commandDone = commands.acceptWaveForm(chunk, read)
+                val freeDone = free?.acceptWaveForm(chunk, read) ?: false
+                if (commandDone || freeDone) {
+                    sentenceFrom(
+                        text(if (commandDone) commands.result else commands.finalResult, "text"),
+                        free?.let { text(if (freeDone) it.result else it.finalResult, "text") },
+                    )
+                    fed = false
+                    hangover = 0
                 } else {
-                    deliver(recognizer.partialResult, "partial", onPartial)
+                    // Only the command recogniser's guesses are acted on early.
+                    val partial = text(commands.partialResult, "partial")
+                    if (partial.isNotEmpty() && partial != UNKNOWN) main.post { onPartial(partial) }
                 }
             }
         } finally {
             runCatching { record.stop() }
             record.release()
-            recognizer.close()
+            commands.close()
+            free?.close()
         }
     }
 
-    private fun deliver(json: String, key: String, to: (String) -> Unit) {
-        val text = runCatching { JSONObject(json).optString(key) }.getOrDefault("")
-            .replace(" ", "").trim()
-        if (text.isNotEmpty()) main.post { to(text) }
+    /** The command recogniser's sentence when it heard a command; otherwise the free one's. */
+    private fun sentenceFrom(command: String, free: String?) {
+        val heard = when {
+            command.isNotEmpty() && !command.contains(UNKNOWN) -> command
+            free != null -> free.replace(UNKNOWN, "")
+            else -> command
+        }
+        if (heard.isNotEmpty()) main.post { onSentence(heard) }
     }
+
+    private fun text(json: String, key: String): String =
+        runCatching { JSONObject(json).optString(key) }.getOrDefault("").replace(" ", "").trim()
 
     /**
      * Vosk's grammar: a JSON list of phrases in the model's own units. This
@@ -192,6 +213,9 @@ class Ears(
 
     private companion object {
         const val SAMPLE_RATE = 16_000
+
+        /** What a grammar recogniser says for anything off its list. */
+        const val UNKNOWN = "[unk]"
 
         /** A tenth of a second per chunk: fine enough to catch the start of a word. */
         const val CHUNK_SAMPLES = 1_600
