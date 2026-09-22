@@ -166,6 +166,15 @@ textarea{
   background:var(--panel); color:var(--ink); box-shadow:0 30px 80px rgba(0,0,0,.6);
 }
 #jobs{max-width:580px}
+#newSet, #login{
+  border:1px solid var(--line); border-radius:var(--r-panel); padding:24px 28px; width:520px; max-width:calc(100% - 32px);
+  background:var(--panel); color:var(--ink); box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+#newSet[open], #login[open]{display:flex; flex-direction:column; gap:14px}
+#newSet h2, #login h2{margin:0 0 4px}
+#newSet .field input, #login .field input{width:100%; font-size:15px; padding:12px 14px}
+#newSet input[type="range"]{width:100%}
+#newSet::backdrop, #login::backdrop{background:rgba(0,0,0,.6); backdrop-filter:blur(3px)}
 #result::backdrop, #jobs::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
 
 /* Opened with the map still in view and still live, so no backdrop and parked in
