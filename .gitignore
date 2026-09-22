@@ -16,3 +16,4 @@ data/places.json
 __pycache__/
 tools/roads/cache/
 .env
+data/stores-notes*.xlsx
