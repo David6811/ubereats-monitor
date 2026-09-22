@@ -341,35 +341,15 @@ body[data-page="areas"] footer{display:none}
   </section>
 
   <section data-page="stores">
-    <h2>市中心成片拉黑</h2>
-    <p class="hint">
-      这两条商业街停车最难。清单全列出来给你看：自带停车场的<b>不拉黑</b>，
-      名字在别处还有同名店的<b>默认也不拉黑</b>（拉了会连坐）。<b>点一下店名可以放过它</b>，这个决定会一直留着。
-    </p>
-    <div id="cores"></div>
-  </section>
-
-  <section data-page="stores">
     <h2>不接的店<span class="count" id="storeCount"></span></h2>
     <p class="hint">
-      取餐点名字里含有这些字就不接。整个商场可以一次拉黑。<b>店库里没有的，直接照派单卡上写的打进去</b> ——
-      只打最有辨识度的那一段，别抄整行：卡片是认出来的，前面常多个「9」「p」这样的字。
+      取餐店名字里含有这些字就不接。照派单卡上写的打，回车加进去；
+      只打最有辨识度的那一段，比如「Walrus BBQ」，不用抄整行。地点上的不接，用选区页的不接单框画。
     </p>
     <div class="row">
-      <input type="search" id="storeSearch" placeholder="搜店名或商场，或直接打卡片上的店名…" style="flex:1">
-      <button class="btn plain" id="denyShown">把搜到的全部拉黑</button>
+      <input type="search" id="storeSearch" placeholder="店名，回车拉黑" style="flex:1;max-width:460px">
     </div>
-    <div class="list" id="storeList"></div>
     <div class="chips" id="storeDenied"></div>
-
-    <div style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="eyebrow">永远可以接（自带停车场的连锁）</div>
-      <p class="hint" style="margin:6px 0 0">
-        这些店名不管出现在哪条规则里都不会被拒。送达区域的规则照常生效。
-      </p>
-      <div class="chips" id="alwaysOk"></div>
-      <input type="search" id="addAlwaysOk" placeholder="再加一个连锁名，回车" style="margin-top:8px">
-    </div>
   </section>
 
   <section data-page="params">
@@ -534,6 +514,7 @@ body[data-page="areas"] footer{display:none}
       $("signOut").hidden = false;
       $("login").open && $("login").close();
       data.rules = data.rules || EMPTY_RULES();
+      foldOldCoreDenies(data.rules);
       state = data;
       fill();
     }).catch(function(error){
@@ -644,16 +625,13 @@ body[data-page="areas"] footer{display:none}
     // Leaflet measures its box when it is made: the map's section must be on
     // screen then, whichever page is opened afterwards.
     document.querySelector("main > section.mapsection").dataset.shown = "1";
-    drawStores();
     drawDenied();
-    drawAlwaysOk();
     counts();
     drawMapTools();
     bindMapTools();
     initMap();
     drawPlaces();
     drawProfiles();
-    drawCores();
     var remembered = "areas";
     try { remembered = localStorage.getItem("page") || "areas"; } catch (e) {}
     showPage(remembered);
@@ -1190,147 +1168,18 @@ body[data-page="areas"] footer{display:none}
   }
 
   /**
-   * The whole core, listed. Nothing is refused silently: what will be denied,
-   * what is kept because it has its own car park, and what shares its name with
-   * shops elsewhere - denying those would take the others with them.
+   * The old core expansion is gone. Names it saved are folded into the plain
+   * list on load, where they can be seen and removed, and nothing writes the
+   * old list any more.
    */
-  function drawCores(){
-    API.cbd().then(function(data){
-      coreData = data.cores;
-      var box = $("cores");
-      box.textContent = "";
-      data.cores.forEach(function(core){
-        var safe = core.deny.filter(function(r){ return r.elsewhere === 0; });
-        var shared = core.deny.filter(function(r){ return r.elsewhere > 0; });
-
-        var el = document.createElement("div");
-        el.className = "core";
-
-        var title = document.createElement("h3");
-        title.textContent = core.label + "（半径 " + core.radiusKm + " km）";
-        var sum = document.createElement("div");
-        sum.className = "sum";
-        var let_off = core.deny.filter(function(r){ return spared(r.name); }).length;
-        sum.textContent = "可拉黑 " + safe.length + " 家 · 同名慎拉 " + shared.length +
-                          " 家 · 自带停车场保留 " + core.keep.length + " 家" +
-                          (let_off ? " · 你放过 " + let_off + " 家" : "");
-        el.append(title, sum);
-
-        // A switch, not a button: this is a standing rule that travels with every
-        // save, not a one-off dump of names into the manual list.
-        var acts = document.createElement("div");
-        acts.className = "acts";
-        acts.appendChild(switchLine(
-          "整片不接（" + safe.length + " 家）",
-          cbdSetting()[core.key] !== false,
-          function(on){ cbdSetting()[core.key] = on; drawCores(); }
-        ));
-        acts.appendChild(switchLine(
-          "连同名的一起（+" + shared.length + "）",
-          cbdSetting().includeShared === true,
-          function(on){ cbdSetting().includeShared = on; drawCores(); }
-        ));
-        el.appendChild(acts);
-
-        el.appendChild(groupBlock("会被拉黑", safe, "", true));
-        if (shared.length) el.appendChild(groupBlock("同名店，拉了会连坐", shared, "warn", true));
-        el.appendChild(groupBlock("保留：自带停车场", core.keep, "kept", false));
-        if (core.unknown.length) el.appendChild(groupBlock("停车场未知", core.unknown, "", false));
-
-        box.appendChild(el);
-      });
+  function cbdNames(){ return []; }
+  function foldOldCoreDenies(rules){
+    if (!rules.stores) rules.stores = { deny: [], cbdDeny: [], alwaysOk: [] };
+    if (!rules.stores.deny) rules.stores.deny = [];
+    (rules.stores.cbdDeny || []).forEach(function(name){
+      if (rules.stores.deny.indexOf(name) < 0) rules.stores.deny.push(name);
     });
-  }
-
-  /** One collapsible block, its rows grouped by what kind of shop they are. */
-  /** The standing setting for the two cores, defaulting both on. */
-  function cbdSetting(){
-    if (!state.rules.cbd) state.rules.cbd = { springvale: true, dandenong: true, includeShared: false };
-    return state.rules.cbd;
-  }
-
-  /**
-   * Names the expansion must never take, however the switches stand.
-   *
-   * A core is chosen by where its shops are but applied by their names, and a
-   * name is not unique: "Villa" refuses Pizza Villa in Chelsea Heights and every
-   * Village in the service area. Sparing one is a standing decision, so it lives
-   * in the rules file and survives the next save rather than being deleted from
-   * the expanded list by hand each time.
-   */
-  function cbdKeep(){
-    if (!state.rules.stores.cbdKeep) state.rules.stores.cbdKeep = [];
-    return state.rules.stores.cbdKeep;
-  }
-
-  function spared(name){ return cbdKeep().indexOf(name) >= 0; }
-
-  function spare(name){
-    var at = cbdKeep().indexOf(name);
-    if (at >= 0) cbdKeep().splice(at, 1); else cbdKeep().push(name);
-    drawCores();
-  }
-
-  /** The cores as they stand right now, expanded into names for the phone. */
-  var coreData = [];
-  function cbdNames(){
-    var names = {};
-    coreData.forEach(function(core){
-      if (cbdSetting()[core.key] === false) return;
-      core.deny.forEach(function(r){
-        var whitelisted = alwaysOk().some(function(ok){
-          return r.name.toLowerCase().indexOf(ok.toLowerCase()) >= 0;
-        });
-        if (whitelisted || spared(r.name)) return;
-        if (r.elsewhere === 0 || cbdSetting().includeShared) names[r.name] = 1;
-      });
-    });
-    return Object.keys(names);
-  }
-
-  function switchLine(label, on, onChange){
-    var wrap = document.createElement("label");
-    wrap.className = "checkline";
-    var box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = on;
-    box.addEventListener("change", function(){ onChange(box.checked); });
-    var text = document.createElement("span");
-    text.textContent = label;
-    wrap.append(box, text);
-    return wrap;
-  }
-
-  function groupBlock(title, rows, cls, toggle){
-    var d = document.createElement("details");
-    var s = document.createElement("summary");
-    s.textContent = title + "（" + rows.length + " 家）";
-    d.appendChild(s);
-    var byKind = {};
-    rows.forEach(function(r){ (byKind[r.kind] = byKind[r.kind] || []).push(r); });
-    Object.keys(byKind).sort().forEach(function(kind){
-      var g = document.createElement("div");
-      g.className = "grp";
-      var b = document.createElement("b");
-      b.textContent = kind + " · " + byKind[kind].length;
-      var items = document.createElement("div");
-      items.className = "items";
-      byKind[kind].forEach(function(r){
-        var span = document.createElement("span");
-        var off = toggle && spared(r.name);
-        span.className = off ? "spared" : (cls || "") + (toggle ? " pick" : "");
-        span.textContent = r.name + (r.elsewhere ? " (别处还有" + r.elsewhere + "家)" : "") +
-                           " · " + r.metres + "m" + (off ? " · 放过" : "");
-        if (toggle) {
-          span.title = off ? "点一下改回拉黑" : "点一下放过这家，以后保存也不会再拉黑";
-          span.addEventListener("click", function(){ spare(r.name); });
-        }
-        items.appendChild(span);
-      });
-      g.append(b, items);
-      d.appendChild(g);
-    });
-    return d;
+    rules.stores.cbdDeny = [];
   }
 
   /**
@@ -1521,100 +1370,13 @@ body[data-page="areas"] footer{display:none}
   }
 
   /* ---- stores ---- */
-  var SETTING = { MALL:["mall","商场里"], STRIP:["strip","主街"],
-                  STANDALONE_PARKING:["easy","独立+停车场"], STANDALONE:["unknown","独立·未知"] };
-
-  function matchedStores(){
-    var q = $("storeSearch").value.trim().toLowerCase();
-    if (!q) return [];
-    return state.stores.filter(function(s){
-      return s.name.toLowerCase().indexOf(q) >= 0 ||
-             (s.mall || "").toLowerCase().indexOf(q) >= 0;
-    }).slice(0, 200);
-  }
-
-  function drawStores(){
-    var list = $("storeList");
-    list.textContent = "";
-    var typed = $("storeSearch").value.trim();
-    var rows = matchedStores();
-
-    // The shop table is built from OpenStreetMap and misses plenty - the bakery
-    // he was refused from all morning is not in it. And the only name that
-    // matters is the one the card writes, which he cannot know until he has been
-    // sent there once. So whatever he types is offered as itself, found or not.
-    if (typed) {
-      var own = document.createElement("div");
-      var what = document.createElement("span");
-      what.className = "name";
-      what.textContent = "「" + typed + "」";
-      var note = document.createElement("span");
-      note.className = "meta";
-      note.textContent = rows.length ? "照你打的字拉黑" : "店库里没有，照你打的字拉黑";
-      var go = document.createElement("button");
-      go.className = "btn plain";
-      go.textContent = "拉黑";
-      go.addEventListener("click", function(){
-        deny(typed);
-        $("storeSearch").value = "";
-        drawStores();
-      });
-      own.append(what, note, go);
-      list.appendChild(own);
-    }
-
-    if (!rows.length) {
-      if (typed) return;
-      var empty = document.createElement("div");
-      empty.className = "meta";
-      empty.textContent = "搜一个店名，或直接打派单卡上写的名字。";
-      list.appendChild(empty);
-      return;
-    }
-    rows.forEach(function(s){
-      var row = document.createElement("div");
-      var name = document.createElement("span");
-      name.className = "name";
-      name.textContent = s.name + (s.mall ? "  ·  " + s.mall : "");
-      var tag = document.createElement("span");
-      var look = SETTING[s.setting] || ["unknown", s.setting];
-      tag.className = "tag " + look[0];
-      tag.textContent = look[1];
-      var meta = document.createElement("span");
-      meta.className = "meta";
-      meta.textContent = s.suburb;
-      var add = document.createElement("button");
-      add.className = "btn plain";
-      add.textContent = "拉黑";
-      add.addEventListener("click", function(){ deny(s.name); });
-      row.append(name, tag, meta, add);
-      list.appendChild(row);
-    });
-  }
-  $("storeSearch").addEventListener("input", drawStores);
   $("storeSearch").addEventListener("keydown", function(e){
     if (e.key !== "Enter") return;
     var typed = this.value.trim();
     if (!typed) return;
     deny(typed);
     this.value = "";
-    drawStores();
-  });
-
-  $("addAlwaysOk").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    var name = this.value.trim();
-    if (!name) return;
-    if (alwaysOk().indexOf(name) < 0) alwaysOk().push(name);
-    this.value = "";
-    drawAlwaysOk();
-    drawCores();
-  });
-
-  $("denyShown").addEventListener("click", function(){
-    var names = {};
-    matchedStores().forEach(function(s){ names[s.mall || s.name] = 1; });
-    Object.keys(names).forEach(deny);
+    say("「" + typed + "」拉黑了，记得保存", "ok");
   });
 
   function deny(name){
@@ -1625,23 +1387,6 @@ body[data-page="areas"] footer{display:none}
   function alwaysOk(){
     if (!state.rules.stores.alwaysOk) state.rules.stores.alwaysOk = [];
     return state.rules.stores.alwaysOk;
-  }
-
-  function drawAlwaysOk(){
-    var box = $("alwaysOk");
-    box.textContent = "";
-    alwaysOk().forEach(function(name){
-      var chip = document.createElement("span");
-      chip.className = "chip";
-      chip.dataset.on = "1";
-      chip.textContent = name + "  ×";
-      chip.title = "点一下移除";
-      chip.addEventListener("click", function(){
-        state.rules.stores.alwaysOk = alwaysOk().filter(function(n){ return n !== name; });
-        drawAlwaysOk();
-      });
-      box.appendChild(chip);
-    });
   }
 
   function drawDenied(){
