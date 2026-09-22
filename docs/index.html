@@ -1167,18 +1167,11 @@ body[data-page="areas"] footer{display:none}
     say("已切到「" + name + "」，" + next.suburbs.length + " 个区", "ok");
   }
 
-  /**
-   * The old core expansion is gone. Names it saved are folded into the plain
-   * list on load, where they can be seen and removed, and nothing writes the
-   * old list any more.
-   */
+  /** The old core expansion is gone, and so is what it saved: the list holds only what the driver typed. */
   function cbdNames(){ return []; }
   function foldOldCoreDenies(rules){
     if (!rules.stores) rules.stores = { deny: [], cbdDeny: [], alwaysOk: [] };
     if (!rules.stores.deny) rules.stores.deny = [];
-    (rules.stores.cbdDeny || []).forEach(function(name){
-      if (rules.stores.deny.indexOf(name) < 0) rules.stores.deny.push(name);
-    });
     rules.stores.cbdDeny = [];
   }
 
