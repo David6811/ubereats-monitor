@@ -485,6 +485,17 @@ class VoiceService : Service() {
 
         fun isRunning(): Boolean = live != null
 
+        /** Probe: switch the running service to the default (network) recognizer, to compare its sounds. */
+        fun useDefaultRecognizer() {
+            val service = live ?: return
+            service.main.post {
+                service.offline = false
+                service.recognizer?.destroy()
+                service.recognizer = null
+                service.again(NEXT_MILLIS)
+            }
+        }
+
         /**
          * Flips voice from the floating button, off the app's own screens. Turning
          * it on starts the microphone service; Android may refuse that from the

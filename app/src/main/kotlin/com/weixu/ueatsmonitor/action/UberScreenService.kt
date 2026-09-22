@@ -181,6 +181,10 @@ class UberScreenService : AccessibilityService() {
                 }
                 return
             }
+            if (intent?.getBooleanExtra("defaultRecognizer", false) == true) {
+                VoiceService.useDefaultRecognizer()
+                return
+            }
             if (intent?.getBooleanExtra("stopNav", false) == true) {
                 work.post { Log.i(TAG, "probe: stop navigation -> " + stopMapsNavigation()) }
                 return
