@@ -32,8 +32,16 @@ object DropoffScreen {
      */
     private val STATE = Regex("""^(.+?),?\s+(VIC|NSW|QLD|SA|WA|TAS|NT|ACT)(?:,?\s+(\d{4}))?$""")
 
+    /**
+     * The suburb on its own, in capitals, under the street - "52 Jellicoe St"
+     * then "NOBLE PARK" - which is how the screen writes it when it leaves the
+     * state off. Only counted when the line above starts like a street number.
+     */
+    private val CAPITAL_SUBURB = Regex("""^[A-Z][A-Z' ]{2,30}$""")
+    private val STREET = Regex("""^\d+[A-Za-z]?[/\-]?\d*\s+\S""")
+
     private const val UNIT_LABEL = "Apt / Unit / Floor:"
-    private val NOTE = Regex("""^note from customer\s+(.+)$""", RegexOption.IGNORE_CASE)
+    private val NOTE = Regex("""^(?:note from customer|customer note:?)\s+(.+)$""", RegexOption.IGNORE_CASE)
 
     fun looksLikeDropoff(lines: List<String>): Boolean {
         val clean = clean(lines)
@@ -47,8 +55,13 @@ object DropoffScreen {
         // The map header can repeat the address above the card, with no name over
         // it; the card's own copy is the last one before the buttons.
         val anchorAt = clean.indexOfFirst { line -> ANCHORS.any { it.containsMatchIn(line) } }
-        val stateAt = clean.subList(0, anchorAt).indexOfLast { STATE.containsMatchIn(it) }
-        if (stateAt < 1) return null
+        val head = clean.subList(0, anchorAt)
+        val stateAt = head.indexOfLast { STATE.containsMatchIn(it) }
+            .takeIf { it >= 1 }
+            ?: head.indices.lastOrNull { at ->
+                at >= 1 && CAPITAL_SUBURB.matches(head[at]) && STREET.containsMatchIn(head[at - 1])
+            }
+            ?: return null
 
         // Street, then suburb and state, with the customer's name above both.
         val street = clean[stateAt - 1]
@@ -63,12 +76,17 @@ object DropoffScreen {
     }
 
     /** The suburb this delivery is in, used to find which job it belongs to. */
-    fun suburbOf(dropoff: Dropoff): String? =
-        STATE.find(dropoff.address.substringAfterLast(", "))?.groupValues?.get(1)?.trim()
+    fun suburbOf(dropoff: Dropoff): String? {
+        val last = dropoff.address.substringAfterLast(", ")
+        return STATE.find(last)?.groupValues?.get(1)?.trim() ?: last.takeIf { it.isNotBlank() }
+    }
 
-    /** "Chelsea, VIC, 3196" -> "Chelsea VIC 3196"; "Chelsea VIC" stays as it is. */
+    /** "Chelsea, VIC, 3196" -> "Chelsea VIC 3196"; "Chelsea VIC" stays as it is; "NOBLE PARK" -> "Noble Park". */
     private fun suburbLine(line: String): String {
-        val (suburb, state, postcode) = STATE.find(line)!!.destructured
+        val match = STATE.find(line) ?: return line.lowercase().split(" ").joinToString(" ") { word ->
+            word.replaceFirstChar { it.uppercase() }
+        }
+        val (suburb, state, postcode) = match.destructured
         return listOf(suburb.trim(), state, postcode).filter { it.isNotEmpty() }.joinToString(" ")
     }
 

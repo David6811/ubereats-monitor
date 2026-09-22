@@ -308,6 +308,23 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given a second order from the shop already being collected, when its pickup screen arrives, then the second job is taken`() {
+        // arrange  21 Sept 16:59: the first Coles order was collected, the second added at the same counter
+        val first = Job(1_000, pizza.copy(pickup = "Coles - Keysborough", dropoff = "13 Everitt St, Dandenong"), taken = true, address = "317 Cheltenham Rd, Keysborough 3173", note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val second = Job(2_000, kebab.copy(pickup = "Coles - Keysborough", dropoff = "Alma Crescent & Cyril Grove, Noble Park"), taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null)
+        val pickup = Pickup(store = "Coles - Keysborough", address = "317 Cheltenham Rd, Keysborough 3173", note = "Enter the car park via Kingsclere Avenue")
+
+        // act
+        val next = JobBoard.taken(listOf(second, first), pickup, now = 2_500)
+
+        // affirm  the first is left as it was
+        assertEquals(first, next[1])
+
+        // assert
+        assertEquals(true, next[0].taken)
+    }
+
+    @Test
     fun `given a card whose shop name OCR cut short, when the full name's pickup arrives, then that job is taken`() {
         // arrange  the card and pickup screen of 13 Sept 18:56
         val board = listOf(

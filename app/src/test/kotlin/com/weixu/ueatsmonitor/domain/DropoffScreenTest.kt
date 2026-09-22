@@ -29,6 +29,39 @@ class DropoffScreenTest {
     )
 
     @Test
+    fun `given a delivery screen with the suburb in capitals and no state, when it is read, then the address still comes back`() {
+        // arrange  21 Sept 17:35, the second Coles order
+        val lines = listOf(
+            "Cyril Grove", "Home", "Search for places", "1 min", "0.9 km",
+            "Deliver to Lucyna A.", "Trip Planner", "Agenda",
+            "Lucyna A.", "52 Jellicoe St", "NOBLE PARK",
+            "Customer note: Leave on doorstep",
+            "Drop off 1 order", "Help and support", "Complete delivery",
+        )
+
+        // act
+        val dropoff = DropoffScreen.read(lines)
+
+        // assert
+        assertEquals(
+            Dropoff(customer = "Lucyna A.", address = "52 Jellicoe St, Noble Park", unit = null, note = "Leave on doorstep"),
+            dropoff,
+        )
+    }
+
+    @Test
+    fun `given an address whose suburb line carried no state, when the suburb is asked for, then it is the last part`() {
+        // arrange
+        val dropoff = Dropoff(customer = null, address = "52 Jellicoe St, Noble Park", unit = null, note = null)
+
+        // act
+        val suburb = DropoffScreen.suburbOf(dropoff)
+
+        // assert
+        assertEquals("Noble Park", suburb)
+    }
+
+    @Test
     fun `given the delivery screen, when it is read, then the street and suburb come back together`() {
         // arrange
         val lines = screen

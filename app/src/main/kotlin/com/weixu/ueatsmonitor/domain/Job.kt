@@ -124,10 +124,14 @@ object JobBoard {
         // the chain is that job. Two, with neither branch in the address, is a
         // question this screen cannot answer - and answering it wrong sends the
         // driver to another branch, so nothing is claimed at all.
-        val at = if (named.size == 1) {
-            named.first()
-        } else {
-            named.firstOrNull { index ->
+        // Two orders from the same shop, one after the other - a second Coles
+        // order added while the first was being collected - both name it, and
+        // the one already collected is not the one this screen is about.
+        val open = named.filterNot { jobs[it].taken }
+        val at = when {
+            named.size == 1 -> named.first()
+            open.size == 1 -> open.first()
+            else -> named.firstOrNull { index ->
                 val branch = branchOf(jobs[index].offer.pickup)
                 branch != null && address.contains(fold(branch))
             } ?: return jobs
