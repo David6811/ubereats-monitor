@@ -400,6 +400,23 @@ body.mapfull h2{font-size:16px}
   </div>
 </dialog>
 
+<dialog id="newSet">
+  <h2>新增方案</h2>
+  <label class="field"><span class="eyebrow">名字</span>
+    <input type="text" id="newName" placeholder="比如：晚上 / 周末早上"></label>
+  <label class="field"><span class="eyebrow">中心地址</span>
+    <input type="search" id="newAddress" placeholder="街名 + 郊区，回车定位"></label>
+  <p class="hint" id="newFound" style="margin:0">还没定位。</p>
+  <label class="field">
+    <span class="eyebrow">先选上中心 <b class="mono" id="newKmLabel">5</b> 公里内的区</span>
+    <input type="range" id="newKm" min="1" max="30" step="1" value="5">
+  </label>
+  <div class="row">
+    <button class="btn plain" id="newCancel">取消</button>
+    <button class="btn" id="newGo">建好并切过去</button>
+  </div>
+</dialog>
+
 <dialog id="circle">
   <h2>量范围</h2>
   <label class="field"><span class="eyebrow">圆心 —— 也可以直接在地图上点</span>
@@ -995,15 +1012,11 @@ body.mapfull h2{font-size:16px}
       state.rules.active = name;
       drawProfiles();
     });
-    button("另存为…", true, function(){
-      var name = (prompt("这套叫什么？", "") || "").trim();
-      if (!name) return;
-      var existing = profiles().filter(function(p){ return p.name === name; })[0];
-      if (existing) existing.suburbs = state.rules.suburbs.allow.slice();
-      else profiles().push({ name: name, suburbs: state.rules.suburbs.allow.slice() });
-      state.rules.active = name;
-      drawProfiles();
-      say("已存为「" + name + "」", "ok");
+    button("新增", true, function(){
+      $("newName").value = ""; $("newAddress").value = ""; $("newFound").textContent = "还没定位。";
+      newCentre = null;
+      $("newSet").showModal();
+      $("newName").focus();
     });
     if (profiles().length > 1) {
       button("删除", true, function(){
@@ -1022,6 +1035,49 @@ body.mapfull h2{font-size:16px}
     farButton.dataset.on = state.editing === FAR ? "1" : "0";
     farButton.title = far().suburbs.length + " 个区 · 金额超过门槛的单改用这一组，不分方案";
   }
+
+  /**
+   * A new set starts from its centre: the driver names a place, and every
+   * suburb whose middle lies within the radius is selected to begin with.
+   * Straight-line distance to the suburb's middle - rough, but the map is
+   * right there to fix the edges.
+   */
+  var newCentre = null;
+  function kmBetween(aLat, aLon, bLat, bLon){
+    var r = 6371.0088, dLat = (bLat - aLat) * Math.PI / 180, dLon = (bLon - aLon) * Math.PI / 180;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(aLat * Math.PI / 180) * Math.cos(bLat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * r * Math.asin(Math.sqrt(h));
+  }
+  $("newAddress").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    var query = this.value.trim();
+    if (!query) return;
+    $("newFound").textContent = "正在定位…";
+    API.geocode(query).then(function(data){
+      if (!data.hit) { newCentre = null; $("newFound").textContent = "查不到这个地址，换个写法试试"; return; }
+      newCentre = { lat: data.hit.lat, lon: data.hit.lon, label: query };
+      $("newFound").textContent = "定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim();
+    });
+  });
+  $("newKm").addEventListener("input", function(){ $("newKmLabel").textContent = this.value; });
+  $("newCancel").addEventListener("click", function(){ $("newSet").close(); });
+  $("newGo").addEventListener("click", function(){
+    var name = $("newName").value.trim();
+    if (!name) return say("先起个名字", "bad");
+    if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
+    if (!newCentre) return say("先在地址栏回车定位中心", "bad");
+    var km = parseFloat($("newKm").value) || 5;
+    var inside = state.suburbs.filter(function(sb){
+      return kmBetween(newCentre.lat, newCentre.lon, sb.lat, sb.lon) <= km;
+    }).map(function(sb){ return sb.name; });
+    stash();
+    profiles().push({ name: name, suburbs: inside, centre: newCentre });
+    $("newSet").close();
+    switchTo(name);
+    say("「" + name + "」建好了：中心 " + newCentre.label + "，" + inside.length + " 个区", "ok");
+  });
 
   /** Keeps the set you are leaving up to date before loading the next one. */
   function switchTo(name){
