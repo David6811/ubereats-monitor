@@ -1017,6 +1017,20 @@ body[data-page="areas"] footer{display:none}
           drawProfiles();
         }));
         acts.appendChild(act(centreOn ? "收起中心" : "改中心", function(){ showCentre(!centreOn); }));
+        acts.appendChild(act("复制", function(){
+          // As the map shows it right now, centre and all, under "<name> copy";
+          // a second copy gets "copy 2". Added to the list, not switched to.
+          stash();
+          var base = profile.name + " copy", name = base, n = 2;
+          while (profiles().some(function(p){ return p.name === name; })) name = base + " " + (n++);
+          profiles().push({
+            name: name,
+            suburbs: profile.suburbs.slice(),
+            centre: profile.centre ? { lat: profile.centre.lat, lon: profile.centre.lon, label: profile.centre.label } : undefined,
+          });
+          drawProfiles();
+          say("复制成「" + name + "」，在列表里", "ok");
+        }));
         if (profiles().length > 1) {
           acts.appendChild(act("删除", function(){
             if (!confirm("删除方案「" + profile.name + "」？")) return;
