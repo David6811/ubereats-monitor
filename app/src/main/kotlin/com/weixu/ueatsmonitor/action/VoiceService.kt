@@ -297,9 +297,10 @@ class VoiceService : Service() {
         main.removeCallbacksAndMessages(null)
         runCatching { recognizer?.cancel() }
         if (command is VoiceCommand.Ask && command.question.isEmpty()) {
-            // "你好" and a pause: the question is coming. A tone says go ahead, and
-            // the next sentence heard within a few seconds is taken as it.
-            tone(ToneGenerator.TONE_PROP_BEEP)
+            // "你好" and a pause: the question is coming. It answers "你好" back -
+            // a clip rendered once and shipped in the app, not synthesised each
+            // time - and the next sentence heard within a few seconds is taken as it.
+            greet()
             questionUntilMillis = System.currentTimeMillis() + QUESTION_WINDOW_MILLIS
             again(NEXT_MILLIS)
             return
@@ -328,6 +329,17 @@ class VoiceService : Service() {
     private val asking = kotlinx.coroutines.CoroutineScope(
         kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
     )
+
+    /** The bundled "你好", played and released; a tone if the player will not start. */
+    private fun greet() {
+        val player = android.media.MediaPlayer.create(this, com.weixu.ueatsmonitor.R.raw.nihao)
+        if (player == null) {
+            tone(ToneGenerator.TONE_PROP_BEEP)
+            return
+        }
+        player.setOnCompletionListener { it.release() }
+        player.start()
+    }
 
     private fun tone(kind: Int) {
         runCatching {
