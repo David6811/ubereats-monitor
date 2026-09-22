@@ -299,14 +299,13 @@ body.mapfull h2{font-size:16px}
 <div class="shell">
 <nav id="menu">
   <button data-page="areas">选区</button>
-  <button data-page="centre">中心</button>
   <button data-page="stores">不接的店</button>
   <button data-page="params">规则参数</button>
   <button data-page="jobs">单子</button>
   <button data-page="account">账号</button>
 </nav>
 <main>
-  <section class="mapsection" data-page="areas centre">
+  <section class="mapsection" data-page="areas">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
     <div class="maptools">
       <span id="profileBar"></span>
@@ -552,11 +551,10 @@ body.mapfull h2{font-size:16px}
     try { localStorage.setItem("page", name); } catch (e) {}
     // Hidden, the map's box was zero; once it is back on screen it must be
     // measured again and shown the chosen set, or it sits zoomed into nothing.
-    if (map && (name === "areas" || name === "centre")) {
+    if (map && name === "areas") {
       setTimeout(function(){ map.invalidateSize(); fitToChosen(); }, 30);
     }
-    // The centre page is the map with the centre panel open; leaving closes it.
-    if (typeof showCentre === "function" && map) showCentre(name === "centre");
+    if (typeof showCentre === "function" && map && name !== "areas") showCentre(false);
     if (name === "account") {
       $("accountEmail").textContent = state.user || "";
       $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : "还没保存过";
@@ -1028,6 +1026,7 @@ body.mapfull h2{font-size:16px}
       state.rules.active = name;
       drawProfiles();
     });
+    button(centreOn ? "收起中心" : "改中心", true, function(){ showCentre(!centreOn); });
     button("新增", true, function(){
       $("newName").value = ""; $("newAddress").value = ""; $("newFound").textContent = "还没定位。";
       newCentre = null;
@@ -1356,6 +1355,7 @@ body.mapfull h2{font-size:16px}
     if (on) showCircle(false);
     if (centreOn === on) return;
     centreOn = on;
+    drawProfiles();
     if (on) {
       $("pickLat").value = ""; $("pickLon").value = ""; $("pickLabel").value = "";
       $("centrePicked").textContent = "还没选位置。";
@@ -1461,7 +1461,7 @@ body.mapfull h2{font-size:16px}
   // One at a time: they sit in the same corner and both want the map's click.
   $("circleTool").addEventListener("click", function(){ showCircle(!circleOn); });
   $("circleClose").addEventListener("click", function(){ showCircle(false); });
-  $("centreClose").addEventListener("click", function(){ showPage("areas"); });
+  $("centreClose").addEventListener("click", function(){ showCentre(false); });
   $("noGoTool").addEventListener("click", function(){
     if (circleOn) showCircle(false);
     if (centreOn) showCentre(false);
