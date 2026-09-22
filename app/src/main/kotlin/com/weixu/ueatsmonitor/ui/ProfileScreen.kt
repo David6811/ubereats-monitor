@@ -40,7 +40,7 @@ import com.weixu.ueatsmonitor.domain.Exclusions
  * The sets are drawn on the laptop, on the map. Here they are a list you tap.
  */
 @Composable
-fun ProfileScreen(onRefresh: () -> Unit = {}) {
+fun ProfileScreen() {
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(Profiles.list(context)) }
     var fromPhone by remember { mutableStateOf(Profiles.chosenHere(context)) }
@@ -55,7 +55,6 @@ fun ProfileScreen(onRefresh: () -> Unit = {}) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        RefreshRow(onRefresh)
         if (profiles.isEmpty()) {
             Panel {
                 SectionLabel("还没有选区")

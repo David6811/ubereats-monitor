@@ -44,7 +44,7 @@ import com.weixu.ueatsmonitor.domain.SuburbAt
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun TripScreen(onRefresh: () -> Unit = {}) {
+fun TripScreen() {
     val context = LocalContext.current
     val profiles = remember { Profiles.list(context) }
     val live = profiles.firstOrNull { it.active }
@@ -85,7 +85,6 @@ fun TripScreen(onRefresh: () -> Unit = {}) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        RefreshRow(onRefresh)
         Panel(padding = PaddingValues(0.dp)) {
             Column(
                 modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),

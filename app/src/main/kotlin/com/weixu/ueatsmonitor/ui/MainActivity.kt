@@ -209,13 +209,13 @@ private fun HomeTabs() {
         }
     }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
-        StatusStrip()
+        StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
             androidx.compose.runtime.key(reload) {
                 when (place) {
                     Place.WORK -> WorkScreen()
-                    Place.TRIP -> TripScreen(onRefresh = refresh)
-                    Place.AREAS -> ProfileScreen(onRefresh = refresh)
+                    Place.TRIP -> TripScreen()
+                    Place.AREAS -> ProfileScreen()
                     Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
                 }
             }
@@ -231,7 +231,7 @@ private fun HomeTabs() {
  * from green.
  */
 @Composable
-private fun StatusStrip() {
+private fun StatusStrip(onRefresh: () -> Unit) {
     val context = LocalContext.current
     val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
     val live by rememberPolled(Pair<Watch, String>(Watch.Watching, ""), 2_000L) {
@@ -255,8 +255,10 @@ private fun StatusStrip() {
         Spacer(Modifier.weight(1f))
         settings?.let { VoiceChip(it.voiceEnabled) }
         WatchLamp(live.first)
+        // The live set's name doubles as the refresh: tap it to fetch the rules
+        // again and rebuild the page, in no room of its own.
         if (live.second.isNotEmpty()) {
-            Tag(live.second, ink = Dash.Gold, ground = Dash.GoldDeep)
+            Tag("↻ " + live.second, ink = Dash.Gold, ground = Dash.GoldDeep, modifier = Modifier.clickable(onClick = onRefresh))
         }
     }
 }

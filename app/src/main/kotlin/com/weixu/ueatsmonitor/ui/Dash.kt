@@ -217,23 +217,6 @@ fun Lamp(on: Boolean, color: Color, modifier: Modifier = Modifier) {
     )
 }
 
-/** A line with 刷新 at its right: fetch the rules from the cloud again and rebuild the page. */
-@Composable
-fun RefreshRow(onRefresh: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        Text(
-            text = "↻ 刷新",
-            color = Dash.Gold,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .clip(Dash.ControlShape)
-                .clickable(onClick = onRefresh)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        )
-    }
-}
-
 /** One setting: its words on the left, the switch on the right, the whole row tappable. */
 @Composable
 fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
