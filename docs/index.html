@@ -81,6 +81,13 @@ main > section:not(.mapsection){max-width:1100px}
 .mapsection{width:100%}
 .kv{display:grid; grid-template-columns:max-content 1fr; gap:10px 18px; align-items:center; max-width:640px}
 .kv .eyebrow{padding:0}
+.suggestWrap{position:relative}
+.suggest{position:absolute; left:0; right:0; top:100%; z-index:20; margin-top:4px;
+  background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-ctl); overflow:hidden;
+  box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.suggest div{padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--line)}
+.suggest div:last-child{border-bottom:0}
+.suggest div:hover, .suggest div[data-on="1"]{background:var(--gold-deep); color:var(--gold)}
 table.jobs{width:100%; border-collapse:collapse; font-size:13px}
 table.jobs th{text-align:left; color:var(--ink-3); font-weight:600; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:8px 10px; border-bottom:1px solid var(--line)}
 table.jobs td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
@@ -405,7 +412,7 @@ body.mapfull h2{font-size:16px}
   <label class="field"><span class="eyebrow">名字</span>
     <input type="text" id="newName" placeholder="比如：晚上 / 周末早上"></label>
   <label class="field"><span class="eyebrow">中心地址</span>
-    <input type="search" id="newAddress" placeholder="街名 + 郊区，回车定位"></label>
+    <input type="search" id="newAddress" placeholder="打店名或街名，从下面选"></label>
   <p class="hint" id="newFound" style="margin:0">还没定位。</p>
   <label class="field">
     <span class="eyebrow">先选上中心 <b class="mono" id="newKmLabel">5</b> 公里内的区</span>
@@ -422,7 +429,7 @@ body.mapfull h2{font-size:16px}
   <label class="field"><span class="eyebrow">圆心 —— 也可以直接在地图上点</span>
     <select id="placePick"></select></label>
   <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
-    <input type="search" id="customAddress" placeholder="街名 + 郊区，回车定位"></label>
+    <input type="search" id="customAddress" placeholder="打店名或街名，从下面选"></label>
   <label class="field">
     <span class="eyebrow">半径 <b class="mono" id="kmLabel">15</b> 公里</span>
     <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
@@ -439,7 +446,7 @@ body.mapfull h2{font-size:16px}
   <span class="eyebrow">选一个位置 —— 或直接在地图上点</span>
   <div class="row" id="centrePicks"></div>
   <label class="field"><span class="eyebrow">或者输入地址</span>
-    <input type="search" id="centreAddress" placeholder="街名 + 郊区，回车定位"></label>
+    <input type="search" id="centreAddress" placeholder="打店名或街名，从下面选"></label>
   <p class="hint" id="centrePicked"></p>
   <div class="row">
     <button class="btn plain" id="setCentre">设为中心</button>
@@ -1037,6 +1044,63 @@ body.mapfull h2{font-size:16px}
   }
 
   /**
+   * Type, and places appear under the box; pick one and [onPick] gets its
+   * position. Enter with nothing picked takes the first suggestion, so the
+   * old habit of typing an address and pressing Enter still works.
+   */
+  function autocomplete(input, onPick){
+    var wrap = document.createElement("div");
+    wrap.className = "suggestWrap";
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    var list = document.createElement("div");
+    list.className = "suggest";
+    list.hidden = true;
+    wrap.appendChild(list);
+    var found = [], at = -1, timer = null, seq = 0;
+
+    function show(items){
+      found = items; at = -1;
+      list.textContent = "";
+      items.forEach(function(item, index){
+        var row = document.createElement("div");
+        row.textContent = item.label;
+        row.addEventListener("mousedown", function(e){ e.preventDefault(); choose(index); });
+        list.appendChild(row);
+      });
+      list.hidden = !items.length;
+    }
+    function paint(){
+      Array.prototype.forEach.call(list.children, function(row, index){ row.dataset.on = index === at ? "1" : "0"; });
+    }
+    function choose(index){
+      var item = found[index];
+      if (!item) return;
+      input.value = item.short;
+      list.hidden = true;
+      onPick(item);
+    }
+    input.setAttribute("autocomplete", "off");
+    input.addEventListener("input", function(){
+      var query = input.value.trim();
+      clearTimeout(timer);
+      if (query.length < 2) { list.hidden = true; return; }
+      var mine = ++seq;
+      timer = setTimeout(function(){
+        API.suggest(query).then(function(items){ if (mine === seq) show(items); });
+      }, 250);
+    });
+    input.addEventListener("keydown", function(e){
+      if (list.hidden && e.key !== "Enter") return;
+      if (e.key === "ArrowDown") { e.preventDefault(); at = Math.min(at + 1, found.length - 1); paint(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); at = Math.max(at - 1, 0); paint(); }
+      else if (e.key === "Enter") { e.preventDefault(); if (found.length) choose(at < 0 ? 0 : at); }
+      else if (e.key === "Escape") { list.hidden = true; }
+    });
+    input.addEventListener("blur", function(){ setTimeout(function(){ list.hidden = true; }, 150); });
+  }
+
+  /**
    * A new set starts from its centre: the driver names a place, and every
    * suburb whose middle lies within the radius is selected to begin with.
    * Straight-line distance to the suburb's middle - rough, but the map is
@@ -1049,17 +1113,9 @@ body.mapfull h2{font-size:16px}
       Math.cos(aLat * Math.PI / 180) * Math.cos(bLat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     return 2 * r * Math.asin(Math.sqrt(h));
   }
-  $("newAddress").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    var query = this.value.trim();
-    if (!query) return;
-    $("newFound").textContent = "正在定位…";
-    API.geocode(query).then(function(data){
-      if (!data.hit) { newCentre = null; $("newFound").textContent = "查不到这个地址，换个写法试试"; return; }
-      newCentre = { lat: data.hit.lat, lon: data.hit.lon, label: query };
-      $("newFound").textContent = "定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim();
-    });
+  autocomplete($("newAddress"), function(item){
+    newCentre = { lat: item.lat, lon: item.lon, label: item.short };
+    $("newFound").textContent = "定在 " + item.label;
   });
   $("newKm").addEventListener("input", function(){ $("newKmLabel").textContent = this.value; });
   $("newCancel").addEventListener("click", function(){ $("newSet").close(); });
@@ -1359,17 +1415,9 @@ body.mapfull h2{font-size:16px}
     row.appendChild(phone);
   }
 
-  $("centreAddress").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    var query = this.value.trim();
-    if (!query) return;
-    say("正在定位…");
-    API.geocode(query)
-      .then(function(data){
-        if (!data.hit) return say("查不到这个地址，换个写法试试", "bad");
-        pickCentre(data.hit.lat, data.hit.lon, query);
-        say("定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim(), "ok");
-      });
+  autocomplete($("centreAddress"), function(item){
+    pickCentre(item.lat, item.lon, item.short);
+    say("定在 " + item.label, "ok");
   });
 
   $("placePick").addEventListener("change", function(){
@@ -1379,21 +1427,13 @@ body.mapfull h2{font-size:16px}
     else usePlace(parseInt(this.value, 10));
   });
 
-  $("customAddress").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    var query = this.value.trim();
-    if (!query) return;
-    say("正在定位…");
-    API.geocode(query)
-      .then(function(data){
-        if (!data.hit) return say("查不到这个地址，换个写法试试", "bad");
-        $("anchorLat").value = data.hit.lat;
-        $("anchorLon").value = data.hit.lon;
-        $("anchorLabel").value = query;
-        drawAnchor();
-        map.setView([data.hit.lat, data.hit.lon], 13);
-        say("圆心已定在 " + data.hit.name.split(",").slice(0, 3).join(",").trim(), "ok");
-      });
+  autocomplete($("customAddress"), function(item){
+    $("anchorLat").value = item.lat;
+    $("anchorLon").value = item.lon;
+    $("anchorLabel").value = item.short;
+    drawAnchor();
+    map.setView([item.lat, item.lon], 13);
+    say("圆心已定在 " + item.label, "ok");
   });
 
   /** Frames the suburbs that are actually selected - the way back from any zoom. */

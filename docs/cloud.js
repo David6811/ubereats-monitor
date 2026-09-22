@@ -73,6 +73,28 @@
       }).catch(function(error){ return { hit: null, error: String(error) }; });
     },
 
+    /**
+     * Places that match what has been typed so far, nearest to Melbourne's
+     * south-east first: shops and centres by name as well as streets. Photon
+     * (OpenStreetMap's search) allows pages to ask it and needs no key.
+     */
+    suggest: function(query){
+      var url = "https://photon.komoot.io/api/?limit=6&lang=en&lat=-38.0&lon=145.15&q=" + encodeURIComponent(query);
+      return fetch(url).then(function(r){ return r.json(); }).then(function(data){
+        return (data.features || []).map(function(f){
+          var p = f.properties || {};
+          var where = [p.street ? ((p.housenumber ? p.housenumber + " " : "") + p.street) : "",
+                       p.district || p.city || p.locality || "", p.postcode || ""].filter(Boolean).join(", ");
+          var name = p.name && p.name !== p.street ? p.name : "";
+          return {
+            label: [name, where].filter(Boolean).join(" · "),
+            short: name || where,
+            lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+          };
+        });
+      }).catch(function(){ return []; });
+    },
+
     /** This device's own position, which on a laptop is roughly the house. */
     location: function(){
       return new Promise(function(resolve){
