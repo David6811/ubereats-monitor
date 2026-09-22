@@ -166,40 +166,46 @@ object RuleJudge {
     private const val KM_PER_MILE = 1.609344
 }
 
-/** Calculation. The ruling in the few words the chip has room for. */
+/** Calculation. The ruling in the few words the chip has room for, in the driver's language. */
 object RulingText {
 
-    private fun km(miles: Miles): String = String.format("%.1f 公里", miles.value / 0.621371)
+    private fun km(miles: Miles, words: Words): String =
+        words.km(String.format("%.1f", miles.value / 0.621371))
 
-
-    fun headline(ruling: Ruling, isMatch: Boolean = false): String = when (ruling) {
-        // A Match is worth entering, not "taken": several drivers are shown the
-        // same trip and only one gets it.
-        is Ruling.Take -> if (isMatch) "可以抢（Match）" else "可以接单"
-        is Ruling.Leave -> if (isMatch) "不要抢（Match）" else "不要接单"
-        Ruling.NoRules -> "没设规则"
-        Ruling.Unknown -> "认不出地点"
+    fun headline(ruling: Ruling, isMatch: Boolean = false, lang: Lang = Lang.CHINESE): String {
+        val words = wordsIn(lang)
+        return when (ruling) {
+            // A Match is worth entering, not "taken": several drivers are shown
+            // the same trip and only one gets it.
+            is Ruling.Take -> if (isMatch) words.enterIt else words.takeIt
+            is Ruling.Leave -> if (isMatch) words.leaveMatch else words.leaveIt
+            Ruling.NoRules -> words.noRules
+            Ruling.Unknown -> words.unknownPlace
+        }
     }
 
-    fun reason(ruling: Ruling): String = when (ruling) {
-        is Ruling.Take -> ruling.suburb + if (ruling.far) " 在远区名单里" else " 在名单里"
-        is Ruling.Leave -> when (val why = ruling.reason) {
-            is Ruling.Reason.SuburbNotAllowed -> why.suburb + " 不在名单里"
-            is Ruling.Reason.StoreDenied -> why.store + " 在黑名单里"
-            is Ruling.Reason.InNoGoBox -> when (val hit = why.hit) {
-                is NoGoHit.Pickup -> "取餐 " + hit.store + " 在「" + hit.box.label + "」里"
-                is NoGoHit.Dropoff -> "送餐点在「" + hit.box.label + "」里"
+    fun reason(ruling: Ruling, lang: Lang = Lang.CHINESE): String {
+        val words = wordsIn(lang)
+        return when (ruling) {
+            is Ruling.Take -> if (ruling.far) words.onTheFarList(ruling.suburb) else words.onTheList(ruling.suburb)
+            is Ruling.Leave -> when (val why = ruling.reason) {
+                is Ruling.Reason.SuburbNotAllowed -> words.notOnTheList(why.suburb)
+                is Ruling.Reason.StoreDenied -> words.storeDenied(why.store)
+                is Ruling.Reason.InNoGoBox -> when (val hit = why.hit) {
+                    is NoGoHit.Pickup -> words.pickupInBox(hit.store, hit.box.label)
+                    is NoGoHit.Dropoff -> words.dropInBox(hit.box.label)
+                }
+                is Ruling.Reason.LeadingAway ->
+                    words.leadingAway(km(why.away.fromCar, words), km(why.away.fromDrop, words))
+                is Ruling.Reason.TooLong -> words.tooLong(why.minutes, why.max)
+                is Ruling.Reason.TooFarFromCentre ->
+                    words.tooFarFromCentre(km(why.fromDrop, words), String.format("%.0f", why.maxKm))
+                is Ruling.Reason.FarTooCheap ->
+                    words.farTooCheap(String.format("%.2f", why.perHour), String.format("%.0f", why.floor))
             }
-            is Ruling.Reason.LeadingAway ->
-                "离中心更远：现在 " + km(why.away.fromCar) + "，送完 " + km(why.away.fromDrop)
-            is Ruling.Reason.TooLong -> "要 " + why.minutes + " 分钟，超过 " + why.max + " 分钟"
-            is Ruling.Reason.TooFarFromCentre ->
-                "送完离中心 " + km(why.fromDrop) + "，超过 " + String.format("%.0f", why.maxKm) + " 公里"
-            is Ruling.Reason.FarTooCheap ->
-                "远区单每小时 $" + String.format("%.2f", why.perHour) +
-                    "，低于 $" + String.format("%.0f", why.floor)
+            Ruling.NoRules -> words.setRulesOnTheLaptop
+            Ruling.Unknown -> words.noSuburbInAddress
         }
-        Ruling.NoRules -> "在电脑上设好规则再推过来"
-        Ruling.Unknown -> "送达地址里没有认得出的郊区"
     }
 }
+

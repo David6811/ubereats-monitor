@@ -61,6 +61,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
 import com.weixu.ueatsmonitor.action.Cloud
+import com.weixu.ueatsmonitor.domain.Lang
+import com.weixu.ueatsmonitor.domain.Words
+import com.weixu.ueatsmonitor.domain.Zh
+import com.weixu.ueatsmonitor.domain.wordsIn
 import com.weixu.ueatsmonitor.action.RulesSync
 import io.github.jan.supabase.auth.status.SessionStatus
 import com.weixu.ueatsmonitor.action.CaptureStatus
@@ -146,8 +150,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             DashTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
-                    Gate()
+                val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
+                androidx.compose.runtime.CompositionLocalProvider(
+                    LocalWords provides wordsIn(settings?.lang ?: Lang.CHINESE)
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
+                        Gate()
+                    }
                 }
             }
         }
@@ -161,12 +170,30 @@ class MainActivity : ComponentActivity() {
  * laptop, where a shift is actually looked into, so the phone no longer carries
  * a page for them.
  */
-private enum class Place(val label: String, val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
-    WORK("工作", Icons.Filled.Home),
-    TRIP("这趟", Icons.Filled.Check),
-    AREAS("选区", Icons.Filled.LocationOn),
-    SETTINGS("设置", Icons.Filled.Settings),
+private enum class Place(val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
+    WORK(Icons.Filled.Home),
+    TRIP(Icons.Filled.Check),
+    AREAS(Icons.Filled.LocationOn),
+    SETTINGS(Icons.Filled.Settings),
+    ;
+
+    fun label(words: Words): String = when (this) {
+        WORK -> words.tabWork
+        TRIP -> words.tabTrip
+        AREAS -> words.tabAreas
+        SETTINGS -> words.tabSettings
+    }
 }
+
+/**
+ * The words every screen reads, set once from the settings and taken from the
+ * air by whatever needs them. A screen that wants a phrase asks [words]; it
+ * never holds a Chinese sentence of its own.
+ */
+val LocalWords = androidx.compose.runtime.staticCompositionLocalOf<Words> { Zh }
+
+@Composable
+fun words(): Words = LocalWords.current
 
 /**
  * The login screen until the driver is signed in, then the app. While the
@@ -251,7 +278,7 @@ private fun StatusStrip(onRefresh: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        Text(words().appName, style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
         Spacer(Modifier.weight(1f))
         settings?.let { VoiceChip(it.voiceEnabled) }
         WatchLamp(live.first)
@@ -272,11 +299,12 @@ private fun WatchLamp(watch: Watch) {
     val context = LocalContext.current
     when (watch) {
         Watch.Watching -> Text(
-            text = "✓ 在监控",
+            text = words().watching,
             style = MaterialTheme.typography.bodyMedium,
             color = Dash.Muted,
         )
         is Watch.NotWatching -> {
+            val hint = hintFor(watch.what)
             val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
             val alpha by pulse.animateFloat(
                 initialValue = 1f,
@@ -288,7 +316,7 @@ private fun WatchLamp(watch: Watch) {
                 label = "alpha",
             )
             Text(
-                text = "✕ 没在监控",
+                text = words().notWatching,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Dash.Ground,
                 fontWeight = FontWeight.Bold,
@@ -297,7 +325,7 @@ private fun WatchLamp(watch: Watch) {
                     .clip(Dash.ControlShape)
                     .background(Dash.Gold)
                     .clickable {
-                        say(context, hintFor(watch.what))
+                        say(context, hint)
                         fix(context, watch.what)
                     }
                     .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -307,10 +335,11 @@ private fun WatchLamp(watch: Watch) {
 }
 
 /** What to switch on once the system page opens, in the words that page shows. */
+@Composable
 private fun hintFor(missing: Missing): String = when (missing) {
-    Missing.READER -> "在「无障碍」里打开「接单助手」"
-    Missing.READER_STALLED -> "读屏卡住了：在「无障碍」里把「接单助手」关掉再打开"
-    Missing.OVERLAY -> "允许「接单助手」显示在其他应用上层"
+    Missing.READER -> words().turnOnReader
+    Missing.READER_STALLED -> words().readerStalled
+    Missing.OVERLAY -> words().allowOverlay
 }
 
 private fun fix(context: Context, missing: Missing) = when (missing) {
@@ -320,6 +349,7 @@ private fun fix(context: Context, missing: Missing) = when (missing) {
 
 @Composable
 private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
+    val words = words()
     Column {
         Hairline()
         Row(
@@ -343,12 +373,12 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
                     ) {
                         androidx.compose.material3.Icon(
                             imageVector = place.glyph,
-                            contentDescription = place.label,
+                            contentDescription = place.label(words),
                             tint = if (on) Dash.Gold else Dash.Muted,
                         )
                     }
                     Text(
-                        text = place.label,
+                        text = place.label(words),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (on) Dash.Gold else Dash.Muted,
                         fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
@@ -433,6 +463,8 @@ private fun MonitorScreen(store: SettingsStore) {
                     SwitchRow("悬浮按钮", "跑单时右上角的「关导航」「语音」", current.toolsEnabled) {
                         scope.launch { store.setToolsEnabled(it) }
                     }
+                    Hairline()
+                    LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
                 }
             }
         }
@@ -508,6 +540,34 @@ private fun NearCentreToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             !on -> save(false)
             centre == null -> say(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送")
             else -> save(true)
+        }
+    }
+}
+
+/** Chinese or English, for every word the app says. Both names are written in their own language. */
+@Composable
+private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("语言 · Language", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        }
+        listOf(Lang.CHINESE to "中文", Lang.ENGLISH to "English").forEach { (which, name) ->
+            val on = which == lang
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (on) Dash.Ground else Dash.Ink,
+                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .clip(Dash.ControlShape)
+                    .background(if (on) Dash.Gold else Dash.Raised)
+                    .clickable { onChoose(which) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }
@@ -645,7 +705,7 @@ private fun rememberVoiceSwitch(): (Boolean) -> Unit {
 private fun VoiceChip(enabled: Boolean) {
     val switchVoice = rememberVoiceSwitch()
     Text(
-        text = if (enabled) "语音开" else "语音关",
+        text = if (enabled) words().voiceOn else words().voiceOff,
         style = MaterialTheme.typography.bodyMedium,
         color = if (enabled) Dash.Ink else Dash.Muted,
         fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
