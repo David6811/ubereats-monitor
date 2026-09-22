@@ -11,9 +11,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener
+import org.vosk.android.SpeechService
+import org.vosk.android.StorageService
+import org.json.JSONObject
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.media.AudioManager
@@ -31,38 +34,25 @@ import com.weixu.ueatsmonitor.domain.SpokenLanguage
  * Action. Keeps the microphone open for the length of a shift and acts on what
  * the driver says.
  *
- * Android has no continuous recognizer: one session hears one sentence and ends,
- * on a result or on silence. So a session is started again the moment the last
- * one ends, for as long as the switch in settings is on.
+ * Recognition is Vosk, running on the phone with a Mandarin model shipped in
+ * the app. It listens without pause and makes no sound of its own: Google's
+ * recognizers rang a tone at the end of every sentence, and could be left
+ * refusing every start by sessions nobody released. Nothing said in the car
+ * leaves the phone until a question is sent to the assistant.
  *
- * Recognition is the slow part - the recognizer waits for a pause, then asks
- * the network - so a command is acted on from the first partial guess that
- * reads as one, and said back aloud straight away. The driver hears that he was
- * understood and does not have to say it again while the app switches.
+ * A command is acted on from the first partial guess that reads as one, and
+ * said back aloud straight away. Listening pauses while the phone speaks, so
+ * the microphone does not hear "好，地图" and take it for the driver.
  */
 class VoiceService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
-    private var recognizer: SpeechRecognizer? = null
-
-    /**
-     * The on-device recognizer first. On this phone the offline Mandarin pack is
-     * downloaded into the on-device service, while the default recognizer is a
-     * different app that never sees it and keeps going to the network. Cleared
-     * for good the first time the on-device one says it has no such language.
-     */
-    private var offline = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
+    private var model: Model? = null
+    private var ears: SpeechService? = null
     private var running = false
 
-    /**
-     * How many sessions in a row the recognizer refused as busy. The on-device
-     * service can fill up with sessions nobody released - 396 of them on 18 Sept -
-     * and then refuses every start for good, silently, until it is restarted.
-     */
-    private var busyInARow = 0
-
-    /** Set once this session has acted, so the final result does not act again. */
-    private var actedThisSession = false
+    /** Set once a sentence has been acted on, so its final result does not act again. */
+    private var actedThisSentence = false
 
     private var speech: TextToSpeech? = null
     private var speechReady = false
@@ -72,7 +62,6 @@ class VoiceService : Service() {
     override fun onCreate() {
         super.onCreate()
         live = this
-        askForOfflineChinese()
         speech = TextToSpeech(this) { status ->
             val tts = speech ?: return@TextToSpeech
             // Ready means the engine started; each confirmation sets its own language
@@ -81,9 +70,9 @@ class VoiceService : Service() {
             if (!speechReady) Log.w(TAG, "voice: no speech engine, confirming with a tone")
             tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) = Unit
-                override fun onDone(utteranceId: String?) { main.post { again(NEXT_MILLIS) } }
+                override fun onDone(utteranceId: String?) { main.post { resume() } }
                 @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) { main.post { again(NEXT_MILLIS) } }
+                override fun onError(utteranceId: String?) { main.post { resume() } }
             })
         }
     }
@@ -109,182 +98,108 @@ class VoiceService : Service() {
         live = null
         running = false
         main.removeCallbacksAndMessages(null)
-        recognizer?.destroy()
-        recognizer = null
+        ears?.stop()
+        ears?.shutdown()
+        ears = null
+        model?.close()
+        model = null
         speech?.shutdown()
         speech = null
         super.onDestroy()
     }
 
+    /**
+     * Unpacks the model from the app's assets on first run (a few seconds,
+     * once), then opens the microphone and keeps it open.
+     */
     private fun listen() {
         if (!running) return
-        actedThisSession = false
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Log.w(TAG, "voice: no recognizer on this phone")
-            toast("手机上没有语音识别服务，语音命令用不了")
-            stopSelf()
+        val ready = model
+        if (ready != null) {
+            open(ready)
             return
         }
-        val current = recognizer ?: create().also {
-            it.setRecognitionListener(listener)
-            recognizer = it
-        }
-        val ask = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE)
-            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        // Mandarin first, English when he speaks it: the on-device recognizer
-        // switches between the two mid-session from Android 14.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            ask.putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_SWITCH, RecognizerIntent.LANGUAGE_SWITCH_QUICK_RESPONSE)
-            ask.putStringArrayListExtra(RecognizerIntent.EXTRA_LANGUAGE_SWITCH_ALLOWED_LANGUAGES, ArrayList(LANGUAGES))
-        }
-        // Leans the recognizer towards the few sentences that mean something here.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            ask.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(VoiceCommands.PHRASES))
-        }
-        runCatching { current.startListening(ask) }
-            .onFailure { Log.w(TAG, "voice: start failed", it); again(ERROR_BACKOFF_MILLIS) }
+        StorageService.unpack(
+            this, MODEL_ASSET, MODEL_DIR,
+            { unpacked ->
+                model = unpacked
+                if (running) open(unpacked)
+            },
+            { error ->
+                Log.e(TAG, "voice: model failed to load", error)
+                toast("语音模型加载失败，语音命令用不了")
+                stopSelf()
+            },
+        )
     }
 
-    /**
-     * Asks the phone to download its on-device Mandarin model, so recognition
-     * stops needing the network and stops sending the car's audio to Google.
-     * The phone does nothing if the model is already there.
-     */
-    private fun askForOfflineChinese() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
-        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
-            Log.w(TAG, "voice: no on-device recognizer on this phone")
-            return
-        }
-        // Only for a language with no pack at all. Asking for one that is merely
-        // out of date puts a system "download update" dialog over whatever is on
-        // screen, every time the service starts.
+    private fun open(model: Model) {
+        if (ears != null) return
         runCatching {
-            val onDevice = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            onDevice.checkRecognitionSupport(
-                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH),
-                mainExecutor,
-                object : android.speech.RecognitionSupportCallback {
-                    override fun onSupportResult(support: android.speech.RecognitionSupport) {
-                        val installed = support.installedOnDeviceLanguages.map { it.lowercase() }
-                        LANGUAGES.filter { it.lowercase() !in installed }.forEach { language ->
-                            onDevice.triggerModelDownload(
-                                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, language),
-                            )
-                            Log.i(TAG, "voice: asked for the offline $language model")
-                        }
-                        main.postDelayed({ onDevice.destroy() }, 5_000L)
-                    }
-
-                    override fun onError(error: Int) {
-                        Log.w(TAG, "voice: could not check offline languages, error $error")
-                        onDevice.destroy()
-                    }
-                },
-            )
-        }.onFailure { Log.w(TAG, "voice: offline model request failed", it) }
-    }
-
-    private fun create(): SpeechRecognizer {
-        if (offline && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
-            Log.i(TAG, "voice: listening on-device")
-            return SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            val recognizer = Recognizer(model, SAMPLE_RATE)
+            SpeechService(recognizer, SAMPLE_RATE).also {
+                it.startListening(listener)
+                ears = it
+                Log.i(TAG, "voice: listening (vosk)")
+            }
+        }.onFailure {
+            Log.e(TAG, "voice: could not open the microphone", it)
+            toast("打不开麦克风，语音命令用不了")
+            stopSelf()
         }
-        offline = false
-        Log.i(TAG, "voice: listening through the default recognizer")
-        return SpeechRecognizer.createSpeechRecognizer(this)
     }
 
-    /** Starts the next session after a pause, so a failing recognizer does not spin. */
-    private fun again(afterMillis: Long) {
-        main.removeCallbacksAndMessages(null)
-        main.postDelayed({ listen() }, afterMillis)
+    /** Listening carries on after the phone has spoken. */
+    private fun resume() {
+        actedThisSentence = false
+        ears?.setPause(false)
+    }
+
+    /** Vosk writes Mandarin one character at a time: "你 好 地 图". */
+    private fun heardIn(hypothesis: String?): List<String> {
+        val text = runCatching { JSONObject(hypothesis ?: return emptyList()).optString("text") }
+            .getOrDefault("").orEmpty().replace(" ", "").trim()
+        return if (text.isEmpty()) emptyList() else listOf(text)
     }
 
     private val listener = object : RecognitionListener {
-        override fun onResults(results: Bundle?) {
-            if (actedThisSession) return
-            val heard = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
-            Log.i(TAG, "voice heard: $heard")
-            // The sentence after a bare "你好" is the question, whatever it says.
-            val command = VoiceCommands.parse(heard)
-            val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
-            if (System.currentTimeMillis() < questionUntilMillis && heard.isNotEmpty() && !bareWake) {
-                questionUntilMillis = 0L
-                understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
-                return
-            }
-            if (command != null) understood(command) else again(NEXT_MILLIS)
-        }
+        override fun onResult(hypothesis: String?) = sentence(heardIn(hypothesis))
+        override fun onFinalResult(hypothesis: String?) = sentence(heardIn(hypothesis))
 
-        override fun onPartialResults(partialResults: Bundle?) {
-            if (actedThisSession) return
-            val heard = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
-            val command = VoiceCommands.parsePartial(heard) ?: return
+        override fun onPartialResult(hypothesis: String?) {
+            if (actedThisSentence) return
+            val heard = runCatching { JSONObject(hypothesis ?: return).optString("partial") }
+                .getOrDefault("").orEmpty().replace(" ", "").trim()
+            if (heard.isEmpty()) return
+            val command = VoiceCommands.parsePartial(listOf(heard)) ?: return
             Log.i(TAG, "voice heard (partial): $heard")
             understood(command)
         }
 
-        override fun onError(error: Int) {
-            if (actedThisSession) return
-            // No match and silence are the ordinary end of a quiet stretch; anything
-            // else - busy, network, a missing language - is worth a longer wait.
-            val quiet = error == SpeechRecognizer.ERROR_NO_MATCH ||
-                error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
-            if (!quiet) Log.w(TAG, "voice: recognizer error $error")
-            if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                toast("没有麦克风权限，语音命令已停止")
-                stopSelf()
-                return
-            }
-            // No Mandarin on the device after all: fall back to the network for good.
-            if (offline && (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
-                    error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
-            ) {
-                Log.w(TAG, "voice: on-device has no $LANGUAGE (error $error), using the network")
-                offline = false
-                recognizer?.destroy()
-                recognizer = null
-                again(NEXT_MILLIS)
-                return
-            }
-            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY && ++busyInARow >= BUSY_LIMIT) {
-                busyInARow = 0
-                recognizer?.destroy()
-                recognizer = null
-                if (offline) {
-                    // The default recognizer is a different app with its own capacity.
-                    Log.w(TAG, "voice: on-device recognizer stuck busy, using the network")
-                    offline = false
-                    announce("语音换成备用了")
-                    again(ERROR_BACKOFF_MILLIS)
-                } else {
-                    Log.w(TAG, "voice: every recognizer is busy, giving up")
-                    announce("语音命令用不了了")
-                    running = false
-                    main.postDelayed({ stopSelf() }, ERROR_BACKOFF_MILLIS)
-                }
-                return
-            }
-            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
-                recognizer?.destroy()
-                recognizer = null
-            }
-            again(if (quiet) NEXT_MILLIS else ERROR_BACKOFF_MILLIS)
+        override fun onError(exception: Exception?) {
+            Log.w(TAG, "voice: recognizer error", exception)
         }
 
-        override fun onReadyForSpeech(params: Bundle?) {
-            busyInARow = 0
+        override fun onTimeout() = Unit
+    }
+
+    /** A whole sentence, at the pause after it. */
+    private fun sentence(heard: List<String>) {
+        if (heard.isEmpty()) return
+        Log.i(TAG, "voice heard: $heard")
+        if (actedThisSentence) {
+            actedThisSentence = false
+            return
         }
-        override fun onBeginningOfSpeech() = Unit
-        override fun onRmsChanged(rmsdB: Float) = Unit
-        override fun onBufferReceived(buffer: ByteArray?) = Unit
-        override fun onEndOfSpeech() = Unit
-        override fun onEvent(eventType: Int, params: Bundle?) = Unit
+        // The sentence after a bare "你好" is the question, whatever it says.
+        val command = VoiceCommands.parse(heard)
+        val bareWake = command is VoiceCommand.Ask && command.question.isEmpty()
+        if (System.currentTimeMillis() < questionUntilMillis && !bareWake) {
+            questionUntilMillis = 0L
+            understood(VoiceCommand.Ask(heard.first(), SpokenLanguage.CHINESE))
+            return
+        }
+        if (command != null) understood(command)
     }
 
     /**
@@ -293,16 +208,16 @@ class VoiceService : Service() {
      * hear "好，地图" and take it for the driver.
      */
     private fun understood(command: VoiceCommand) {
-        actedThisSession = true
+        actedThisSentence = true
         main.removeCallbacksAndMessages(null)
-        runCatching { recognizer?.cancel() }
+        ears?.setPause(true)
         if (command is VoiceCommand.Ask && command.question.isEmpty()) {
             // "你好" and a pause: the question is coming. It answers "你好" back -
             // a clip rendered once and shipped in the app, not synthesised each
             // time - and the next sentence heard within a few seconds is taken as it.
             greet()
             questionUntilMillis = System.currentTimeMillis() + QUESTION_WINDOW_MILLIS
-            again(NEXT_MILLIS)
+            main.postDelayed({ resume() }, GREET_MILLIS)
             return
         }
         if (command is VoiceCommand.Ask) {
@@ -369,7 +284,7 @@ class VoiceService : Service() {
             tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
             main.postDelayed({ tone.release() }, TONE_MILLIS)
         }
-        main.postDelayed({ listen() }, TONE_MILLIS)
+        main.postDelayed({ resume() }, TONE_MILLIS)
     }
 
     private fun act(command: VoiceCommand) {
@@ -425,6 +340,7 @@ class VoiceService : Service() {
             tone.startTone(ToneGenerator.TONE_PROP_NACK, 400)
             main.postDelayed({ tone.release() }, TONE_MILLIS)
         }
+        main.postDelayed({ resume() }, TONE_MILLIS)
     }
 
     private fun toast(text: String) = main.post {
@@ -453,25 +369,17 @@ class VoiceService : Service() {
         private const val TAG = "UEatsMonitor"
         private const val CHANNEL = "voice"
         private const val NOTIFICATION_ID = 44
-        private const val NEXT_MILLIS = 150L
-        private const val ERROR_BACKOFF_MILLIS = 3_000L
-
         /** How long after "你好" the driver has to ask the question. */
         private const val QUESTION_WINDOW_MILLIS = 8_000L
 
-
-        /** Five refusals, about fifteen seconds: past a moment's contention, into stuck. */
-        private const val BUSY_LIMIT = 5
+        /** The bundled greeting is half a second; listen again once it is over. */
+        private const val GREET_MILLIS = 700L
         private const val TONE_MILLIS = 500L
 
-        /**
-         * Mandarin, simplified, as the phone's offline packs name it. "zh-CN" is
-         * understood online but matches no offline pack.
-         */
-        private const val LANGUAGE = "cmn-Hans-CN"
-
-        /** Every language a command may be said in, the one listened for first at its head. */
-        private val LANGUAGES = listOf(LANGUAGE, "en-AU")
+        /** The Mandarin model in assets, and the folder it is unpacked to under files/. */
+        private const val MODEL_ASSET = "model-cn"
+        private const val MODEL_DIR = "model-cn"
+        private const val SAMPLE_RATE = 16000.0f
 
         private val ENGLISH: Locale = Locale("en", "AU")
 
@@ -484,17 +392,6 @@ class VoiceService : Service() {
         }
 
         fun isRunning(): Boolean = live != null
-
-        /** Probe: switch the running service to the default (network) recognizer, to compare its sounds. */
-        fun useDefaultRecognizer() {
-            val service = live ?: return
-            service.main.post {
-                service.offline = false
-                service.recognizer?.destroy()
-                service.recognizer = null
-                service.again(NEXT_MILLIS)
-            }
-        }
 
         /**
          * Flips voice from the floating button, off the app's own screens. Turning
