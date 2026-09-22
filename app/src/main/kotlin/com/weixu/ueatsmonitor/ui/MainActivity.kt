@@ -191,14 +191,33 @@ private fun Gate() {
 @Composable
 private fun HomeTabs() {
     var place by remember { mutableStateOf(Place.WORK) }
+    // Bumped by 刷新: the page is built again from scratch, reading the rules
+    // file as it is now rather than as it was when the page was opened.
+    var reload by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val refresh: () -> Unit = {
+        scope.launch {
+            val outcome = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { RulesSync.pull(context) }
+            say(context, when (outcome) {
+                RulesSync.Outcome.Updated -> "拿到了新规则"
+                RulesSync.Outcome.Unchanged -> "已经是最新的"
+                is RulesSync.Outcome.Failed -> "拿不到：" + outcome.why
+                else -> "刷新了"
+            })
+            reload++
+        }
+    }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
         StatusStrip()
         Box(Modifier.weight(1f)) {
-            when (place) {
-                Place.WORK -> WorkScreen()
-                Place.TRIP -> TripScreen()
-                Place.AREAS -> ProfileScreen()
-                Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
+            androidx.compose.runtime.key(reload) {
+                when (place) {
+                    Place.WORK -> WorkScreen()
+                    Place.TRIP -> TripScreen(onRefresh = refresh)
+                    Place.AREAS -> ProfileScreen(onRefresh = refresh)
+                    Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
+                }
             }
         }
         BottomBar(place) { place = it }
