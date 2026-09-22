@@ -243,20 +243,6 @@ footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; 
 .set.far[data-on="1"]{background:var(--orange-deep); border-style:solid}
 .set.add{text-align:center; color:var(--ink-2); border-style:dashed}
 .set.add:hover{color:var(--gold)}
-/* Full screen is where this work actually happens: picking forty suburbs out
-   of seven hundred needs the whole window, not a panel. */
-body.mapfull main > section:not(.mapsection){display:none}
-body.mapfull header{display:none}
-body.mapfull nav#menu{display:none}
-body.mapfull footer{display:none}
-body.mapfull main{padding:0;max-width:none;height:100vh;gap:0}
-body.mapfull .mapsection{
-  border:0;border-radius:0;height:100vh;
-  display:flex;flex-direction:column;padding:12px 16px;
-}
-body.mapfull .mapwrap{height:auto;flex:1;min-height:0;margin-top:10px}
-body.mapfull .hint{display:none}
-body.mapfull h2{font-size:16px}
 .leaflet-container{font-family:inherit;background:#0E0E10}
 .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.25)}
 .leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
@@ -990,7 +976,6 @@ body.mapfull h2{font-size:16px}
     [
       ["fit", "回到选中的区"],
       ["clearAll", "全部取消"],
-      ["full", "全屏"],
       ["circleTool", "量范围"],
       ["noGoTool", "画不接单框"],
     ].forEach(function(pair){
@@ -1501,16 +1486,6 @@ body.mapfull h2{font-size:16px}
     showNoGo(!noGoOn);
   });
 
-
-  $("full").addEventListener("click", function(){
-    var on = document.body.classList.toggle("mapfull");
-    this.textContent = on ? "退出全屏" : "全屏";
-    // Leaflet measures its container once; tell it the container just changed.
-    setTimeout(function(){ if (map) map.invalidateSize(); }, 60);
-  });
-  document.addEventListener("keydown", function(e){
-    if (e.key === "Escape" && document.body.classList.contains("mapfull")) $("full").click();
-  });
 
   $("clearAll").addEventListener("click", function(){
     state.rules.suburbs.allow = [];
