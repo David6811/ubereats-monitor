@@ -61,20 +61,21 @@ h1::before{content:"";display:inline-block;width:10px;height:10px;border-radius:
 
 /* The map is the work surface and takes the window; prose stays at a readable
    width beside it. */
-.shell{display:flex; align-items:flex-start}
+/* The pages as tabs across the top, under the title; the room on the left
+   belongs to the sets beside the map. */
 nav#menu{
-  position:sticky; top:66px; width:200px; flex:none; padding:18px 12px;
-  display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--line);
-  min-height:calc(100vh - 66px);
+  position:sticky; top:66px; z-index:999; background:rgba(10,10,11,.86);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line); padding:0 28px;
+  display:flex; gap:4px;
 }
 nav#menu button{
-  text-align:left; background:transparent; border:1px solid transparent; color:var(--ink-2);
-  border-radius:var(--r-ctl); padding:10px 14px; font:inherit; font-size:14px; cursor:pointer;
+  background:transparent; border:0; border-bottom:2px solid transparent; color:var(--ink-2);
+  padding:12px 16px; font:inherit; font-size:14px; cursor:pointer; margin-bottom:-1px;
 }
-nav#menu button:hover{background:var(--sunk); color:var(--ink)}
-nav#menu button[data-on="1"]{background:var(--gold-deep); border-color:rgba(232,182,76,.35); color:var(--gold); font-weight:600}
-nav#menu .eyebrow{padding:14px 14px 4px}
-main{flex:1; min-width:0; padding:24px 28px; display:flex; flex-direction:column; gap:20px}
+nav#menu button:hover{color:var(--ink)}
+nav#menu button[data-on="1"]{color:var(--gold); border-bottom-color:var(--gold); font-weight:600}
+main{min-width:0; padding:24px 28px; display:flex; flex-direction:column; gap:20px}
 main > section{display:none}
 main > section[data-shown="1"]{display:block}
 main > section:not(.mapsection){max-width:1100px}
@@ -218,21 +219,42 @@ textarea{
 #jobsList .eyebrow{margin-right:6px}
 footer{padding:0 28px 44px; color:var(--ink-3); font-size:12px; max-width:74ch; line-height:1.7}
 
+.mapwrap{display:flex; gap:14px; margin-top:14px; height:78vh; min-height:460px}
 #map{
-  height:78vh; min-height:460px; border-radius:14px;
-  border:1px solid var(--line); margin-top:14px; background:#0E0E10;
+  flex:1; min-width:0; height:100%; border-radius:14px;
+  border:1px solid var(--line); background:#0E0E10;
 }
+/* The sets, one under the other beside the map: ten at most, all in view. */
+.sets{width:230px; flex:none; display:flex; flex-direction:column; gap:8px; overflow:auto}
+.set{
+  border:1px solid var(--line); border-radius:var(--r-ctl); background:var(--sunk);
+  padding:10px 12px; cursor:pointer; user-select:none;
+}
+.set:hover{border-color:var(--ink-3)}
+.set[data-on="1"]{background:var(--gold-deep); border-color:rgba(232,182,76,.55)}
+.set .name{font-weight:600; font-size:14px; color:var(--ink)}
+.set[data-on="1"] .name{color:var(--gold)}
+.set .meta{font-size:12px; color:var(--ink-3); margin-top:2px}
+.set .acts{display:flex; gap:10px; margin-top:8px; font-size:12px}
+.set .acts span{color:var(--ink-2); cursor:pointer; border-bottom:1px dotted var(--line-2)}
+.set .acts span:hover{color:var(--gold)}
+.set.far{border-style:dashed; border-color:rgba(240,136,62,.5); margin-top:auto}
+.set.far .name{color:var(--orange)}
+.set.far[data-on="1"]{background:var(--orange-deep); border-style:solid}
+.set.add{text-align:center; color:var(--ink-2); border-style:dashed}
+.set.add:hover{color:var(--gold)}
 /* Full screen is where this work actually happens: picking forty suburbs out
    of seven hundred needs the whole window, not a panel. */
 body.mapfull main > section:not(.mapsection){display:none}
 body.mapfull header{display:none}
+body.mapfull nav#menu{display:none}
 body.mapfull footer{display:none}
 body.mapfull main{padding:0;max-width:none;height:100vh;gap:0}
 body.mapfull .mapsection{
   border:0;border-radius:0;height:100vh;
   display:flex;flex-direction:column;padding:12px 16px;
 }
-body.mapfull #map{height:100%;flex:1;min-height:0;margin-top:10px}
+body.mapfull .mapwrap{height:auto;flex:1;min-height:0;margin-top:10px}
 body.mapfull .hint{display:none}
 body.mapfull h2{font-size:16px}
 .leaflet-container{font-family:inherit;background:#0E0E10}
@@ -296,7 +318,6 @@ body.mapfull h2{font-size:16px}
   <button class="btn" id="save">保存</button>
 </header>
 
-<div class="shell">
 <nav id="menu">
   <button data-page="areas">选区</button>
   <button data-page="stores">不接的店</button>
@@ -308,10 +329,12 @@ body.mapfull h2{font-size:16px}
   <section class="mapsection" data-page="areas">
     <h2>去哪些区<span class="count" id="allowCount"></span></h2>
     <div class="maptools">
-      <span id="profileBar"></span>
       <span id="mapTools"></span>
     </div>
-    <div id="map"></div>
+    <div class="mapwrap">
+      <div class="sets" id="profileBar"></div>
+      <div id="map"></div>
+    </div>
     <div class="legend">
       <span><i style="background:rgba(232,182,76,.4);border:1px solid #E8B64C"></i>去</span>
       <span><i style="background:transparent;border:1px solid #6B6A66"></i>不去（只剩轮廓）</span>
@@ -401,7 +424,6 @@ body.mapfull h2{font-size:16px}
     </div>
   </section>
 </main>
-</div>
 
 <dialog id="login">
   <h2>登录</h2>
@@ -989,66 +1011,77 @@ body.mapfull h2{font-size:16px}
   function drawProfiles(){
     var bar = $("profileBar");
     bar.textContent = "";
-    var label = document.createElement("span");
-    label.className = "eyebrow";
-    label.textContent = "选区方案";
-    bar.appendChild(label);
 
-    var pick = document.createElement("select");
-    pick.id = "profilePick";
-    profiles().forEach(function(profile){
-      var option = document.createElement("option");
-      option.value = profile.name;
-      option.textContent = profile.name + "（" + profile.suburbs.length + " 个区" +
-        (profile.centre ? "，有中心" : "") + "）";
-      option.selected = profile.name === state.rules.active;
-      pick.appendChild(option);
-    });
-    pick.disabled = state.editing === FAR;
-    pick.addEventListener("change", function(){ switchTo(this.value); });
-    bar.appendChild(pick);
-
-    function button(text, plain, onClick){
-      var b = document.createElement("button");
-      b.className = "btn plain";
-      b.textContent = text;
-      b.addEventListener("click", onClick);
-      bar.appendChild(b);
-      return b;
+    function act(text, onClick){
+      var a = document.createElement("span");
+      a.textContent = text;
+      a.addEventListener("click", function(e){ e.stopPropagation(); onClick(); });
+      return a;
     }
-    button("改名", true, function(){
-      var current = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
-      if (!current) return;
-      var name = (prompt("改名", current.name) || "").trim();
-      if (!name || name === current.name) return;
-      if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
-      current.name = name;
-      state.rules.active = name;
-      drawProfiles();
+
+    profiles().forEach(function(profile){
+      var live = profile.name === state.rules.active && state.editing !== FAR;
+      var card = document.createElement("div");
+      card.className = "set";
+      card.dataset.on = live ? "1" : "0";
+      var name = document.createElement("div");
+      name.className = "name";
+      name.textContent = profile.name;
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = profile.suburbs.length + " 个区 · " +
+        (profile.centre ? "中心 " + (profile.centre.label || "已设") : "没设中心");
+      card.append(name, meta);
+      if (live) {
+        var acts = document.createElement("div");
+        acts.className = "acts";
+        acts.appendChild(act("改名", function(){
+          var next = (prompt("改名", profile.name) || "").trim();
+          if (!next || next === profile.name) return;
+          if (profiles().some(function(p){ return p.name === next; })) return say("已经有同名的了", "bad");
+          profile.name = next;
+          state.rules.active = next;
+          drawProfiles();
+        }));
+        acts.appendChild(act(centreOn ? "收起中心" : "改中心", function(){ showCentre(!centreOn); }));
+        if (profiles().length > 1) {
+          acts.appendChild(act("删除", function(){
+            if (!confirm("删除方案「" + profile.name + "」？")) return;
+            state.rules.profiles = profiles().filter(function(p){ return p.name !== profile.name; });
+            switchTo(profiles()[0].name);
+          }));
+        }
+        card.appendChild(acts);
+      }
+      card.addEventListener("click", function(){ if (!live) switchTo(profile.name); });
+      bar.appendChild(card);
     });
-    button(centreOn ? "收起中心" : "改中心", true, function(){ showCentre(!centreOn); });
-    button("新增", true, function(){
+
+    var add = document.createElement("div");
+    add.className = "set add";
+    add.textContent = "+ 新增";
+    add.addEventListener("click", function(){
       $("newName").value = ""; $("newAddress").value = ""; $("newFound").textContent = "还没定位。";
       newCentre = null;
       $("newSet").showModal();
       $("newName").focus();
     });
-    if (profiles().length > 1) {
-      button("删除", true, function(){
-        var name = state.rules.active;
-        if (!confirm("删除方案「" + name + "」？")) return;
-        state.rules.profiles = profiles().filter(function(p){ return p.name !== name; });
-        switchTo(profiles()[0].name);
-      });
-    }
+    bar.appendChild(add);
 
-    var farButton = button(
-      state.editing === FAR ? "回到方案" : "改远区（>$" + (far().overDollars || 30) + "）", true,
-      function(){ if (state.editing === FAR) switchTo(state.rules.active); else editFar(); }
-    );
-    farButton.className = "btn plain far";
-    farButton.dataset.on = state.editing === FAR ? "1" : "0";
-    farButton.title = far().suburbs.length + " 个区 · 金额超过门槛的单改用这一组，不分方案";
+    // The far set is not a shift but an exception to one: any offer over the
+    // threshold, whichever set is live. So it sits apart, at the bottom.
+    var farCard = document.createElement("div");
+    farCard.className = "set far";
+    farCard.dataset.on = state.editing === FAR ? "1" : "0";
+    var farName = document.createElement("div");
+    farName.className = "name";
+    farName.textContent = "远区 >$" + (far().overDollars || 30);
+    var farMeta = document.createElement("div");
+    farMeta.className = "meta";
+    farMeta.textContent = far().suburbs.length + " 个区 · " + (state.editing === FAR ? "正在改，点一下回到方案" : "超过门槛的单用这一组");
+    farCard.append(farName, farMeta);
+    farCard.addEventListener("click", function(){ if (state.editing === FAR) switchTo(state.rules.active); else editFar(); });
+    bar.appendChild(farCard);
   }
 
   /**
