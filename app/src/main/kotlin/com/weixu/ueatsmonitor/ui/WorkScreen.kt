@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.LocationOn
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
+import com.weixu.ueatsmonitor.domain.Words
+import com.weixu.ueatsmonitor.domain.Zh
 import com.weixu.ueatsmonitor.domain.RuleName
 import com.weixu.ueatsmonitor.domain.JobDay
 import com.weixu.ueatsmonitor.domain.JobDays
@@ -57,6 +59,7 @@ import java.util.Locale
  */
 @Composable
 fun WorkScreen() {
+    val words = words()
     val context = LocalContext.current
     var cleared by remember { mutableStateOf(0) }
     // The date is read with the jobs, so the board turns over at midnight on its
@@ -73,7 +76,7 @@ fun WorkScreen() {
     // there. A job sits on every shelf that is true of it: what the rules advised
     // and what the driver did are separate facts, so one taken against the advice
     // shows up in both places. The counts add up to more than the board holds.
-    val shelves = listOf(Shelf.TAKEN to "已接", Shelf.WORTH_TAKING to "建议接", Shelf.NOT_WORTH_TAKING to "建议不接")
+    val shelves = listOf(Shelf.TAKEN to words.shelfTaken, Shelf.WORTH_TAKING to words.shelfWorth, Shelf.NOT_WORTH_TAKING to words.shelfLeave)
     var shelf by remember { mutableStateOf(Shelf.TAKEN) }
     val todays = JobDays.today(jobs, today, zone)
     val here = todays.filter { shelf.holds(it) }
@@ -104,12 +107,12 @@ fun WorkScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("空", style = MaterialTheme.typography.headlineLarge, color = Dash.Line)
+                        Text(words.empty, style = MaterialTheme.typography.headlineLarge, color = Dash.Line)
                         Text(
                             text = when (shelf) {
-                                Shelf.TAKEN -> "今天还没有已接的单"
-                                Shelf.WORTH_TAKING -> "今天还没有建议接的单"
-                                Shelf.NOT_WORTH_TAKING -> "今天还没有建议不接的单"
+                                Shelf.TAKEN -> words.noneTakenToday
+                                Shelf.WORTH_TAKING -> words.noneWorthToday
+                                Shelf.NOT_WORTH_TAKING -> words.noneLeaveToday
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             color = Dash.Muted,
@@ -145,9 +148,10 @@ fun WorkScreen() {
 /** An earlier day, folded to one line: which day, how many, and a chevron to open it. */
 @Composable
 private fun DayHeader(day: JobDay, today: LocalDate, open: Boolean, onToggle: () -> Unit) {
+    val words = words()
     val name = when (day.date) {
-        today.minusDays(1) -> "昨天"
-        today.minusDays(2) -> "前天"
+        today.minusDays(1) -> words.yesterday
+        today.minusDays(2) -> words.dayBefore
         else -> ""
     }
     Row(
@@ -162,14 +166,14 @@ private fun DayHeader(day: JobDay, today: LocalDate, open: Boolean, onToggle: ()
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = DAY.format(day.date),
+            text = dayOf(day.date, words),
             style = MaterialTheme.typography.titleMedium.merge(Dash.Numbers),
             color = Dash.Ink,
         )
         if (name.isNotEmpty()) Text(name, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
         Spacer(Modifier.weight(1f))
         Text(
-            text = day.jobs.size.toString() + " 单",
+            text = day.jobs.size.toString() + "",
             style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
             color = Dash.Muted,
         )
@@ -179,6 +183,7 @@ private fun DayHeader(day: JobDay, today: LocalDate, open: Boolean, onToggle: ()
 
 @Composable
 private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
+    val words = words()
     val context = LocalContext.current
     val advice = job.offer.ruling
     val good = advice?.startsWith("可以") == true
@@ -193,7 +198,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val why = job.offer.why.orEmpty()
                     RuleName.of(why)?.let { rule ->
-                        Text("规则：$rule", style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
+                        Text(words.ruleLine(rule), style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
                     }
                     Text(why, style = MaterialTheme.typography.titleMedium)
                 }
@@ -219,7 +224,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             // that is the one thing worth reading back off them. On the taken
             // shelf every card would say the same word, so it is left off.
             if (shelf != Shelf.TAKEN) {
-                Tag(if (job.taken) "已接" else "没接", ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
+                Tag(if (job.taken) words.shelfTaken else "没接", ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
             }
             advice?.let {
                 // Tapped, it says why: the one question a refused job raises.
@@ -232,7 +237,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             }
             Spacer(Modifier.weight(1f))
             Text(
-                text = "清掉",
+                text = words.clearIt,
                 modifier = Modifier.clickable(onClick = onClear).padding(vertical = 6.dp, horizontal = 4.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = Dash.Muted,
@@ -246,7 +251,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
         val pickup = job.address ?: job.offer.pickup
         val dropoff = job.dropAddress ?: job.offer.dropoff
         Stop(
-            title = "取餐",
+            title = words.pickUp,
             // Both, once the pickup screen has given the street address. The
             // shop's name is how he knows which job this is; the address is
             // where he drives. Losing either leaves him guessing.
@@ -258,7 +263,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             onMap = { Navigation.showPlace(context, pickup) },
         )
         Stop(
-            title = "送达",
+            title = words.dropOff,
             place = dropoff,
             detail = job.dropUnit,
             confirmed = job.dropAddress != null,
@@ -266,12 +271,12 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             onDrive = { Navigation.driveTo(context, dropoff) },
             onMap = { Navigation.showPlace(context, dropoff) },
         )
-        job.dropNote?.let { Note("客户留言", it, job.dropNoteCn) }
+        job.dropNote?.let { Note(words.customerNote, it, job.dropNoteCn) }
         // A batched offer's other deliveries. The card named one destination;
         // the rest turned up on their own delivery screens.
         job.extraDrops.forEach { drop ->
             Stop(
-                title = "同单再送",
+                title = words.alsoDrop,
                 place = drop.address,
                 detail = drop.unit,
                 confirmed = true,
@@ -279,11 +284,11 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
                 onDrive = { Navigation.driveTo(context, drop.address) },
                 onMap = { Navigation.showPlace(context, drop.address) },
             )
-            drop.note?.let { Note("客户留言", it, null) }
+            drop.note?.let { Note(words.customerNote, it, null) }
         }
         // The shop's own words about where to park, which is the one thing no
         // map or table of ours can tell him.
-        job.note?.let { Note("店家留言", it, job.noteCn) }
+        job.note?.let { Note(words.shopNote, it, job.noteCn) }
     }
 }
 
@@ -328,6 +333,7 @@ private fun Stop(
     onDrive: () -> Unit,
     onMap: () -> Unit,
 ) {
+    val words = words()
     Row(
         modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -352,7 +358,7 @@ private fun Stop(
                 SectionLabel(title)
                 // Says in words as well as colour that this address came from
                 // Uber's own screen rather than from OCR of the offer card.
-                if (confirmed) SectionLabel("✓ 已确认", color = Dash.Blue)
+                if (confirmed) SectionLabel(words.confirmed, color = Dash.Blue)
             }
             Text(
                 text = place,
@@ -366,10 +372,16 @@ private fun Stop(
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
-        GoldButton("导航", Modifier.width(76.dp), onDrive)
+        GoldButton(words.drive, Modifier.width(76.dp), onDrive)
         GlyphButton(androidx.compose.material.icons.Icons.Filled.LocationOn, "看地图", Modifier.width(52.dp), onMap)
     }
 }
 
 private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
-private val DAY: java.time.format.DateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("M月d日 EEE", Locale.CHINA)
+/** The date in the driver's language: "9月21日 周一" or "Mon 21 Sep". */
+private fun dayOf(date: LocalDate, words: Words): String = date.format(
+    java.time.format.DateTimeFormatter.ofPattern(
+        words.dayPattern,
+        if (words === Zh) Locale.CHINA else Locale.ENGLISH,
+    )
+)

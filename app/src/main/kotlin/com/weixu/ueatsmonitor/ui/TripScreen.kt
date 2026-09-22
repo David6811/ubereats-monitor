@@ -45,6 +45,7 @@ import com.weixu.ueatsmonitor.domain.SuburbAt
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun TripScreen() {
+    val words = words()
     val context = LocalContext.current
     val profiles = remember { Profiles.list(context) }
     val live = profiles.firstOrNull { it.active }
@@ -57,9 +58,9 @@ fun TripScreen() {
     if (live == null) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
             Panel {
-                SectionLabel("还没有选区")
+                SectionLabel(words.noAreasYet)
                 Text(
-                    text = "在电脑的编辑器里点一次「保存并推送到手机」。",
+                    text = words.pushFromTheWeb,
                     style = MaterialTheme.typography.bodyLarge,
                     color = Dash.Muted,
                 )
@@ -90,7 +91,7 @@ fun TripScreen() {
                 modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SectionLabel("这一趟 · " + live.name)
+                SectionLabel(words.thisTrip(live.name))
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = going.size.toString(),
@@ -99,7 +100,7 @@ fun TripScreen() {
                     )
                     Text(
                         text = touched?.let { name ->
-                            name + (if (name in going) " 去" else " 不去")
+                            name + (if (name in going) words.going else words.notGoing)
                         } ?: if (excluded.isEmpty()) "个区，全都去" else "个区，点掉了 " + excluded.size + " 个",
                         modifier = Modifier.padding(bottom = 6.dp),
                         style = MaterialTheme.typography.bodyLarge,
@@ -134,7 +135,7 @@ fun TripScreen() {
         Panel {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SectionLabel("点一下切换 · 长按只留它")
+                    SectionLabel(words.tapToToggle)
                     Text(
                         text = "只管这一趟。换选区或电脑推新规则，就全恢复。",
                         style = MaterialTheme.typography.bodySmall,
@@ -143,13 +144,13 @@ fun TripScreen() {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     middle?.let { here ->
-                        GhostButton("只留中心", color = Dash.Gold) {
+                        GhostButton(words.keepCentreOnly, color = Dash.Gold) {
                             ExclusionStore.keepOnly(context, here, all)
                             excluded = ExclusionStore.inForce(context)
                         }
                     }
                     if (going.isNotEmpty()) {
-                        GhostButton("全不选", color = Dash.Muted) {
+                        GhostButton(words.clearAll, color = Dash.Muted) {
                             ExclusionStore.excludeAll(context, all)
                             excluded = ExclusionStore.inForce(context)
                         }

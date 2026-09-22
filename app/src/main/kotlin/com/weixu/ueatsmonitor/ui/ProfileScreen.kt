@@ -41,6 +41,7 @@ import com.weixu.ueatsmonitor.domain.Exclusions
  */
 @Composable
 fun ProfileScreen() {
+    val words = words()
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(Profiles.list(context)) }
     var fromPhone by remember { mutableStateOf(Profiles.chosenHere(context)) }
@@ -57,9 +58,9 @@ fun ProfileScreen() {
     ) {
         if (profiles.isEmpty()) {
             Panel {
-                SectionLabel("还没有选区")
+                SectionLabel(words.noAreasYet)
                 Text(
-                    text = "在电脑的编辑器里点一次「保存并推送到手机」。",
+                    text = words.pushFromTheWeb,
                     style = MaterialTheme.typography.bodyLarge,
                     color = Dash.Muted,
                 )
@@ -71,7 +72,7 @@ fun ProfileScreen() {
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
                 Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Two places can pick, so say plainly which one did.
-                    SectionLabel(if (fromPhone) "现在用 · 手机上选的" else "现在用 · 电脑推过来的")
+                    SectionLabel(if (fromPhone) words.liveFromPhone else words.liveFromLaptop)
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(live.name, style = MaterialTheme.typography.headlineLarge, color = Dash.Gold)
                         Text(
@@ -91,7 +92,7 @@ fun ProfileScreen() {
 
         if (profiles.isNotEmpty()) {
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
-                SectionLabel("换一套")
+                SectionLabel(words.switchSet)
                 Column {
                     profiles.forEachIndexed { index, profile ->
                         if (index > 0) Hairline()
@@ -138,9 +139,9 @@ fun ProfileScreen() {
         }
 
         Panel {
-            SectionLabel("这一趟想少去几个区")
+            SectionLabel(words.fewerAreasThisTrip)
             Text(
-                text = "去「这趟」那一页点掉，只管这一趟，不会改这里的选区。",
+                text = words.turnThemOffOnTrip,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Dash.Muted,
             )
