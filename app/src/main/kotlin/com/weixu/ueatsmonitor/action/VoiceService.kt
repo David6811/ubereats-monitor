@@ -282,6 +282,7 @@ class VoiceService : Service() {
             is VoiceCommand.SwitchTo -> if (english) command.target.confirmEnglish else command.target.confirmChinese
             is VoiceCommand.DriveToCentre -> if (english) "OK, centre" else "好，回中心"
             is VoiceCommand.StopNavigation -> if (english) "OK, stopping" else "好，关导航"
+            is VoiceCommand.StopListening -> if (english) "OK, bye" else "好，关语音"
             is VoiceCommand.Ask -> ""
         }
         val tts = speech
@@ -316,6 +317,14 @@ class VoiceService : Service() {
                 toast("导航回中心")
             }
             is VoiceCommand.Ask -> Unit // answered in understood()
+            is VoiceCommand.StopListening -> {
+                // After the confirmation has been said; the setting goes with it,
+                // so opening the app does not bring the microphone straight back.
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    com.weixu.ueatsmonitor.App.instance.settingsStore.setVoiceEnabled(false)
+                }
+                main.postDelayed({ stopSelf() }, STOP_AFTER_MILLIS)
+            }
             is VoiceCommand.StopNavigation ->
                 MapsNavigation.stop(this) { pressed -> toast(if (pressed) "已关导航" else "地图没在导航") }
         }
@@ -384,6 +393,9 @@ class VoiceService : Service() {
         private const val TAG = "UEatsMonitor"
         private const val CHANNEL = "voice"
         private const val NOTIFICATION_ID = 44
+        /** Long enough for "好，关语音" to be said before the service goes. */
+        private const val STOP_AFTER_MILLIS = 2_000L
+
         /** How long after "你好" the driver has to ask the question. */
         private const val QUESTION_WINDOW_MILLIS = 8_000L
 

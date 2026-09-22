@@ -295,6 +295,18 @@ class VoiceCommandsTest {
     }
 
     @Test
+    fun `given 关语音, when it is parsed, then it stops listening`() {
+        // arrange
+        val heard = listOf("关语音")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(VoiceCommand.StopListening(SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
     fun `given 不聊了, when checked, then it ends the conversation`() {
         // arrange
         val heard = "不聊了"

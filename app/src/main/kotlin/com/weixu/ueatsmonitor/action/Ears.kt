@@ -135,6 +135,7 @@ class Ears(
                 // parts up only slowly, so speech stays above it.
                 floor = if (level < floor) level else floor + (level - floor) * FLOOR_RISE
                 val loud = level > floor * SPEECH_OVER_FLOOR && level > MIN_SPEECH_LEVEL
+                if (loud && hangover == 0) Log.d(TAG, "ears: speech starts, level=" + level.toInt() + " floor=" + floor.toInt())
                 if (loud) hangover = HANGOVER_CHUNKS else if (hangover > 0) hangover--
                 if (hangover == 0) {
                     if (fed) {
@@ -164,6 +165,7 @@ class Ears(
                     // Only the command recogniser's guesses are acted on early.
                     val partial = text(commands.partialResult, "partial")
                     if (partial.isNotEmpty() && partial != UNKNOWN) main.post { onPartial(partial) }
+                    free?.let { Log.d(TAG, "ears: free partial " + text(it.partialResult, "partial") + " level=" + level.toInt() + " floor=" + floor.toInt()) }
                 }
             }
         } finally {

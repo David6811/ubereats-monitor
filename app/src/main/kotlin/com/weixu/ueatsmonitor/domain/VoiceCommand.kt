@@ -32,6 +32,9 @@ sealed interface VoiceCommand {
     /** Press the cross on Google Maps' running navigation. */
     data class StopNavigation(override val language: SpokenLanguage) : VoiceCommand
 
+    /** Switch the microphone off. Turning it back on is a tap on the app. */
+    data class StopListening(override val language: SpokenLanguage) : VoiceCommand
+
     /**
      * A question for the assistant, after the wake word: "你好，现在送哪一单".
      * The recognizer usually ends the sentence at the pause after "你好", so the
@@ -63,6 +66,9 @@ object VoiceCommands {
      */
     private val STOP_NAVIGATION = listOf("关导航", "关闭导航", "停止导航", "结束导航", "stopnavigation", "endnavigation", "closenavigation")
 
+    /** Before the apps too: "关语音" must not read as anything else. */
+    private val STOP_LISTENING = listOf("关语音", "关闭语音", "停止语音", "别听了", "不用听了")
+
     /**
      * Chinese first. A sentence half in English - "切到 Google Map" - is the one a
      * Chinese recognizer gets wrong, so every app has a plain Chinese name to say.
@@ -86,6 +92,7 @@ object VoiceCommands {
         "地图", "送餐", "助手", "应用", "优步",
         "回中心", "回工作点",
         "关导航", "关闭导航", "停止导航", "结束导航",
+        "关语音", "关闭语音", "停止语音",
     )
 
     /** The short sentences to say, and to steer the recognizer towards. */
@@ -132,6 +139,7 @@ object VoiceCommands {
         }
         val text = fold(sentence)
         if (STOP_NAVIGATION.any { text.contains(it) }) return VoiceCommand.StopNavigation(languageOf(sentence))
+        if (STOP_LISTENING.any { text.contains(it) }) return VoiceCommand.StopListening(languageOf(sentence))
         // Before the apps: "回中心" names no app, and "中心" must not be taken
         // for one either.
         if (CENTRE_NAMES.any { text.contains(it) }) return VoiceCommand.DriveToCentre(languageOf(sentence))
