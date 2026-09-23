@@ -300,6 +300,9 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
  */
 @Composable
 private fun Note(title: String, original: String, chinese: String?) {
+    // The note arrives in English and is translated for a Chinese reader. An
+    // English reader wants the note itself, not a translation of it back.
+    val translation = chinese.takeIf { words() === Zh }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -311,8 +314,8 @@ private fun Note(title: String, original: String, chinese: String?) {
         Box(Modifier.width(3.dp).height(38.dp).clip(RoundedCornerShape(2.dp)).background(Dash.Gold))
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SectionLabel(title, color = Dash.Gold)
-            Text(chinese ?: original, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
-            if (chinese != null) {
+            Text(translation ?: original, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+            if (translation != null) {
                 Text(original, style = MaterialTheme.typography.bodySmall, color = Dash.Muted)
             }
         }

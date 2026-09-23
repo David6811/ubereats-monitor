@@ -133,33 +133,35 @@ fun TripScreen() {
         }
 
         Panel {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SectionLabel(words.tapToToggle)
-                    Text(
-                        text = words.thisTripOnly,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Dash.Muted,
-                    )
+            // The line and the buttons are stacked, not side by side: the English
+            // line is long enough that sharing a row squeezed both into columns
+            // four words wide.
+            SectionLabel(words.tapToToggle)
+            Text(
+                text = words.thisTripOnly,
+                style = MaterialTheme.typography.bodySmall,
+                color = Dash.Muted,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                middle?.let { here ->
+                    GhostButton(words.keepCentreOnly, color = Dash.Gold) {
+                        ExclusionStore.keepOnly(context, here, all)
+                        excluded = ExclusionStore.inForce(context)
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    middle?.let { here ->
-                        GhostButton(words.keepCentreOnly, color = Dash.Gold) {
-                            ExclusionStore.keepOnly(context, here, all)
-                            excluded = ExclusionStore.inForce(context)
-                        }
+                if (going.isNotEmpty()) {
+                    GhostButton(words.clearAll, color = Dash.Muted) {
+                        ExclusionStore.excludeAll(context, all)
+                        excluded = ExclusionStore.inForce(context)
                     }
-                    if (going.isNotEmpty()) {
-                        GhostButton(words.clearAll, color = Dash.Muted) {
-                            ExclusionStore.excludeAll(context, all)
-                            excluded = ExclusionStore.inForce(context)
-                        }
-                    }
-                    if (excluded.isNotEmpty()) {
-                        GhostButton(words.restoreAll, color = Dash.Gold) {
-                            ExclusionStore.clear(context)
-                            excluded = ExclusionStore.inForce(context)
-                        }
+                }
+                if (excluded.isNotEmpty()) {
+                    GhostButton(words.restoreAll, color = Dash.Gold) {
+                        ExclusionStore.clear(context)
+                        excluded = ExclusionStore.inForce(context)
                     }
                 }
             }

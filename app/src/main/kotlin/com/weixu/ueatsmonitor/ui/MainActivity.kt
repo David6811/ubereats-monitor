@@ -278,9 +278,11 @@ private fun StatusStrip(onRefresh: () -> Unit) {
             .fillMaxWidth()
             .padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(words().appName, style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        // No name here. The three chips say what the app is doing, and in English
+        // they fill the row; a title squeezed to "Offer ..." told the driver
+        // nothing he did not know from having opened it.
         Spacer(Modifier.weight(1f))
         settings?.let { VoiceChip(it.voiceEnabled) }
         WatchLamp(live.first)
