@@ -76,7 +76,7 @@ fun ProfileScreen() {
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(live.name, style = MaterialTheme.typography.headlineLarge, color = Dash.Gold)
                         Text(
-                            text = Exclusions.apply(live.suburbs.toSet(), excluded).size.toString() + " 个区",
+                            text = words.areasCount(Exclusions.apply(live.suburbs.toSet(), excluded).size),
                             modifier = Modifier.padding(bottom = 6.dp),
                             style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
                             color = Dash.Muted,
@@ -128,7 +128,7 @@ fun ProfileScreen() {
                                 color = if (profile.active) Dash.Ink else Dash.Muted,
                             )
                             Text(
-                                text = profile.suburbs.size.toString() + " 区",
+                                text = words.areasCount(profile.suburbs.size),
                                 style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
                                 color = Dash.Muted,
                             )

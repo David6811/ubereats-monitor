@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import com.weixu.ueatsmonitor.action.JobStore
 import com.weixu.ueatsmonitor.action.Navigation
 import com.weixu.ueatsmonitor.domain.Job
+import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.Words
 import com.weixu.ueatsmonitor.domain.Zh
 import com.weixu.ueatsmonitor.domain.RuleName
@@ -136,7 +137,7 @@ fun WorkScreen() {
             }
             if (jobs.isNotEmpty()) {
                 item {
-                    GhostButton("全部清空", Modifier.fillMaxWidth(), color = Dash.Muted) {
+                    GhostButton(words.clearBoard, Modifier.fillMaxWidth(), color = Dash.Muted) {
                         JobStore.clear(context); cleared++
                     }
                 }
@@ -186,7 +187,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
     val words = words()
     val context = LocalContext.current
     val advice = job.offer.ruling
-    val good = advice?.startsWith("可以") == true
+    val good = advice != null && RulingText.saysTake(advice)
     var explaining by remember { mutableStateOf(false) }
     // Tight on purpose: two jobs have to fit on one screen, because scrolling to
     // the second delivery is not something to do at a red light.
@@ -204,7 +205,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { explaining = false }) { Text("知道了") }
+                androidx.compose.material3.TextButton(onClick = { explaining = false }) { Text(words.gotIt) }
             },
         )
     }
@@ -224,7 +225,7 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             // that is the one thing worth reading back off them. On the taken
             // shelf every card would say the same word, so it is left off.
             if (shelf != Shelf.TAKEN) {
-                Tag(if (job.taken) words.shelfTaken else "没接", ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
+                Tag(if (job.taken) words.shelfTaken else words.notTaken, ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
             }
             advice?.let {
                 // Tapped, it says why: the one question a refused job raises.
@@ -373,7 +374,7 @@ private fun Stop(
             }
         }
         GoldButton(words.drive, Modifier.width(76.dp), onDrive)
-        GlyphButton(androidx.compose.material.icons.Icons.Filled.LocationOn, "看地图", Modifier.width(52.dp), onMap)
+        GlyphButton(androidx.compose.material.icons.Icons.Filled.LocationOn, words.seeOnMap, Modifier.width(52.dp), onMap)
     }
 }
 

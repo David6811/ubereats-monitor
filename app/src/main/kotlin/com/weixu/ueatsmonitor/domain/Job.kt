@@ -45,7 +45,7 @@ enum class Advice {
     companion object {
         /** Calculation. The headline the judge wrote, read back as the two cases it has. */
         fun of(offer: OfferRecord): Advice =
-            if (offer.ruling?.startsWith("可以") == true) WORTH_TAKING else NOT_WORTH_TAKING
+            if (offer.ruling != null && RulingText.saysTake(offer.ruling)) WORTH_TAKING else NOT_WORTH_TAKING
     }
 }
 

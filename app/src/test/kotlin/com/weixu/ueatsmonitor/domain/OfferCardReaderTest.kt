@@ -538,7 +538,7 @@ class OfferCardReaderTest {
         val ruling = RuleJudge.judge(card, rules, gazetteer, Stops.UNPLACED)
 
         // assert
-        assertEquals("Clayton South 不在名单里", RulingText.reason(ruling))
+        assertEquals("Clayton South 不在名单里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test

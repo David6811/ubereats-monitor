@@ -123,7 +123,7 @@ class VoiceService : Service() {
             },
             { error ->
                 Log.e(TAG, "voice: model failed to load", error)
-                toast("语音模型加载失败，语音命令用不了")
+                toast(driverWords().voiceModelFailed)
                 stopSelf()
             },
         )
@@ -239,7 +239,7 @@ class VoiceService : Service() {
                 val words = when (val reply = Assistant.ask(this@VoiceService, command.question)) {
                     is Assistant.Reply.Answer -> reply.words
                     is Assistant.Reply.Failed ->
-                        if (driverLang() == Lang.ENGLISH) "Could not ask: " + reply.why else "问不了：" + reply.why
+                        driverWords().couldNotAsk(reply.why)
                 }
                 main.post { announce(words); afterSpeaking = { keepConversation(FOLLOW_UP_MILLIS) } }
             }
@@ -307,16 +307,16 @@ class VoiceService : Service() {
         Log.i(TAG, "voice command: $command")
         when (command) {
             is VoiceCommand.SwitchTo -> {
-                if (bringForward(command.target)) toast("切到" + command.target.spoken)
+                if (bringForward(command.target)) toast(driverWords().switchedTo(command.target.spoken))
             }
             is VoiceCommand.DriveToCentre -> {
                 val centre = Profiles.centre(this)
                 if (centre == null) {
-                    toast("这套选区没设中心，在电脑上设一个")
+                    toast(driverWords().noCentreForVoice)
                     return
                 }
                 Navigation.driveTo(this, centre)
-                toast("导航回中心")
+                toast(driverWords().navigatingToCentre)
             }
             is VoiceCommand.Ask -> Unit // answered in understood()
             is VoiceCommand.StopListening -> {
@@ -329,11 +329,8 @@ class VoiceService : Service() {
             }
             is VoiceCommand.StopNavigation ->
                 MapsNavigation.stop(this) { pressed ->
-                    val english = driverLang() == Lang.ENGLISH
-                    toast(
-                        if (pressed) (if (english) "Navigation closed" else "已关导航")
-                        else (if (english) "Maps is not navigating" else "地图没在导航")
-                    )
+                    val words = driverWords()
+                    toast(if (pressed) words.navigationClosed else words.mapsNotNavigating)
                 }
         }
     }
@@ -342,7 +339,7 @@ class VoiceService : Service() {
     private fun bringForward(target: VoiceTarget): Boolean {
         val launch = packageManager.getLaunchIntentForPackage(target.packageName)
         if (launch == null) {
-            toast("没找到" + target.spoken)
+            toast(driverWords().couldNotFind(target.spoken))
             return false
         }
         runCatching {
@@ -357,8 +354,6 @@ class VoiceService : Service() {
     private fun confirmWords(words: String) = announce(words)
 
     /** The language the driver reads and listens in, as the settings have it. */
-    private fun driverLang(): Lang = LiveSettings.current?.lang ?: Lang.CHINESE
-
     /** Said aloud, because the driver is not looking at the phone. A tone when there is no voice. */
     private fun announce(words: String) {
         Log.i(TAG, "voice: announcing $words")
@@ -385,12 +380,12 @@ class VoiceService : Service() {
     private fun goForeground() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, "语音命令", NotificationManager.IMPORTANCE_MIN)
+            NotificationChannel(CHANNEL, driverWords().voiceChannel, NotificationManager.IMPORTANCE_MIN)
         )
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("语音命令在听")
-            .setContentText("说「地图」「送餐」「应用」或 switch to map / uber eats / application")
+            .setContentTitle(driverWords().voiceListening)
+            .setContentText(driverWords().voiceListeningHint)
             .setOngoing(true)
             .build()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {

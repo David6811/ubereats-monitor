@@ -101,7 +101,7 @@ fun TripScreen() {
                     Text(
                         text = touched?.let { name ->
                             name + (if (name in going) words.going else words.notGoing)
-                        } ?: if (excluded.isEmpty()) "个区，全都去" else "个区，点掉了 " + excluded.size + " 个",
+                        } ?: if (excluded.isEmpty()) words.areasAllGoing else words.areasSomeOff(excluded.size),
                         modifier = Modifier.padding(bottom = 6.dp),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Dash.Muted,
@@ -137,7 +137,7 @@ fun TripScreen() {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     SectionLabel(words.tapToToggle)
                     Text(
-                        text = "只管这一趟。换选区或电脑推新规则，就全恢复。",
+                        text = words.thisTripOnly,
                         style = MaterialTheme.typography.bodySmall,
                         color = Dash.Muted,
                     )
@@ -156,7 +156,7 @@ fun TripScreen() {
                         }
                     }
                     if (excluded.isNotEmpty()) {
-                        GhostButton("恢复全部", color = Dash.Gold) {
+                        GhostButton(words.restoreAll, color = Dash.Gold) {
                             ExclusionStore.clear(context)
                             excluded = ExclusionStore.inForce(context)
                         }

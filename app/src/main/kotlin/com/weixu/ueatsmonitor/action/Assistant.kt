@@ -40,7 +40,7 @@ object Assistant {
     }
 
     suspend fun ask(context: Context, question: String): Reply = withContext(Dispatchers.IO) {
-        val token = accessToken() ?: return@withContext Reply.Failed("没登录").also {
+        val token = accessToken() ?: return@withContext Reply.Failed(driverWords().notSignedIn).also {
             Log.w(TAG, "assistant: no access token, session status " + Cloud.session.value)
         }
         val body = JsonObject(

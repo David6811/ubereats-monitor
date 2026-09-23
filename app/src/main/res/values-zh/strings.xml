@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">接单助手</string>
+    <string name="listener_label">Uber 派单监听</string>
+    <string name="accessibility_description">读取 Uber 派单界面上的文字并留档，用于判断要不要接单。只读，不会替你点任何按钮。</string>
+    <string name="accessibility_label">Uber 派单读屏</string>
+    <string name="keeper_title">派单监控运行中</string>
+    <string name="keeper_text">这条通知消失就说明监控停了</string>
+    <string name="keeper_open">打开助手</string>
+    <string name="keeper_uber">回 Uber</string>
+</resources>

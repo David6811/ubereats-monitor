@@ -172,7 +172,7 @@ object RulingText {
     private fun km(miles: Miles, words: Words): String =
         words.km(String.format("%.1f", miles.value / 0.621371))
 
-    fun headline(ruling: Ruling, isMatch: Boolean = false, lang: Lang = Lang.CHINESE): String {
+    fun headline(ruling: Ruling, isMatch: Boolean, lang: Lang): String {
         val words = wordsIn(lang)
         return when (ruling) {
             // A Match is worth entering, not "taken": several drivers are shown
@@ -184,7 +184,15 @@ object RulingText {
         }
     }
 
-    fun reason(ruling: Ruling, lang: Lang = Lang.CHINESE): String {
+    /**
+     * Whether a headline off the board is a yes. The board keeps the words that
+     * were shown at the time, which may be either language, so both are asked.
+     */
+    fun saysTake(headline: String): Boolean =
+        headline == Zh.takeIt || headline == Zh.enterIt ||
+            headline == En.takeIt || headline == En.enterIt
+
+    fun reason(ruling: Ruling, lang: Lang): String {
         val words = wordsIn(lang)
         return when (ruling) {
             is Ruling.Take -> if (ruling.far) words.onTheFarList(ruling.suburb) else words.onTheList(ruling.suburb)

@@ -436,8 +436,8 @@ private fun MonitorScreen(store: SettingsStore) {
                     // size of the far set are the laptop's, not this app's.
                     Profiles.far(context)?.let { far ->
                         SwitchRow(
-                            label = "超过 $" + far.overDollars + " 用远区",
-                            hint = far.suburbs.toString() + " 个区，每小时不够也不接",
+                            label = words.farOver(far.overDollars.toString()),
+                            hint = words.farAreas(far.suburbs),
                             checked = current.farEnabled,
                         ) { scope.launch { store.setFarEnabled(it) } }
                         Hairline()
@@ -595,8 +595,8 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val now = if (granted) CurrentPosition(context).lastKnown() else null
         when {
-            !granted -> say(context, "没有定位权限，回中心模式开不了")
-            now == null -> say(context, "还没有定位，到车里开着定位再试")
+            !granted -> say(context, words.noLocationPermission)
+            now == null -> say(context, words.noFixYet)
             !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
             centre != null -> save(true)
         }
@@ -622,7 +622,7 @@ private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
             // hands back nothing. Only the system settings page can change that.
             !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
             CurrentPosition(context).lastKnown() == null ->
-                say(context, "手机还没有定位，到车里开着定位再试")
+                say(context, words.noFixYet)
             else -> save(true)
         }
     }
@@ -682,6 +682,7 @@ private fun VoiceToggle(enabled: Boolean) {
 @Composable
 private fun rememberVoiceSwitch(): (Boolean) -> Unit {
     val context = LocalContext.current
+    val words = words()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val store = App.instance.settingsStore
     val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -689,7 +690,7 @@ private fun rememberVoiceSwitch(): (Boolean) -> Unit {
             scope.launch { store.setVoiceEnabled(true) }
             VoiceService.start(context)
         } else {
-            say(context, "没有麦克风权限，语音命令开不了")
+            say(context, words.noMicrophonePermission)
         }
     }
     return { on ->
@@ -767,7 +768,7 @@ private fun QuitCard() {
         GhostButton(words.signOut, Modifier.fillMaxWidth()) {
             scope.launch {
                 App.instance.settingsStore.forgetLogin()
-                runCatching { Cloud.signOut() }.onFailure { say(context, "退不出去：" + it.message) }
+                runCatching { Cloud.signOut() }.onFailure { say(context, words.couldNotSignOut(it.message.orEmpty())) }
             }
         }
     }
@@ -863,7 +864,7 @@ private fun PermissionCard(title: String, hint: String, onFix: () -> Unit) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Dash.Orange)
         }
         Text(hint, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
-        GoldButton("去开启", Modifier.fillMaxWidth(), onFix)
+        GoldButton(words().goTurnOn, Modifier.fillMaxWidth(), onFix)
     }
 }
 

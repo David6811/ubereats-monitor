@@ -180,7 +180,7 @@ object RulesStore {
                 val west = edge("west") ?: return@mapNotNull null
                 val north = edge("north") ?: return@mapNotNull null
                 val east = edge("east") ?: return@mapNotNull null
-                NoGoBox(box["label"]?.jsonPrimitive?.content ?: "不接单区", south, west, north, east)
+                NoGoBox(box["label"]?.jsonPrimitive?.content ?: driverWords().noGoBoxDefault, south, west, north, east)
             }.orEmpty()
 
             Rules(

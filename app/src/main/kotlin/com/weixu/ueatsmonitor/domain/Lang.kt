@@ -64,6 +64,50 @@ interface Words {
     val voiceOn: String
     val voiceOff: String
 
+    /** The floating buttons, and what the phone says back when one is pressed. */
+    val stopNavigation: String
+    val clearBoard: String
+    val notTaken: String
+
+    val seeOnMap: String
+    val restoreAll: String
+    val thisTripOnly: String
+    fun areasCount(n: Int): String
+
+    /** Said as a toast when a switch could not be turned on. */
+    val noLocationPermission: String
+    val noMicrophonePermission: String
+
+    fun couldNotSignOut(why: String): String
+
+    /**
+     * The voice service's ongoing notice and what it says back. The commands
+     * themselves stay Chinese in both languages: the offline model only knows
+     * Chinese, so those are the sounds that work.
+     */
+    val voiceChannel: String
+    val voiceListening: String
+    val voiceListeningHint: String
+    val voiceModelFailed: String
+    val noCentreForVoice: String
+    val navigatingToCentre: String
+    fun switchedTo(what: String): String
+    fun couldNotFind(what: String): String
+    fun couldNotAsk(why: String): String
+
+    /** The ongoing notice that says the watching is alive, and its two buttons. */
+    val keeperChannel: String
+    val keeperTitle: String
+    val keeperText: String
+    val keeperOpen: String
+    val keeperUber: String
+    val notSignedIn: String
+    val noGoBoxDefault: String
+    val markGlyph: String
+    val stopping: String
+    val navigationClosed: String
+    val mapsNotNavigating: String
+
     // The job board.
     val shelfTaken: String
     val shelfWorth: String
@@ -93,8 +137,9 @@ interface Words {
     val tapToToggle: String
     val going: String
     val notGoing: String
-    fun areasAllGoing(n: Int): String
-    fun areasSomeOff(n: Int, off: Int): String
+    /** What follows the count of areas, which is shown on its own beside it. */
+    val areasAllGoing: String
+    fun areasSomeOff(off: Int): String
     val clearAll: String
     val keepCentreOnly: String
     val noAreasYet: String
@@ -159,7 +204,16 @@ interface Words {
     val readerOff: String
     val readerOffHint: String
     val notificationsOff: String
-    fun farOver(dollars: String, areas: Int): String
+    fun farOver(dollars: String): String
+
+    /** The overlay chip's last line: how far the drop is from the set's centre, and which way. */
+    fun fromCentreExact(km: String, way: String): String
+    fun fromCentreAbout(km: String, way: String): String
+    fun fromCentreRough(km: String, way: String): String
+    fun kmAway(km: String): String
+    fun perHourRate(dollars: String): String
+    fun farAreas(areas: Int): String
+    val goTurnOn: String
     val nearKmLabel: String
     val maxMinutesLabel: String
     val withinKmLabel: String
@@ -233,6 +287,36 @@ object Zh : Words {
     override val allowOverlay = "允许「接单助手」显示在其他应用上层"
     override val voiceOn = "语音开"
     override val voiceOff = "语音关"
+    override val stopNavigation = "关导航"
+    override val clearBoard = "全部清空"
+    override val notTaken = "没接"
+    override val seeOnMap = "看地图"
+    override val restoreAll = "恢复全部"
+    override val thisTripOnly = "只管这一趟。换选区或电脑推新规则，就全恢复。"
+    override fun areasCount(n: Int) = "$n 个区"
+    override val noLocationPermission = "没有定位权限，回中心模式开不了"
+    override val noMicrophonePermission = "没有麦克风权限，语音命令开不了"
+    override fun couldNotSignOut(why: String) = "退不出去：$why"
+    override val voiceChannel = "语音命令"
+    override val voiceListening = "语音命令在听"
+    override val voiceListeningHint = "说「地图」「送餐」「应用」「回中心」"
+    override val voiceModelFailed = "语音模型加载失败，语音命令用不了"
+    override val noCentreForVoice = "这套选区没设中心，在电脑上设一个"
+    override val navigatingToCentre = "导航回中心"
+    override fun switchedTo(what: String) = "切到$what"
+    override fun couldNotFind(what: String) = "没找到$what"
+    override fun couldNotAsk(why: String) = "问不了：$why"
+    override val keeperChannel = "采集守护"
+    override val keeperTitle = "派单监控运行中"
+    override val keeperText = "这条通知消失就说明监控停了"
+    override val keeperOpen = "打开助手"
+    override val keeperUber = "回 Uber"
+    override val notSignedIn = "没登录"
+    override val noGoBoxDefault = "不接单区"
+    override val markGlyph = "接"
+    override val stopping = "关…"
+    override val navigationClosed = "已关导航"
+    override val mapsNotNavigating = "地图没在导航"
 
     override val shelfTaken = "已接"
     override val shelfWorth = "建议接"
@@ -260,8 +344,8 @@ object Zh : Words {
     override val tapToToggle = "点一下切换 · 长按只留它"
     override val going = " 去"
     override val notGoing = " 不去"
-    override fun areasAllGoing(n: Int) = "$n 个区，全都去"
-    override fun areasSomeOff(n: Int, off: Int) = "$n 个区，点掉了 $off"
+    override val areasAllGoing = "个区，全都去"
+    override fun areasSomeOff(off: Int) = "个区，点掉了 $off 个"
     override val clearAll = "全不选"
     override val keepCentreOnly = "只留中心"
     override val noAreasYet = "还没有选区"
@@ -324,7 +408,14 @@ object Zh : Words {
     override val readerOff = "读屏没开"
     override val readerOffHint = "唯一能看到派单卡片的通道。关掉就什么都记录不到"
     override val notificationsOff = "通知权限没开：常驻通知和上面的两个按钮不会出现"
-    override fun farOver(dollars: String, areas: Int) = "超过 \$$dollars 用远区"
+    override fun farOver(dollars: String) = "超过 \$$dollars 用远区"
+    override fun fromCentreExact(km: String, way: String) = "离中心 $km 公里 $way"
+    override fun fromCentreAbout(km: String, way: String) = "离中心 约 $km 公里 $way"
+    override fun fromCentreRough(km: String, way: String) = "离中心 大概 $km 公里 $way（只认出区）"
+    override fun kmAway(km: String) = "$km 公里"
+    override fun perHourRate(dollars: String) = "\$$dollars/小时"
+    override fun farAreas(areas: Int) = "$areas 个区，每小时不够也不接"
+    override val goTurnOn = "去开启"
     override val nearKmLabel = "离中心小于 公里 照接"
     override val maxMinutesLabel = "超过 分钟 不接"
     override val withinKmLabel = "离中心 公里内 才接"
@@ -396,6 +487,36 @@ object En : Words {
     override val allowOverlay = "Let \"Offer Mate\" draw over other apps"
     override val voiceOn = "Voice on"
     override val voiceOff = "Voice off"
+    override val stopNavigation = "Stop nav"
+    override val clearBoard = "Clear the board"
+    override val notTaken = "Not taken"
+    override val seeOnMap = "See on map"
+    override val restoreAll = "Restore all"
+    override val thisTripOnly = "This trip only. Switching sets, or new rules from the laptop, brings them all back."
+    override fun areasCount(n: Int) = if (n == 1) "1 area" else "$n areas"
+    override val noLocationPermission = "Without location, homeward mode cannot be switched on"
+    override val noMicrophonePermission = "Without the microphone, voice commands cannot be switched on"
+    override fun couldNotSignOut(why: String) = "Could not sign out: $why"
+    override val voiceChannel = "Voice commands"
+    override val voiceListening = "Listening for voice commands"
+    override val voiceListeningHint = "Say 地图, 送餐, 应用 or 回中心"
+    override val voiceModelFailed = "The voice model would not load; voice commands are off"
+    override val noCentreForVoice = "This set has no centre; set one on the laptop"
+    override val navigatingToCentre = "Navigating back to the centre"
+    override fun switchedTo(what: String) = "Switched to $what"
+    override fun couldNotFind(what: String) = "Could not find $what"
+    override fun couldNotAsk(why: String) = "Could not ask: $why"
+    override val keeperChannel = "Watchdog"
+    override val keeperTitle = "Watching for offers"
+    override val keeperText = "This notice gone means the watching has stopped"
+    override val keeperOpen = "Open Offer Mate"
+    override val keeperUber = "Back to Uber"
+    override val notSignedIn = "not signed in"
+    override val noGoBoxDefault = "no-go box"
+    override val markGlyph = "M"
+    override val stopping = "Stop…"
+    override val navigationClosed = "Navigation closed"
+    override val mapsNotNavigating = "Maps is not navigating"
 
     override val shelfTaken = "Taken"
     override val shelfWorth = "Worth it"
@@ -423,8 +544,8 @@ object En : Words {
     override val tapToToggle = "Tap to toggle · hold to keep only that one"
     override val going = " going"
     override val notGoing = " not going"
-    override fun areasAllGoing(n: Int) = "$n areas, all going"
-    override fun areasSomeOff(n: Int, off: Int) = "$n areas, $off turned off"
+    override val areasAllGoing = "areas, all going"
+    override fun areasSomeOff(off: Int) = "areas, $off turned off"
     override val clearAll = "None"
     override val keepCentreOnly = "Centre only"
     override val noAreasYet = "No areas yet"
@@ -487,7 +608,14 @@ object En : Words {
     override val readerOff = "The reader is off"
     override val readerOffHint = "The only way it sees an offer card. Off, nothing is read at all"
     override val notificationsOff = "Notifications are off: the ongoing notice and the two buttons will not appear"
-    override fun farOver(dollars: String, areas: Int) = "Over \$$dollars use the far set"
+    override fun farOver(dollars: String) = "Over \$$dollars use the far set"
+    override fun fromCentreExact(km: String, way: String) = "$km km $way of the centre"
+    override fun fromCentreAbout(km: String, way: String) = "about $km km $way of the centre"
+    override fun fromCentreRough(km: String, way: String) = "roughly $km km $way of the centre (suburb only)"
+    override fun kmAway(km: String) = "$km km"
+    override fun perHourRate(dollars: String) = "\$$dollars/h"
+    override fun farAreas(areas: Int) = "$areas areas, and not below the hourly floor"
+    override val goTurnOn = "Turn it on"
     override val nearKmLabel = "Take if within km"
     override val maxMinutesLabel = "Leave if over min"
     override val withinKmLabel = "Only within km"

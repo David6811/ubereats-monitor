@@ -184,6 +184,7 @@ fun LoginScreen() {
 /** The app's mark: a gold ring with the one character that says what it does. */
 @Composable
 private fun Mark() {
+    val words = words()
     Box(
         modifier = Modifier
             .size(72.dp)
@@ -192,7 +193,7 @@ private fun Mark() {
             .border(2.dp, Dash.Gold, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text("接", color = Dash.Gold, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Text(words.markGlyph, color = Dash.Gold, fontSize = 34.sp, fontWeight = FontWeight.Bold)
     }
 }
 
