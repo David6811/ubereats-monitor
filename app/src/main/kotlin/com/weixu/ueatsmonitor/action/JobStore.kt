@@ -8,6 +8,7 @@ import com.weixu.ueatsmonitor.domain.OfferRecord
 import com.weixu.ueatsmonitor.domain.Drop
 import com.weixu.ueatsmonitor.domain.Dropoff
 import com.weixu.ueatsmonitor.domain.DropoffScreen
+import com.weixu.ueatsmonitor.domain.Lang
 import com.weixu.ueatsmonitor.domain.Pickup
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -66,8 +67,12 @@ object JobStore {
      * Puts a Chinese rendering of each note beside the original. Translation is
      * asynchronous and can take a moment, so the board is read again when the
      * answer arrives - it may have changed in between.
+     *
+     * Nothing to do for an English reader: the note already arrives in English,
+     * and the card shows it as the customer wrote it.
      */
     fun translateNotes(context: Context) {
+        if (driverLang() == Lang.ENGLISH) return
         list(context).forEach { job ->
             val at = job.atMillis
             if (job.note != null && job.noteCn == null) {
