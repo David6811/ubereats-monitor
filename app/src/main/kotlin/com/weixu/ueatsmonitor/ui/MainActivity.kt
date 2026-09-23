@@ -656,14 +656,14 @@ private fun VoiceToggle(enabled: Boolean) {
             title = { Text(words.voiceCommands) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VOICE_HELP.forEach { (say, does) ->
+                    voiceHelp().forEach { (say, does) ->
                         Row {
                             Text(say, Modifier.weight(1f), fontWeight = FontWeight.Bold)
                             Text(does, Modifier.weight(1.4f))
                         }
                     }
                     Text(
-                        "前面加「切」「打开」也行，比如「切地图」。英文也听得懂：map、uber eats、application、centre、stop navigation。",
+                        words.voiceHelpTail,
                         color = Dash.Muted,
                     )
                 }
@@ -725,16 +725,23 @@ private fun VoiceChip(enabled: Boolean) {
     )
 }
 
-/** What each spoken command does, in the words the driver says. Kept beside [VoiceCommands]'s names. */
-private val VOICE_HELP = listOf(
-    "「地图」" to "切到谷歌地图",
-    "「送餐」" to "切到 Uber",
-    "「应用」" to "切回接单助手",
-    "「回中心」" to "导航回选区中心",
-    "「关导航」" to "关掉谷歌地图的导航",
-    "「你好，…」" to "问助手：你好，现在送哪一单",
-    "「关语音」" to "关掉语音，再开要点一下按钮",
-)
+/**
+ * What each spoken command does. The words to say stay Mandarin whatever the
+ * language is set to: the recogniser on the phone knows no English.
+ */
+@Composable
+private fun voiceHelp(): List<Pair<String, String>> {
+    val words = words()
+    return listOf(
+        "「地图」" to words.sayMap,
+        "「送餐」" to words.sayUber,
+        "「应用」" to words.sayApp,
+        "「回中心」" to words.sayCentre,
+        "「关导航」" to words.sayStopNavigation,
+        "「你好，…」" to words.sayAsk,
+        "「关语音」" to words.sayVoiceOff,
+    )
+}
 
 /**
  * Everything off at the end of a shift. Kept to the bottom of the last page and

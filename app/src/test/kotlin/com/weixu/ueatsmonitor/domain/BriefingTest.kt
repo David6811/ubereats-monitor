@@ -49,6 +49,43 @@ class BriefingTest {
     }
 
     @Test
+    fun `given an English driver, when the same board is written out, then it is written in English`() {
+        // arrange  the same job as above, and the same moment
+        TimeZone.setDefault(TimeZone.getTimeZone("Australia/Melbourne"))
+        val now = 1_789_962_000_000L // 2026-09-21 13:40 AEST
+        val inHand = Job(
+            atMillis = now - 25 * 60_000,
+            offer = cabra,
+            taken = true,
+            address = "1 Main St, Mordialloc",
+            note = null,
+            dropAddress = "39 Westbrook Drive, Keysborough",
+            dropUnit = null,
+            dropNote = "Press doorbell",
+            noteCn = null,
+            dropNoteCn = "请按门铃",
+            extraDrops = emptyList(),
+        )
+        val where = Briefing.Whereabouts(carAt = GeoPoint(-38.0054, 145.1674), centre = GeoPoint(-38.02506, 145.12873), nearestSuburb = "Keysborough")
+
+        // act
+        val text = Briefing.text(now, listOf(inHand), where, "ParkMore", lang = Lang.ENGLISH)
+
+        // assert  the note goes up in the customer's own words, not the translation
+        assertEquals(
+            """
+            Time Monday 21 September 2026 13:40, Melbourne
+            Where the car is: near Keysborough, 4.0 km from the set's centre
+            Live set: ParkMore
+
+            In the car (newest first):
+            1. ${'$'}16.22, taken at 13:15 (25 min ago). Pick up: La Cabra Mordialloc, at 1 Main St, Mordialloc, already at the shop. Drop off: 39 Westbrook Drive, Keysborough, delivery screen reached. Customer note: Press doorbell.
+            """.trimIndent(),
+            text,
+        )
+    }
+
+    @Test
     fun `given no position and no jobs, when written out, then it says so rather than leaving blanks`() {
         // arrange
         val where = Briefing.Whereabouts(carAt = null, centre = null, nearestSuburb = null)

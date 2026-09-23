@@ -20,6 +20,7 @@ import android.media.ToneGenerator
 import java.util.Locale
 import android.util.Log
 import android.widget.Toast
+import com.weixu.ueatsmonitor.domain.Lang
 import com.weixu.ueatsmonitor.domain.VoiceCommand
 import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.domain.VoiceTarget
@@ -237,7 +238,8 @@ class VoiceService : Service() {
             asking.launch {
                 val words = when (val reply = Assistant.ask(this@VoiceService, command.question)) {
                     is Assistant.Reply.Answer -> reply.words
-                    is Assistant.Reply.Failed -> "问不了：" + reply.why
+                    is Assistant.Reply.Failed ->
+                        if (driverLang() == Lang.ENGLISH) "Could not ask: " + reply.why else "问不了：" + reply.why
                 }
                 main.post { announce(words); afterSpeaking = { keepConversation(FOLLOW_UP_MILLIS) } }
             }
@@ -326,7 +328,13 @@ class VoiceService : Service() {
                 main.postDelayed({ stopSelf() }, STOP_AFTER_MILLIS)
             }
             is VoiceCommand.StopNavigation ->
-                MapsNavigation.stop(this) { pressed -> toast(if (pressed) "已关导航" else "地图没在导航") }
+                MapsNavigation.stop(this) { pressed ->
+                    val english = driverLang() == Lang.ENGLISH
+                    toast(
+                        if (pressed) (if (english) "Navigation closed" else "已关导航")
+                        else (if (english) "Maps is not navigating" else "地图没在导航")
+                    )
+                }
         }
     }
 
@@ -347,6 +355,9 @@ class VoiceService : Service() {
     }
 
     private fun confirmWords(words: String) = announce(words)
+
+    /** The language the driver reads and listens in, as the settings have it. */
+    private fun driverLang(): Lang = LiveSettings.current?.lang ?: Lang.CHINESE
 
     /** Said aloud, because the driver is not looking at the phone. A tone when there is no voice. */
     private fun announce(words: String) {
