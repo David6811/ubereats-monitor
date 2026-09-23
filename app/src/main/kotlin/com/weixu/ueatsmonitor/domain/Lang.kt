@@ -125,6 +125,65 @@ interface Words {
     val noNetwork: String
     fun failed(what: String, why: String): String
 
+    // The settings page.
+    val settingsWatching: String
+    val settingsFinishing: String
+    val settingsPerHour: String
+    val save: String
+    val cancel: String
+    val gotIt: String
+    val areaSound: String
+    val floatingButtons: String
+    val floatingButtonsHint: String
+    val voiceCommands: String
+    val voiceCommandsHint: String
+    val whatCanISay: String
+    val voiceHelpTail: String
+    val homewardMode: String
+    val homewardHint: String
+    val nearCentreMode: String
+    val nearCentreHint: String
+    val noCentreSet: String
+    val noCentreSetLong: String
+    val needAlwaysLocation: String
+    val noFixYet: String
+    val setLocationAlways: String
+    val quitAndStop: String
+    val quitHint: String
+    val quitAsk: String
+    val quitAskBody: String
+    val quitIt: String
+    val signOut: String
+    val overlayOff: String
+    val overlayOffHint: String
+    val readerOff: String
+    val readerOffHint: String
+    val notificationsOff: String
+    fun farOver(dollars: String, areas: Int): String
+    val nearKmLabel: String
+    val maxMinutesLabel: String
+    val withinKmLabel: String
+    val withinMinutesLabel: String
+    val fuelPerKm: String
+    val timeFactor: String
+    val farFloorPerHour: String
+    val perHourFormula: String
+    val rulesUpdated: String
+    val rulesAlreadyCurrent: String
+    fun couldNotFetch(why: String): String
+    val refreshed: String
+    val onPhoneOnly: String
+
+    // Spoken commands, as the help lists them.
+    val sayMap: String
+    val sayUber: String
+    val sayApp: String
+    val sayCentre: String
+    val sayStopNavigation: String
+    val sayAsk: String
+    val sayVoiceOff: String
+    val switchedTo: String
+
     // Units and small words used in more than one place.
     fun km(value: String): String
     fun minutes(value: Int): String
@@ -232,6 +291,63 @@ object Zh : Words {
     override val noNetwork = "没网，连不上"
     override fun failed(what: String, why: String) = "$what 失败：$why"
 
+    override val settingsWatching = "监控"
+    override val settingsFinishing = "收工"
+    override val settingsPerHour = "每小时收入"
+    override val save = "保存"
+    override val cancel = "取消"
+    override val gotIt = "知道了"
+    override val areaSound = "区域提示音"
+    override val floatingButtons = "悬浮按钮"
+    override val floatingButtonsHint = "跑单时右上角的「关导航」「语音」"
+    override val voiceCommands = "语音命令"
+    override val voiceCommandsHint = "一直在听：说「地图」「送餐」「应用」「回中心」"
+    override val whatCanISay = "能说什么？"
+    override val voiceHelpTail = "前面加「切」「打开」也行，比如「切地图」。"
+    override val homewardMode = "回中心模式"
+    override val homewardHint = "只接离中心更近的单，远区也一样"
+    override val nearCentreMode = "近中心模式"
+    override val nearCentreHint = "只接离中心几公里内、时间短的单"
+    override val noCentreSet = "这套选区没设中心，先在电脑上设一个"
+    override val noCentreSetLong = "这套选区没设中心，在电脑上点「改中心」再保存"
+    override val needAlwaysLocation = "定位要设成「始终允许」才有用，点这里去改"
+    override val noFixYet = "手机还没有定位，开不了"
+    override val setLocationAlways = "把定位改成「始终允许」：权限 → 位置信息 → 始终允许"
+    override val quitAndStop = "退出并停止监控"
+    override val quitHint = "停掉读屏和后台守护。下次要用，得去「系统设置 → 无障碍 → 接单助手」重新打开。"
+    override val quitAsk = "停掉监控？"
+    override val quitAskBody = "派单来了就不会再有判断和记录，直到你在系统的无障碍设置里重新打开。"
+    override val quitIt = "停掉"
+    override val signOut = "退出登录"
+    override val overlayOff = "悬浮窗没开"
+    override val overlayOffHint = "打开后判断结果会盖在派单卡片上"
+    override val readerOff = "读屏没开"
+    override val readerOffHint = "唯一能看到派单卡片的通道。关掉就什么都记录不到"
+    override val notificationsOff = "通知权限没开：常驻通知和上面的两个按钮不会出现"
+    override fun farOver(dollars: String, areas: Int) = "超过 \$$dollars 用远区"
+    override val nearKmLabel = "离中心小于 公里 照接"
+    override val maxMinutesLabel = "超过 分钟 不接"
+    override val withinKmLabel = "离中心 公里内 才接"
+    override val withinMinutesLabel = "分钟内 才接"
+    override val fuelPerKm = "每公里油钱 \$"
+    override val timeFactor = "时间倍数"
+    override val farFloorPerHour = "远区最低 \$/时"
+    override val perHourFormula = "(钱 − 公里 × 2 × 油钱) ÷ (分钟 × 倍数 ÷ 60)"
+    override val rulesUpdated = "拿到了新规则"
+    override val rulesAlreadyCurrent = "已经是最新的"
+    override fun couldNotFetch(why: String) = "拿不到：$why"
+    override val refreshed = "刷新了"
+    override val onPhoneOnly = "这些在手机上改"
+
+    override val sayMap = "切到谷歌地图"
+    override val sayUber = "切到 Uber"
+    override val sayApp = "切回接单助手"
+    override val sayCentre = "导航回选区中心"
+    override val sayStopNavigation = "关掉谷歌地图的导航"
+    override val sayAsk = "问助手：你好，现在送哪一单"
+    override val sayVoiceOff = "关掉语音，再开要点一下按钮"
+    override val switchedTo = "切到"
+
     override fun km(value: String) = "$value 公里"
     override fun minutes(value: Int) = "$value 分钟"
     override fun perHour(amount: String) = "\$$amount/小时"
@@ -337,6 +453,63 @@ object En : Words {
     override val emailNotConfirmed = "Email not confirmed yet, open the link in it"
     override val noNetwork = "No network"
     override fun failed(what: String, why: String) = "$what failed: $why"
+
+    override val settingsWatching = "Watching"
+    override val settingsFinishing = "Finishing up"
+    override val settingsPerHour = "Dollars an hour"
+    override val save = "Save"
+    override val cancel = "Cancel"
+    override val gotIt = "Got it"
+    override val areaSound = "Area chime"
+    override val floatingButtons = "Floating buttons"
+    override val floatingButtonsHint = "Stop navigation and voice, top right, while on shift"
+    override val voiceCommands = "Voice commands"
+    override val voiceCommandsHint = "Always listening: say 地图, 送餐, 应用, 回中心"
+    override val whatCanISay = "What can I say?"
+    override val voiceHelpTail = "A verb in front is fine too, like 切地图. Commands are Mandarin for now."
+    override val homewardMode = "Homeward mode"
+    override val homewardHint = "Only jobs that leave you nearer the centre, far areas too"
+    override val nearCentreMode = "Near-centre mode"
+    override val nearCentreHint = "Only drops a few km from the centre, on short jobs"
+    override val noCentreSet = "This set has no centre; set one on the web first"
+    override val noCentreSetLong = "This set has no centre; press 改中心 on the web and save"
+    override val needAlwaysLocation = "Location must be \"Allow all the time\"; tap here to change it"
+    override val noFixYet = "No position yet, cannot switch it on"
+    override val setLocationAlways = "Set location to \"Allow all the time\": Permissions → Location → Allow all the time"
+    override val quitAndStop = "Quit and stop watching"
+    override val quitHint = "Stops the reader and the keeper. To use it again, switch it on under Settings → Accessibility."
+    override val quitAsk = "Stop watching?"
+    override val quitAskBody = "Offers will get no verdict and no record until you switch it on again under Accessibility."
+    override val quitIt = "Stop it"
+    override val signOut = "Sign out"
+    override val overlayOff = "Draw-over is off"
+    override val overlayOffHint = "Switch it on and the verdict lands on the offer card"
+    override val readerOff = "The reader is off"
+    override val readerOffHint = "The only way it sees an offer card. Off, nothing is read at all"
+    override val notificationsOff = "Notifications are off: the ongoing notice and the two buttons will not appear"
+    override fun farOver(dollars: String, areas: Int) = "Over \$$dollars use the far set"
+    override val nearKmLabel = "Take if within km"
+    override val maxMinutesLabel = "Leave if over min"
+    override val withinKmLabel = "Only within km"
+    override val withinMinutesLabel = "Only under min"
+    override val fuelPerKm = "Fuel per km \$"
+    override val timeFactor = "Time factor"
+    override val farFloorPerHour = "Far floor \$/h"
+    override val perHourFormula = "(pay − km × 2 × fuel) ÷ (min × factor ÷ 60)"
+    override val rulesUpdated = "Got the new rules"
+    override val rulesAlreadyCurrent = "Already up to date"
+    override fun couldNotFetch(why: String) = "Could not fetch: $why"
+    override val refreshed = "Refreshed"
+    override val onPhoneOnly = "Set these on the phone"
+
+    override val sayMap = "Switch to Google Maps"
+    override val sayUber = "Switch to Uber"
+    override val sayApp = "Back to Offer Mate"
+    override val sayCentre = "Drive back to the set's centre"
+    override val sayStopNavigation = "Close the Maps navigation"
+    override val sayAsk = "Ask the assistant: 你好, then your question"
+    override val sayVoiceOff = "Switch voice off; tap the button to bring it back"
+    override val switchedTo = "Switched to"
 
     override fun km(value: String) = "$value km"
     override fun minutes(value: Int) = "$value min"
