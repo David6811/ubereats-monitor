@@ -42,7 +42,7 @@ class JobDaysTest {
         offer = OfferRecord(isMatch = false, payout = "${'$'}9.07", pickup = "Some Shop", dropoff = "Somewhere", ruling = null, why = null, fromTree = false),
         taken = true,
         address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null,
-        extraDrops = emptyList(),
+        extraDrops = emptyList(), ordersAtPickup = 1,
     )
 
     private companion object {

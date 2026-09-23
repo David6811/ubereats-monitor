@@ -12,6 +12,12 @@ data class Pickup(
     val store: String,
     val address: String,
     val note: String?,
+    /**
+     * How many orders are being collected here. Uber says "Pick up 2 orders"
+     * without a second offer card, so this is the only warning that a second
+     * delivery is coming.
+     */
+    val orders: Int,
 )
 
 /**
@@ -25,6 +31,9 @@ object PickupScreen {
         Regex("""^pick up \d+ order""", RegexOption.IGNORE_CASE),
         Regex("""^complete pickup$""", RegexOption.IGNORE_CASE),
     )
+
+    /** The one line that carries the count; "Complete pickup" does not. */
+    private val COUNT = Regex("""^pick up (\d+) order""", RegexOption.IGNORE_CASE)
 
     /**
      * An Australian address ends in its suburb and postcode, with the state
@@ -70,6 +79,9 @@ object PickupScreen {
             store = store,
             address = clean[addressAt],
             note = clean.firstNotNullOfOrNull { NOTE.find(it)?.groupValues?.get(1)?.trim() },
+            // One, unless the screen says otherwise: "Complete pickup" alone is
+            // still a pickup, and one order is what a pickup usually is.
+            orders = clean.firstNotNullOfOrNull { COUNT.find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: 1,
         )
     }
 

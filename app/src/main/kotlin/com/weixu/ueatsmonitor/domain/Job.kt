@@ -31,6 +31,12 @@ data class Job(
      * half an hour later, naming a suburb no job on the board mentions.
      */
     val extraDrops: List<Drop>,
+    /**
+     * How many orders the pickup screen said were being collected. One until
+     * that screen has been read. More than one and a second delivery is coming,
+     * whether or not its screen has been seen yet.
+     */
+    val ordersAtPickup: Int,
 )
 
 /** Data. One more delivery of the same offer: where it goes and what the customer wrote. */
@@ -45,7 +51,7 @@ enum class Advice {
     companion object {
         /** Calculation. The headline the judge wrote, read back as the two cases it has. */
         fun of(offer: OfferRecord): Advice =
-            if (offer.ruling?.startsWith("可以") == true) WORTH_TAKING else NOT_WORTH_TAKING
+            if (offer.ruling != null && RulingText.saysTake(offer.ruling)) WORTH_TAKING else NOT_WORTH_TAKING
     }
 }
 
@@ -147,7 +153,7 @@ object JobBoard {
         }
         return jobs.mapIndexed { index, job ->
             if (index != at) job
-            else job.copy(taken = true, address = pickup.address, note = pickup.note)
+            else job.copy(taken = true, address = pickup.address, note = pickup.note, ordersAtPickup = pickup.orders)
         }
     }
 
@@ -178,6 +184,13 @@ object JobBoard {
         } ?: return jobs
         val at = matches.firstOrNull { jobs[it].taken } ?: matches.first()
 
+        // Two orders picked up at one shop usually go to the same suburb, so this
+        // screen matches the job the first one already filled. Overwriting it
+        // dropped the first customer's address and note on the floor - which is
+        // what happened at Nene Chicken on 23 Sept. A different address against a
+        // job that already has one is a second delivery, not a correction.
+        if (isAnotherDrop(jobs[at], dropoff)) return withExtraDrop(jobs, at, dropoff)
+
         return jobs.mapIndexed { index, job ->
             if (index != at) job
             else job.copy(
@@ -190,6 +203,35 @@ object JobBoard {
     }
 
     /**
+     * Whether this screen names a delivery the job does not have yet. The same
+     * screen is read every couple of seconds, and the driver goes back and forth
+     * between the two drops, so the address already on the job - first drop or
+     * extra - is the common case and means no.
+     */
+    private fun isAnotherDrop(job: Job, dropoff: Dropoff): Boolean {
+        val here = job.dropAddress ?: return false
+        return !sameAddress(here, dropoff.address) &&
+            job.extraDrops.none { sameAddress(it.address, dropoff.address) }
+    }
+
+    /**
+     * The tree writes the same address the same way, but "50 Prior Road, Noble
+     * Park" and "50 Prior Road, Noble Park Melbourne VIC" are one place, so one
+     * being the start of the other counts as the same.
+     */
+    private fun sameAddress(one: String, other: String): Boolean {
+        val a = fold(one)
+        val b = fold(other)
+        return a.startsWith(b) || b.startsWith(a)
+    }
+
+    private fun withExtraDrop(jobs: List<Job>, at: Int, dropoff: Dropoff): List<Job> =
+        jobs.mapIndexed { index, job ->
+            if (index != at) job
+            else job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
+        }
+
+    /**
      * A delivery screen whose suburb no job names. On a batched offer -
      * "Delivery (2)" - the card names one destination and the second turns up
      * only here, so it is kept against the job in hand rather than thrown away.
@@ -199,13 +241,8 @@ object JobBoard {
         val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
         val inHand = recent.filter { jobs[it].taken }
         val at = inHand.singleOrNull() ?: return jobs
-        val already = jobs[at].dropAddress == dropoff.address ||
-            jobs[at].extraDrops.any { it.address == dropoff.address }
-        if (jobs[at].dropAddress == null || already) return jobs
-        return jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
-        }
+        if (!isAnotherDrop(jobs[at], dropoff)) return jobs
+        return withExtraDrop(jobs, at, dropoff)
     }
 
     /** "Clarinda Melbourne" -> ["clarindamelbourne", "clarinda"], longest first. */

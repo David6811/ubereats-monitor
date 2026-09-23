@@ -47,7 +47,7 @@ object JobStore {
                 atMillis, offer,
                 taken = false, address = null, note = null,
                 dropAddress = null, dropUnit = null, dropNote = null,
-                noteCn = null, dropNoteCn = null, extraDrops = emptyList(),
+                noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
             ),
         )
         write(context, next)
@@ -127,6 +127,7 @@ object JobStore {
                                 }
                             })
                         }
+                        if (job.ordersAtPickup > 1) put("orders", JsonPrimitive(job.ordersAtPickup))
                         put("match", JsonPrimitive(job.offer.isMatch))
                         put("payout", JsonPrimitive(job.offer.payout))
                         put("pickup", JsonPrimitive(job.offer.pickup))
@@ -163,6 +164,7 @@ object JobStore {
                     note = one["note"]?.jsonPrimitive?.content,
                 )
             }.orEmpty(),
+            ordersAtPickup = entry["orders"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1,
             offer = OfferRecord(
                 isMatch = entry["match"]?.jsonPrimitive?.content == "true",
                 payout = entry["payout"]!!.jsonPrimitive.content,

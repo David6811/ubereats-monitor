@@ -32,7 +32,7 @@ class ChipTextTest {
         val offer = card
 
         // act
-        val route = ChipText.route(offer, suburbs, stores)
+        val route = ChipText.route(offer, suburbs, stores, Lang.CHINESE)
 
         // assert
         assertEquals("Springvale（快餐·商场） → Noble Park North", route.text)
@@ -44,7 +44,7 @@ class ChipTextTest {
         val offer = card.copy(dropoff = "Boundary Road & Wells Road, Braeside")
 
         // act
-        val route = ChipText.route(offer, suburbs, stores)
+        val route = ChipText.route(offer, suburbs, stores, Lang.CHINESE)
 
         // assert
         assertEquals("Springvale（快餐·商场） → Boundary Road…", route.text)
@@ -68,7 +68,7 @@ class ChipTextTest {
         val offer = card.copy(pickup = "Some Shop", dropoff = "Somewhere Else")
 
         // act
-        val route = ChipText.route(offer, suburbs, stores)
+        val route = ChipText.route(offer, suburbs, stores, Lang.CHINESE)
 
         // assert
         assertEquals("Some Shop → Somewhere Else", route.text)
@@ -81,7 +81,7 @@ class ChipTextTest {
         val offer = card
 
         // act
-        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5))
+        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5), Lang.CHINESE)
 
         // assert
         assertEquals("${'$'}10.69/小时", rate)
@@ -93,7 +93,7 @@ class ChipTextTest {
         val offer = card.copy(distance = null)
 
         // act
-        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5))
+        val rate = ChipText.rate(offer, TripCost(fuelPerKm = 0.2, timeFactor = 1.5), Lang.CHINESE)
 
         // assert
         assertNull(rate)
@@ -105,7 +105,7 @@ class ChipTextTest {
         val offer = card
 
         // act
-        val distance = ChipText.distance(offer)
+        val distance = ChipText.distance(offer, Lang.CHINESE)
 
         // assert
         assertEquals("8.0 公里", distance)
@@ -117,7 +117,7 @@ class ChipTextTest {
         val offer = card.copy(distance = null)
 
         // act
-        val distance = ChipText.distance(offer)
+        val distance = ChipText.distance(offer, Lang.CHINESE)
 
         // assert
         assertNull(distance)
@@ -129,7 +129,7 @@ class ChipTextTest {
         val offer = card
 
         // act
-        val route = ChipText.route(offer, suburbs, stores)
+        val route = ChipText.route(offer, suburbs, stores, Lang.CHINESE)
 
         // affirm
         assertEquals(true, route.hasWarning)
@@ -149,7 +149,7 @@ class ChipTextTest {
         )
 
         // act
-        val route = ChipText.route(card, suburbs, parked)
+        val route = ChipText.route(card, suburbs, parked, Lang.CHINESE)
 
         // assert
         assertEquals(false, route.hasWarning)

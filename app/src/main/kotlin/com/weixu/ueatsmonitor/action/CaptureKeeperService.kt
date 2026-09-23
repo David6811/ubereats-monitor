@@ -102,7 +102,7 @@ class CaptureKeeperService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, "采集守护", NotificationManager.IMPORTANCE_MIN)
+                NotificationChannel(CHANNEL, driverWords().keeperChannel, NotificationManager.IMPORTANCE_MIN)
             )
         }
         val open = PendingIntent.getActivity(
@@ -114,6 +114,13 @@ class CaptureKeeperService : Service() {
         // A custom body, not addAction: an action is hidden until the shade entry
         // is expanded, and these two have to be one tap away while driving.
         val body = RemoteViews(packageName, R.layout.keeper_notification).apply {
+            // The layout carries the phone's own language; these put the one the
+            // driver chose in the app over the top of it.
+            val words = driverWords()
+            setTextViewText(R.id.keeperTitle, words.keeperTitle)
+            setTextViewText(R.id.keeperText, words.keeperText)
+            setTextViewText(R.id.keeperOpen, words.keeperOpen)
+            setTextViewText(R.id.keeperUber, words.keeperUber)
             setOnClickPendingIntent(R.id.keeperOpen, activity(Intent(this@CaptureKeeperService, MainActivity::class.java), 1))
             // Android 11 hides other packages unless the manifest names them;
             // without that this comes back null and the button does nothing.

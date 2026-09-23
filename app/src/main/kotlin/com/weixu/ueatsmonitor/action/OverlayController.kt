@@ -110,12 +110,14 @@ class OverlayController(private val context: Context) {
             return@post
         }
         if (!canDraw()) return@post
-        val navigation = toolButton("关导航").apply {
+        val words = driverWords()
+        val navigation = toolButton(words.stopNavigation).apply {
             setOnClickListener {
-                text = "关…"
+                text = words.stopping
                 MapsNavigation.stop(context) { pressed ->
-                    text = "关导航"
-                    android.widget.Toast.makeText(context, if (pressed) "已关导航" else "地图没在导航", android.widget.Toast.LENGTH_SHORT).show()
+                    text = words.stopNavigation
+                    val said = if (pressed) words.navigationClosed else words.mapsNotNavigating
+                    android.widget.Toast.makeText(context, said, android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -124,7 +126,7 @@ class OverlayController(private val context: Context) {
         val voice = toolButton("").apply {
             fun paint() {
                 val on = VoiceService.isRunning()
-                text = if (on) "语音开" else "语音关"
+                text = if (on) words.voiceOn else words.voiceOff
                 setTextColor(if (on) INK else Color.parseColor("#8F8C85"))
                 (background as GradientDrawable).setColor(if (on) FILL else Color.parseColor("#F0141416"))
             }
@@ -156,8 +158,9 @@ class OverlayController(private val context: Context) {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
-            // Top right corner, just under the status bar and clear of the
-            // verdict chip's own row; nothing Uber asks to be pressed lives there.
+            // Down the right edge, below everything Google Maps puts at the top.
+            // At the old height these sat on the lens-search icon in the search
+            // bar and on the first suggestion chip.
             gravity = Gravity.TOP or Gravity.END
             x = dp(8)
             y = dp(TOOLS_TOP_DP)
@@ -218,8 +221,8 @@ class OverlayController(private val context: Context) {
 
     private fun keyOf(state: State): String = when (state) {
         State.Thinking -> THINKING
-        is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch) +
-            RulingText.reason(state.ruling) + (state.fromCentre ?: "")
+        is State.Decided -> RulingText.headline(state.ruling, state.card.isMatch, driverLang()) +
+            RulingText.reason(state.ruling, driverLang()) + (state.fromCentre ?: "")
     }
 
     private fun layoutParams(state: State): WindowManager.LayoutParams {
@@ -404,14 +407,15 @@ class OverlayController(private val context: Context) {
     }
 
     private fun faceOf(state: State.Decided): Face = with(state) {
+        val lang = driverLang()
         Face(
-            title = RulingText.headline(ruling, card.isMatch),
+            title = RulingText.headline(ruling, card.isMatch, lang),
             payout = state.card.payout.toString(),
             // Where to where, with the shop's kind and where it stands. The street
             // names are unreadable in the second the card gives you.
-            route = ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context)),
-            distance = ChipText.distance(state.card),
-            rate = ChipText.rate(state.card, RulesStore.current(context).tripCost),
+            route = ChipText.route(state.card, Gazetteer.suburbs(context), StoreTable.all(context), lang),
+            distance = ChipText.distance(state.card, lang),
+            rate = ChipText.rate(state.card, RulesStore.current(context).tripCost, lang),
             fromCentre = fromCentre,
         )
     }
@@ -431,8 +435,12 @@ class OverlayController(private val context: Context) {
         /** Enough to read at a glance, thin enough to see the map through. */
         const val TOOLS_ALPHA = 0.7f
 
-        /** Below the status bar; the verdict chip starts at 20 px and is a row tall. */
-        const val TOOLS_TOP_DP = 36
+        /**
+         * Below Maps' search bar (ends near 86dp), its row of chips (138dp) and
+         * the layers button (192dp), all of which are on the right and tappable.
+         * The map itself is clear from here down.
+         */
+        const val TOOLS_TOP_DP = 200
 
         /** Far enough in from the edge to clear the heartbeat dot's own window. */
         const val DOTS_FROM_EDGE_DP = 44

@@ -305,24 +305,25 @@ body[data-page="areas"] footer{display:none}
 <body>
 
 <header>
-  <h1>接单规则</h1>
-  <span class="sub">在哪改都行，保存后手机几秒内就用上</span>
+  <h1 data-t="t1">接单规则</h1>
+  <span class="sub" data-t="t2">在哪改都行，保存后手机几秒内就用上</span>
   <span class="spacer"></span>
-  <span id="phone">账号：…</span>
+  <span id="phone" data-t="t3">账号：…</span>
   <span id="status"></span>
-  <button class="btn" id="save">保存</button>
+  <button class="btn plain" id="langSwitch"></button>
+  <button class="btn" id="save" data-t="t4">保存</button>
 </header>
 
 <nav id="menu">
-  <button data-page="areas">选区</button>
-  <button data-page="stores">不接的店</button>
-  <button data-page="params">规则参数</button>
-  <button data-page="jobs">单子</button>
-  <button data-page="account">账号</button>
+  <button data-page="areas" data-t="t5">选区</button>
+  <button data-page="stores" data-t="t6">不接的店</button>
+  <button data-page="params" data-t="t7">规则参数</button>
+  <button data-page="jobs" data-t="t8">单子</button>
+  <button data-page="account" data-t="t9">账号</button>
 </nav>
 <main>
   <section class="mapsection" data-page="areas">
-    <h2>去哪些区<span class="count" id="allowCount"></span></h2>
+    <h2 data-t="t10">去哪些区<span class="count" id="allowCount"></span></h2>
     <div class="maptools">
       <span id="mapTools"></span>
     </div>
@@ -331,9 +332,9 @@ body[data-page="areas"] footer{display:none}
       <div id="map"></div>
     </div>
     <div class="legend">
-      <span><i style="background:rgba(232,182,76,.4);border:1px solid #E8B64C"></i>去</span>
-      <span><i style="background:transparent;border:1px solid #6B6A66"></i>不去（只剩轮廓）</span>
-      <span><i style="background:rgba(240,136,62,.25);border:1px dashed #F0883E"></i>不接单框</span>
+      <span><i style="background:rgba(232,182,76,.4);border:1px solid #E8B64C"></i><span data-t="t15">去</span></span>
+      <span><i style="background:transparent;border:1px solid #6B6A66"></i><span data-t="t16">不去（只剩轮廓）</span></span>
+      <span><i style="background:rgba(240,136,62,.25);border:1px dashed #F0883E"></i><span data-t="t17">不接单框</span></span>
     </div>
 
     <input type="hidden" id="pickLat"><input type="hidden" id="pickLon"><input type="hidden" id="pickLabel">
@@ -341,122 +342,117 @@ body[data-page="areas"] footer{display:none}
   </section>
 
   <section data-page="stores">
-    <h2>不接的店<span class="count" id="storeCount"></span></h2>
-    <p class="hint">
-      取餐店名字里含有这些字就不接。照派单卡上写的打，回车加进去；
-      只打最有辨识度的那一段，比如「Walrus BBQ」，不用抄整行。地点上的不接，用选区页的不接单框画。
-    </p>
+    <h2 data-t="t6">不接的店<span class="count" id="storeCount"></span></h2>
+    <p class="hint" data-t="t18">取餐店名字里含有这些字就不接。照派单卡上写的打，回车加进去； 只打最有辨识度的那一段，比如「Walrus BBQ」，不用抄整行。地点上的不接，用选区页的不接单框画。</p>
     <div class="row">
-      <input type="search" id="storeSearch" placeholder="店名，回车拉黑" style="flex:1;max-width:460px">
+      <input type="search" id="storeSearch" data-tp="t19" placeholder="店名，回车拉黑" style="flex:1;max-width:460px">
     </div>
     <div class="chips" id="storeDenied"></div>
   </section>
 
   <section data-page="params">
-    <h2>规则参数</h2>
-    <p class="hint">改完记得点右上角「保存」。</p>
+    <h2 data-t="t7">规则参数</h2>
+    <p class="hint" data-t="t20">改完记得点右上角「保存」。</p>
     <div class="kv">
-      <span class="eyebrow">远区门槛 $</span>
+      <span class="eyebrow" data-t="t21">远区门槛 $</span>
       <input type="number" id="farOver" min="0" step="1" style="max-width:140px">
     </div>
-    <p class="hint" style="margin-top:10px">派单金额超过这个数，就改用「远区」那一套选区来判。</p>
+    <p class="hint" style="margin-top:10px" data-t="t22">派单金额超过这个数，就改用「远区」那一套选区来判。</p>
     <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="eyebrow">在手机上改的</div>
-      <p class="hint" style="margin:6px 0 0">
-        回中心模式、近中心模式的公里数和分钟数，油钱、时间倍数、远区每小时最低 —— 这些在手机 App 的「设置」页改，跑单时顺手就能调。
-      </p>
+      <div class="eyebrow" data-t="t23">在手机上改的</div>
+      <p class="hint" style="margin:6px 0 0" data-t="t24">回中心模式、近中心模式的公里数和分钟数，油钱、时间倍数、远区每小时最低 —— 这些在手机 App 的「设置」页改，跑单时顺手就能调。</p>
     </div>
   </section>
 
   <section data-page="jobs">
-    <h2>单子<span class="count" id="jobsCount"></span></h2>
-    <p class="hint">手机看到的每一张派单，几秒内到这里。接了的、没接的、为什么。</p>
+    <h2 data-t="t8">单子<span class="count" id="jobsCount"></span></h2>
+    <p class="hint" data-t="t25">手机看到的每一张派单，几秒内到这里。接了的、没接的、为什么。</p>
     <div class="row" style="margin-bottom:6px">
       <span class="chips" style="margin:0" id="jobsFilter">
-        <span class="chip" data-shelf="all" data-on="1">全部</span>
-        <span class="chip" data-shelf="taken">接了</span>
-        <span class="chip" data-shelf="worth">建议接</span>
-        <span class="chip" data-shelf="leave">建议不接</span>
+        <span class="chip" data-shelf="all" data-on="1" data-t="t26">全部</span>
+        <span class="chip" data-shelf="taken" data-t="t27">接了</span>
+        <span class="chip" data-shelf="worth" data-t="t28">建议接</span>
+        <span class="chip" data-shelf="leave" data-t="t29">建议不接</span>
       </span>
       <span class="spacer"></span>
-      <button class="btn plain" id="jobsRefresh">刷新</button>
+      <button class="btn plain" id="jobsRefresh" data-t="t30">刷新</button>
     </div>
     <table class="jobs" id="jobsTable">
-      <thead><tr><th>时间</th><th>钱</th><th>取餐</th><th>送到</th><th>判断</th><th>理由</th><th></th></tr></thead>
+      <thead><tr><th data-t="t31">时间</th><th data-t="t32">钱</th><th data-t="t33">取餐</th><th data-t="t34">送到</th><th data-t="t35">判断</th><th data-t="t36">理由</th><th></th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
 
   <section data-page="account">
-    <h2>账号</h2>
+    <h2 data-t="t9">账号</h2>
     <div class="kv">
-      <span class="eyebrow">邮箱</span><span id="accountEmail" class="mono"></span>
-      <span class="eyebrow">规则最后保存</span><span id="accountStamp" class="mono"></span>
+      <span class="eyebrow" data-t="t37">邮箱</span><span id="accountEmail" class="mono"></span>
+      <span class="eyebrow" data-t="t38">规则最后保存</span><span id="accountStamp" class="mono"></span>
     </div>
-    <p class="hint" style="margin-top:16px">手机 App 用同一个邮箱登录，规则就是同一份。</p>
+    <p class="hint" style="margin-top:16px" data-t="t39">手机 App 用同一个邮箱登录，规则就是同一份。</p>
     <div class="row" style="margin-top:8px">
-      <button class="btn plain" id="signOut">退出登录</button>
+      <button class="btn plain" id="signOut" data-t="t40">退出登录</button>
     </div>
   </section>
 </main>
 
 <dialog id="login">
-  <h2>登录</h2>
-  <label class="field"><span class="eyebrow">邮箱</span>
+  <h2 data-t="t41">登录</h2>
+  <label class="field"><span class="eyebrow" data-t="t37">邮箱</span>
     <input type="email" id="loginEmail" autocomplete="username"></label>
-  <label class="field"><span class="eyebrow">密码</span>
+  <label class="field"><span class="eyebrow" data-t="t42">密码</span>
     <input type="password" id="loginPassword" autocomplete="current-password"></label>
   <p class="sub" id="loginProblem"></p>
   <div class="row">
-    <button class="btn" id="loginGo">登录</button>
+    <button class="btn" id="loginGo" data-t="t41">登录</button>
   </div>
 </dialog>
 
 <dialog id="newSet">
-  <h2>新增方案</h2>
-  <label class="field"><span class="eyebrow">名字</span>
-    <input type="text" id="newName" placeholder="比如：晚上 / 周末早上"></label>
-  <label class="field"><span class="eyebrow">中心地址</span>
-    <input type="search" id="newAddress" placeholder="打店名或街名，从下面选"></label>
-  <p class="hint" id="newFound" style="margin:0">还没定位。</p>
+  <h2 data-t="t43">新增方案</h2>
+  <label class="field"><span class="eyebrow" data-t="t44">名字</span>
+    <input type="text" id="newName" data-tp="t45" placeholder="比如：晚上 / 周末早上"></label>
+  <label class="field"><span class="eyebrow" data-t="t46">中心地址</span>
+    <input type="search" id="newAddress" data-tp="t47" placeholder="打店名或街名，从下面选"></label>
+  <p class="hint" id="newFound" style="margin:0" data-t="t48">还没定位。</p>
   <label class="field">
-    <span class="eyebrow">先选上中心 <b class="mono" id="newKmLabel">5</b> 公里内的区</span>
+    <span class="eyebrow"><span data-t="t49">先选上中心</span> <b class="mono" id="newKmLabel">5</b> <span data-t="t50">公里内的区</span></span>
     <input type="range" id="newKm" min="1" max="30" step="1" value="5">
   </label>
   <div class="row">
-    <button class="btn plain" id="newCancel">取消</button>
-    <button class="btn" id="newGo">建好</button>
+    <button class="btn plain" id="newCancel" data-t="t52">取消</button>
+    <button class="btn" id="newGo" data-t="t51">建好</button>
   </div>
 </dialog>
 
 <dialog id="circle">
-  <h2>量范围</h2>
-  <label class="field"><span class="eyebrow">圆心 —— 也可以直接在地图上点</span>
+  <h2 data-t="t13">量范围</h2>
+  <label class="field"><span class="eyebrow" data-t="t53">圆心 —— 也可以直接在地图上点</span>
     <select id="placePick"></select></label>
-  <label class="field" id="customWrap" hidden><span class="eyebrow">输入地址</span>
-    <input type="search" id="customAddress" placeholder="打店名或街名，从下面选"></label>
+  <label class="field" id="customWrap" hidden><span class="eyebrow" data-t="t54">输入地址</span>
+    <input type="search" id="customAddress" data-tp="t47" placeholder="打店名或街名，从下面选"></label>
   <label class="field">
-    <span class="eyebrow">半径 <b class="mono" id="kmLabel">15</b> 公里</span>
+    <span class="eyebrow"><span data-t="t55">半径</span> <b class="mono" id="kmLabel">15</b> <span data-t="t56">公里</span></span>
     <input type="range" id="anchorKm" min="2" max="60" step="1" value="15">
   </label>
   <div class="row">
-    <button class="btn plain" id="usePhone">这台电脑的位置</button>
-    <button class="btn" id="circleClose">收起</button>
+    <button class="btn plain" id="usePhone" data-t="t57">这台电脑的位置</button>
+    <button class="btn" id="circleClose" data-t="t58">收起</button>
   </div>
 </dialog>
 
 <dialog id="centre">
-  <h2>设中心</h2>
+  <h2 data-t="t59">设中心</h2>
   <p class="hint" id="centreNow"></p>
-  <span class="eyebrow">选一个位置 —— 或直接在地图上点</span>
+  <span class="eyebrow" data-t="t60">选一个位置 —— 或直接在地图上点</span>
   <div class="row" id="centrePicks"></div>
-  <label class="field"><span class="eyebrow">或者输入地址</span>
-    <input type="search" id="centreAddress" placeholder="打店名或街名，从下面选"></label>
+  <label class="field"><span class="eyebrow" data-t="t61">或者输入地址</span>
+    <input type="search" id="centreAddress" data-tp="t47" placeholder="打店名或街名，从下面选"></label>
   <p class="hint" id="centrePicked"></p>
   <div class="row">
-    <button class="btn plain" id="setCentre">设为中心</button>
-    <button class="btn plain" id="centreClear">清掉</button>
-    <button class="btn" id="centreClose">收起</button>
+    <button class="btn plain" id="setCentre" data-t="t62">设为中心</button>
+    <button class="btn plain" id="centreClear" data-t="t63">清掉</button>
+    <button class="btn" id="centreClose" data-t="t58">收起</button>
   </div>
 </dialog>
 
@@ -464,12 +460,12 @@ body[data-page="areas"] footer{display:none}
   <div class="resultTop">
     <div class="resultMark" data-kind="ok">≡</div>
     <div>
-      <h2 id="jobsTitle">手机上的单</h2>
+      <h2 id="jobsTitle" data-t="t64">手机上的单</h2>
       <p id="jobsSub"></p>
     </div>
   </div>
   <ul id="jobsList"></ul>
-  <div class="resultFoot"><button class="btn" id="jobsClose">关掉</button></div>
+  <div class="resultFoot"><button class="btn" id="jobsClose" data-t="t65">关掉</button></div>
 </dialog>
 
 <dialog id="result">
@@ -481,20 +477,28 @@ body[data-page="areas"] footer{display:none}
     </div>
   </div>
   <ul id="resultRows"></ul>
-  <div class="resultFoot"><button class="btn" id="resultClose">知道了</button></div>
+  <div class="resultFoot"><button class="btn" id="resultClose" data-t="t66">知道了</button></div>
 </dialog>
 
 
-<footer>
-  规则存在云端你的账号下，手机登录同一个账号就会自动同步。跑单时手机上只会看到「可以接单 / 不要接单」和一句原因。
-</footer>
+<footer data-t="t67">规则存在云端你的账号下，手机登录同一个账号就会自动同步。跑单时手机上只会看到「可以接单 / 不要接单」和一句原因。</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="i18n.js"></script>
 <script src="cloud.js"></script>
 <script>
 (function(){
   "use strict";
+
+  var T = window.I18N.t;
+  var F = window.I18N.f;
+  window.I18N.applyLang();
+  var switcher = document.getElementById("langSwitch");
+  switcher.textContent = window.I18N.current() === "en" ? "中文" : "English";
+  switcher.addEventListener("click", function(){
+    window.I18N.setLang(window.I18N.current() === "en" ? "zh" : "en");
+  });
 
   var state = { rules:null, suburbs:[], stores:[], phone:null };
   var $ = function(id){ return document.getElementById(id); };
@@ -504,12 +508,12 @@ body[data-page="areas"] footer{display:none}
   function load(){
     API.state().then(function(data){
       if (!data.user) {
-        $("phone").textContent = "账号：没登录";
+        $("phone").textContent = T("j31");
         $("phone").dataset.on = "0";
         $("login").showModal();
         return;
       }
-      $("phone").textContent = "账号：" + data.user;
+      $("phone").textContent = T("j30") + data.user;
       $("phone").dataset.on = "1";
       $("signOut").hidden = false;
       $("login").open && $("login").close();
@@ -518,7 +522,7 @@ body[data-page="areas"] footer{display:none}
       state = data;
       fill();
     }).catch(function(error){
-      say("读不到云端：" + String(error.message || error).slice(0, 80), "bad");
+      say(T("j33") + String(error.message || error).slice(0, 80), "bad");
     });
   }
   function EMPTY_RULES(){
@@ -529,7 +533,7 @@ body[data-page="areas"] footer{display:none}
     var email = $("loginEmail").value.trim(), password = $("loginPassword").value;
     $("loginProblem").textContent = "";
     API.signIn(email, password).then(function(){ load(); }).catch(function(error){
-      $("loginProblem").textContent = /invalid/i.test(error.message) ? "邮箱或密码不对" : error.message;
+      $("loginProblem").textContent = /invalid/i.test(error.message) ? T("j32") : error.message;
     });
   });
   $("loginPassword").addEventListener("keydown", function(e){ if (e.key === "Enter") $("loginGo").click(); });
@@ -556,7 +560,7 @@ body[data-page="areas"] footer{display:none}
     if (typeof showCentre === "function" && map && name !== "areas") showCentre(false);
     if (name === "account") {
       $("accountEmail").textContent = state.user || "";
-      $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : "还没保存过";
+      $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : T("j67");
     }
     if (name === "params") $("farOver").value = (far().overDollars || 30);
     if (name === "jobs") loadJobs();
@@ -565,7 +569,7 @@ body[data-page="areas"] footer{display:none}
   /* ---- the board, as the phone pushed it ---- */
   var jobsAll = [], jobsShelf = "all";
   function loadJobs(){
-    $("jobsCount").textContent = "（取…）";
+    $("jobsCount").textContent = T("f1");
     API.jobs().then(function(data){
       jobsAll = data.jobs || [];
       if (data.detail) say(data.detail, "bad");
@@ -578,35 +582,35 @@ body[data-page="areas"] footer{display:none}
   }
   function drawJobsTable(){
     var rows = jobsAll.filter(function(j){
-      var good = (j.ruling || "").indexOf("可以") === 0;
+      var good = (j.ruling || "").indexOf(T("j73")) === 0;
       return jobsShelf === "all" || (jobsShelf === "taken" && j.taken) ||
         (jobsShelf === "worth" && good) || (jobsShelf === "leave" && !good);
     });
-    $("jobsCount").textContent = "（" + rows.length + " 单）";
+    $("jobsCount").textContent = F("f2", rows.length);
     var body = $("jobsTable").querySelector("tbody");
     body.textContent = "";
     rows.forEach(function(j){
       var tr = document.createElement("tr");
-      var good = (j.ruling || "").indexOf("可以") === 0;
+      var good = (j.ruling || "").indexOf(T("j73")) === 0;
       function cell(text, cls){ var td = document.createElement("td"); if (cls) td.className = cls; td.textContent = text || ""; tr.appendChild(td); return td; }
       cell(dayOf(j.at), "when");
       cell(j.payout, "money");
       var pick = cell(j.pickup); if (j.address) { var n = document.createElement("span"); n.className = "note"; n.textContent = j.address; pick.appendChild(n); }
       var drop = cell(j.dropAddress || j.dropoff);
-      if (j.dropNote || j.dropNoteCn) { var dn = document.createElement("span"); dn.className = "note"; dn.textContent = "留言：" + (j.dropNoteCn || j.dropNote); drop.appendChild(dn); }
+      if (j.dropNote || j.dropNoteCn) { var dn = document.createElement("span"); dn.className = "note"; dn.textContent = T("j57") + (j.dropNoteCn || j.dropNote); drop.appendChild(dn); }
       (j.extraDrops || []).forEach(function(d){
         var more = document.createElement("span");
         more.className = "note";
-        more.textContent = "同单再送：" + d.address + (d.unit ? "，" + d.unit : "") + (d.note ? "，" + d.note : "");
+        more.textContent = T("j58") + d.address + (d.unit ? "，" + d.unit : "") + (d.note ? "，" + d.note : "");
         drop.appendChild(more);
       });
       var r = cell(j.ruling || "—", good ? "yes" : "no");
-      if (j.taken) { var t = document.createElement("span"); t.className = "taken"; t.textContent = "接了"; r.appendChild(t); }
+      if (j.taken) { var t = document.createElement("span"); t.className = "taken"; t.textContent = T("t27"); r.appendChild(t); }
       cell(j.why, "why");
       var td = document.createElement("td");
       var a = document.createElement("a");
       a.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((j.dropAddress || j.dropoff) + ", Victoria, Australia");
-      a.target = "_blank"; a.rel = "noopener"; a.textContent = "地图";
+      a.target = "_blank"; a.rel = "noopener"; a.textContent = T("j62");
       td.appendChild(a); tr.appendChild(td);
       body.appendChild(tr);
     });
@@ -624,7 +628,7 @@ body[data-page="areas"] footer{display:none}
   });
   $("farOver").addEventListener("change", function(){
     var v = parseFloat(this.value);
-    if (!isNaN(v) && v >= 0) { far().overDollars = v; say("远区门槛改成 $" + v + "，记得保存"); }
+    if (!isNaN(v) && v >= 0) { far().overDollars = v; say(T("j63") + v + T("j64")); }
   });
 
   function fill(){
@@ -644,8 +648,8 @@ body[data-page="areas"] footer{display:none}
   }
 
   function counts(){
-    $("allowCount").textContent = "（去 " + state.rules.suburbs.allow.length + " 个）";
-    $("storeCount").textContent = "（" + state.rules.stores.deny.length + " 条）";
+    $("allowCount").textContent = F("f3", state.rules.suburbs.allow.length);
+    $("storeCount").textContent = F("f4", state.rules.stores.deny.length);
   }
 
   /* ---- the map: suburbs, anchor and radius on one canvas ---- */
@@ -720,24 +724,24 @@ body[data-page="areas"] footer{display:none}
       var rect = L.rectangle([[box.south, box.west], [box.north, box.east]], {
         color: "#F0883E", weight: 2, fillColor: "#F0883E", fillOpacity: 0.2, dashArray: "6 4",
       }).addTo(noGoLayer);
-      rect.bindTooltip("⛔ " + box.label + "（点一下删掉）", { sticky: true });
+      rect.bindTooltip("⛔ " + box.label + T("j54"), { sticky: true });
       rect.on("click", function(event){
         L.DomEvent.stop(event);
         if (noGoOn) return;
-        if (!confirm("删掉「" + box.label + "」？")) return;
+        if (!confirm(F("f5", box.label))) return;
         noGo().splice(index, 1);
         drawNoGo();
-        say("删了一个不接单框，记得保存", "ok");
+        say(T("j53"), "ok");
       });
     });
   }
 
   function showNoGo(on){
     noGoOn = on;
-    $("noGoTool").textContent = on ? "拖出一个框…（再点取消）" : "画不接单框";
+    $("noGoTool").textContent = on ? T("j5") : T("t14");
     map.getContainer().style.cursor = on ? "crosshair" : "";
     if (on) map.dragging.disable(); else map.dragging.enable();
-    if (on) say("按住鼠标在地图上拖，框里的地方不接单也不送", "ok");
+    if (on) say(T("j49"), "ok");
   }
 
   /** Press, drag, release: the rectangle between the two corners. */
@@ -763,22 +767,22 @@ body[data-page="areas"] footer{display:none}
       // A click with no drag is a slip, not a box.
       if (Math.abs(bounds.getNorth() - bounds.getSouth()) < 0.001 ||
           Math.abs(bounds.getEast() - bounds.getWest()) < 0.001) {
-        return say("框太小了，没加", "bad");
+        return say(T("j52"), "bad");
       }
       // After the click that follows this release has been dispatched and ignored;
       // a prompt opened here would hold it until the 400 ms guard had run out.
       setTimeout(function(){
-        var label = prompt("给这个框起个名字", "不接单区 " + (noGo().length + 1));
+        var label = prompt(T("j50"), T("j51") + (noGo().length + 1));
         if (label === null) return;
         noGo().push({
-          label: label.trim() || ("不接单区 " + (noGo().length + 1)),
+          label: label.trim() || (T("j51") + (noGo().length + 1)),
           south: +bounds.getSouth().toFixed(5),
           west: +bounds.getWest().toFixed(5),
           north: +bounds.getNorth().toFixed(5),
           east: +bounds.getEast().toFixed(5),
         });
         drawNoGo();
-        say("加了「" + noGo()[noGo().length - 1].label + "」，记得保存", "ok");
+        say(F("f6", noGo()[noGo().length - 1].label), "ok");
       }, 0);
     });
   }
@@ -860,8 +864,8 @@ body[data-page="areas"] footer{display:none}
     if (!c) return;
     centreMark = L.circleMarker([c.lat, c.lon], {
       radius: 8, color: "#fff", weight: 3, fillColor: "#E8B64C", fillOpacity: 1,
-    }).addTo(map).bindTooltip("「" + state.rules.active + "」的中心" +
-                              (c.label ? "：" + c.label : ""));
+    }).addTo(map).bindTooltip(c.label ? F("f8", state.rules.active, c.label)
+                                      : F("f7", state.rules.active));
   }
 
   /** The point the centre panel is holding, before it is committed to the set. */
@@ -871,7 +875,7 @@ body[data-page="areas"] footer{display:none}
     if (!centreOn || isNaN(lat) || isNaN(lon)) return;
     pickMark = L.circleMarker([lat, lon], {
       radius: 8, color: "#E8B64C", weight: 2, fillColor: "#E8B64C", fillOpacity: 0.35,
-    }).addTo(map).bindTooltip("按「设为中心」就定在这里");
+    }).addTo(map).bindTooltip(T("j45"));
   }
 
   function drawAnchor(){
@@ -904,7 +908,7 @@ body[data-page="areas"] footer{display:none}
 
     anchorMark = L.circleMarker([lat, lon], {
       radius: 6, color: "#5AA9FF", fillColor: "#5AA9FF", fillOpacity: 1,
-    }).addTo(map).bindTooltip("画圈圆心");
+    }).addTo(map).bindTooltip(T("j46"));
   }
 
   /**
@@ -912,7 +916,10 @@ body[data-page="areas"] footer{display:none}
    * a set copies it there - nothing on the phone has to know these exist.
    */
   /** The one set that is always there: where a payout over the threshold reaches. */
-  var FAR = "远区 >$30";
+  var FAR = "\u0000far";
+
+  /** What the far set is called on screen; FAR itself is only a token. */
+  function farLabel(){ return F("f13", far().overDollars || 30); }
 
   function far(){
     if (!state.rules.far) state.rules.far = { overDollars: 30, suburbs: [] };
@@ -951,13 +958,13 @@ body[data-page="areas"] footer{display:none}
     repaint();
     drawProfiles();
     fitToChosen();
-    say("在改「" + FAR + "」，" + far().suburbs.length + " 个区", "ok");
+    say(F("f9", farLabel(), far().suburbs.length), "ok");
   }
 
   function profiles(){
     if (!state.rules.profiles) {
-      state.rules.profiles = [{ name: "默认", suburbs: state.rules.suburbs.allow.slice() }];
-      state.rules.active = "默认";
+      state.rules.profiles = [{ name: T("j68"), suburbs: state.rules.suburbs.allow.slice() }];
+      state.rules.active = T("j68");
     }
     return state.rules.profiles;
   }
@@ -968,10 +975,10 @@ body[data-page="areas"] footer{display:none}
     if (!bar || bar.dataset.built) return;
     bar.dataset.built = "1";
     [
-      ["fit", "回到选中的区"],
-      ["clearAll", "全部取消"],
-      ["circleTool", "量范围"],
-      ["noGoTool", "画不接单框"],
+      ["fit", T("t11")],
+      ["clearAll", T("t12")],
+      ["circleTool", T("t13")],
+      ["noGoTool", T("t14")],
     ].forEach(function(pair){
       var button = document.createElement("button");
       button.className = "btn plain";
@@ -1008,22 +1015,22 @@ body[data-page="areas"] footer{display:none}
       name.textContent = profile.name;
       var meta = document.createElement("div");
       meta.className = "meta";
-      meta.textContent = profile.suburbs.length + " 个区 · " +
-        (profile.centre ? "中心 " + (profile.centre.label || "已设") : "没设中心");
+      meta.textContent = F("f10", profile.suburbs.length) + " · " +
+        (profile.centre ? T("j40") + (profile.centre.label || T("j38")) : T("j39"));
       card.append(name, meta);
       if (live) {
         var acts = document.createElement("div");
         acts.className = "acts";
-        acts.appendChild(act("改名", function(){
-          var next = (prompt("改名", profile.name) || "").trim();
+        acts.appendChild(act(T("j9"), function(){
+          var next = (prompt(T("j9"), profile.name) || "").trim();
           if (!next || next === profile.name) return;
-          if (profiles().some(function(p){ return p.name === next; })) return say("已经有同名的了", "bad");
+          if (profiles().some(function(p){ return p.name === next; })) return say(T("j35"), "bad");
           profile.name = next;
           state.rules.active = next;
           drawProfiles();
         }));
-        acts.appendChild(act(centreOn ? "收起中心" : "改中心", function(){ showCentre(!centreOn); }));
-        acts.appendChild(act("复制", function(){
+        acts.appendChild(act(centreOn ? T("j8") : T("j7"), function(){ showCentre(!centreOn); }));
+        acts.appendChild(act(T("j10"), function(){
           // As the map shows it right now, centre and all, under "<name> copy";
           // a second copy gets "copy 2". Added to the list, not switched to.
           stash();
@@ -1035,11 +1042,11 @@ body[data-page="areas"] footer{display:none}
             centre: profile.centre ? { lat: profile.centre.lat, lon: profile.centre.lon, label: profile.centre.label } : undefined,
           });
           drawProfiles();
-          say("复制成「" + name + "」，在列表里", "ok");
+          say(F("f11", name), "ok");
         }));
         if (profiles().length > 1) {
-          acts.appendChild(act("删除", function(){
-            if (!confirm("删除方案「" + profile.name + "」？")) return;
+          acts.appendChild(act(T("j11"), function(){
+            if (!confirm(F("f12", profile.name))) return;
             state.rules.profiles = profiles().filter(function(p){ return p.name !== profile.name; });
             switchTo(profiles()[0].name);
           }));
@@ -1052,9 +1059,9 @@ body[data-page="areas"] footer{display:none}
 
     var add = document.createElement("div");
     add.className = "set add";
-    add.textContent = "+ 新增";
+    add.textContent = T("j12");
     add.addEventListener("click", function(){
-      $("newName").value = ""; $("newAddress").value = ""; $("newFound").textContent = "还没定位。";
+      $("newName").value = ""; $("newAddress").value = ""; $("newFound").textContent = T("t48");
       newCentre = null;
       $("newSet").showModal();
       $("newName").focus();
@@ -1068,10 +1075,10 @@ body[data-page="areas"] footer{display:none}
     farCard.dataset.on = state.editing === FAR ? "1" : "0";
     var farName = document.createElement("div");
     farName.className = "name";
-    farName.textContent = "远区 >$" + (far().overDollars || 30);
+    farName.textContent = farLabel();
     var farMeta = document.createElement("div");
     farMeta.className = "meta";
-    farMeta.textContent = far().suburbs.length + " 个区 · " + (state.editing === FAR ? "正在改，点一下回到方案" : "超过门槛的单用这一组");
+    farMeta.textContent = F("f10", far().suburbs.length) + " · " + (state.editing === FAR ? T("j66") : T("j65"));
     farCard.append(farName, farMeta);
     farCard.addEventListener("click", function(){ if (state.editing === FAR) switchTo(state.rules.active); else editFar(); });
     bar.appendChild(farCard);
@@ -1149,15 +1156,15 @@ body[data-page="areas"] footer{display:none}
   }
   autocomplete($("newAddress"), function(item){
     newCentre = { lat: item.lat, lon: item.lon, label: item.short };
-    $("newFound").textContent = "定在 " + item.label;
+    $("newFound").textContent = T("j26") + item.label;
   });
   $("newKm").addEventListener("input", function(){ $("newKmLabel").textContent = this.value; });
   $("newCancel").addEventListener("click", function(){ $("newSet").close(); });
   $("newGo").addEventListener("click", function(){
     var name = $("newName").value.trim();
-    if (!name) return say("先起个名字", "bad");
-    if (profiles().some(function(p){ return p.name === name; })) return say("已经有同名的了", "bad");
-    if (!newCentre) return say("先在地址栏回车定位中心", "bad");
+    if (!name) return say(T("j34"), "bad");
+    if (profiles().some(function(p){ return p.name === name; })) return say(T("j35"), "bad");
+    if (!newCentre) return say(T("j36"), "bad");
     var km = parseFloat($("newKm").value) || 5;
     var inside = state.suburbs.filter(function(sb){
       return kmBetween(newCentre.lat, newCentre.lon, sb.lat, sb.lon) <= km;
@@ -1167,7 +1174,7 @@ body[data-page="areas"] footer{display:none}
     profiles().push({ name: name, suburbs: inside, centre: newCentre });
     $("newSet").close();
     drawProfiles();
-    say("「" + name + "」建好了：中心 " + newCentre.label + "，" + inside.length + " 个区，在列表里", "ok");
+    say(F("f14", name, newCentre.label, inside.length), "ok");
   });
 
   /** Keeps the set you are leaving up to date before loading the next one. */
@@ -1184,7 +1191,7 @@ body[data-page="areas"] footer{display:none}
     sayCentre();
     drawProfiles();
     fitToChosen();
-    say("已切到「" + name + "」，" + next.suburbs.length + " 个区", "ok");
+    say(F("f15", name, next.suburbs.length), "ok");
   }
 
   /** The old core expansion is gone, and so is what it saved: the list holds only what the driver typed. */
@@ -1206,7 +1213,7 @@ body[data-page="areas"] footer{display:none}
       out.push(place);
     }
     profiles().forEach(function(profile){
-      if (profile.centre) add({ label: (profile.centre.label || "中心") + "（" + profile.name + "）", lat: profile.centre.lat, lon: profile.centre.lon });
+      if (profile.centre) add({ label: F("f17", profile.centre.label || T("f16"), profile.name), lat: profile.centre.lat, lon: profile.centre.lon });
     });
     (state.places || []).forEach(add);
     return out;
@@ -1223,7 +1230,7 @@ body[data-page="areas"] footer{display:none}
     });
     var own = document.createElement("option");
     own.value = "own";
-    own.textContent = "自己输入地址…";
+    own.textContent = T("j47");
     pick.appendChild(own);
     usePlace(0);
     drawCentrePlaces();
@@ -1249,7 +1256,7 @@ body[data-page="areas"] footer{display:none}
     if (on) showCentre(false);
     circleOn = on;
     $("circleTool").classList.toggle("armed", on);
-    $("circleTool").textContent = on ? "收起" : "量范围";
+    $("circleTool").textContent = on ? T("t58") : T("t13");
     if (on) $("circle").show(); else $("circle").close();
     drawAnchor();
     if (on) {
@@ -1265,7 +1272,7 @@ body[data-page="areas"] footer{display:none}
     drawProfiles();
     if (on) {
       $("pickLat").value = ""; $("pickLon").value = ""; $("pickLabel").value = "";
-      $("centrePicked").textContent = "还没选位置。";
+      $("centrePicked").textContent = T("j42");
       sayCentre();
       $("centre").show();
     } else $("centre").close();
@@ -1274,8 +1281,8 @@ body[data-page="areas"] footer{display:none}
 
   function sayCentre(){
     var c = centreOf(state.rules.active);
-    $("centreNow").textContent = "「" + state.rules.active + "」的中心：" +
-      (c ? (c.label || (c.lat.toFixed(4) + ", " + c.lon.toFixed(4))) : "还没设");
+    $("centreNow").textContent = F("f8", state.rules.active,
+      c ? (c.label || (c.lat.toFixed(4) + ", " + c.lon.toFixed(4))) : T("j37"));
   }
 
   function pickCentre(lat, lon, label){
@@ -1283,20 +1290,20 @@ body[data-page="areas"] footer{display:none}
     $("pickLon").value = lon;
     $("pickLabel").value = label || "";
     drawPick();
-    $("centrePicked").textContent = "选中了：" +
+    $("centrePicked").textContent = T("j43") +
       (label || (Number(lat).toFixed(4) + ", " + Number(lon).toFixed(4))) +
-      " —— 按下面的「设为中心」定下来";
+      T("j44");
     if (map) map.setView([lat, lon], 12);
   }
 
   $("setCentre").addEventListener("click", function(){
     var lat = parseFloat($("pickLat").value), lon = parseFloat($("pickLon").value);
-    if (isNaN(lat) || isNaN(lon)) return say("先选一个位置", "bad");
+    if (isNaN(lat) || isNaN(lon)) return say(T("f23"), "bad");
     var p = profiles().filter(function(x){ return x.name === state.rules.active; })[0];
     if (!p) return;
     p.centre = { lat: lat, lon: lon, label: $("pickLabel").value || "" };
     drawCentre(); sayCentre(); drawProfiles();
-    say("「" + state.rules.active + "」的中心设好了", "ok");
+    say(F("f24", state.rules.active), "ok");
   });
 
   $("centreClear").addEventListener("click", function(){
@@ -1304,7 +1311,7 @@ body[data-page="areas"] footer{display:none}
     if (!p || !p.centre) return;
     delete p.centre;
     drawCentre(); sayCentre(); drawProfiles();
-    say("中心清掉了", "ok");
+    say(T("j41"), "ok");
   });
 
   function drawCentrePlaces(){
@@ -1321,12 +1328,12 @@ body[data-page="areas"] footer{display:none}
     var phone = document.createElement("button");
     phone.className = "btn plain";
     phone.id = "centrePhone";
-    phone.textContent = "这台电脑的位置";
+    phone.textContent = T("t57");
     phone.addEventListener("click", function(){
-      say("正在定位…");
+      say(T("j25"));
       API.location().then(function(data){
-        if (!data.location) return say("浏览器没给出位置 —— 允许定位后再试", "bad");
-        pickCentre(data.location.lat, data.location.lon, "这台电脑的位置");
+        if (!data.location) return say(T("j29"), "bad");
+        pickCentre(data.location.lat, data.location.lon, T("t57"));
       });
     });
     row.appendChild(phone);
@@ -1334,13 +1341,13 @@ body[data-page="areas"] footer{display:none}
 
   autocomplete($("centreAddress"), function(item){
     pickCentre(item.lat, item.lon, item.short);
-    say("定在 " + item.label, "ok");
+    say(T("j26") + item.label, "ok");
   });
 
   $("placePick").addEventListener("change", function(){
     var own = this.value === "own";
     $("customWrap").hidden = !own;
-    if (own) { $("customAddress").focus(); say("输入街名和郊区，回车定位"); }
+    if (own) { $("customAddress").focus(); say(T("j48")); }
     else usePlace(parseInt(this.value, 10));
   });
 
@@ -1350,7 +1357,7 @@ body[data-page="areas"] footer{display:none}
     $("anchorLabel").value = item.short;
     drawAnchor();
     map.setView([item.lat, item.lon], 13);
-    say("圆心已定在 " + item.label, "ok");
+    say(T("j27") + item.label, "ok");
   });
 
   /** Frames the suburbs that are actually selected - the way back from any zoom. */
@@ -1359,7 +1366,7 @@ body[data-page="areas"] footer{display:none}
     state.rules.suburbs.allow.forEach(function(name){
       if (shapes[name]) group.push(shapes[name]);
     });
-    if (!group.length) return say("一个区都没选", "bad");
+    if (!group.length) return say(T("j23"), "bad");
     map.fitBounds(L.featureGroup(group).getBounds(), { padding: [30, 30] });
   }
   function bindMapTools(){
@@ -1389,7 +1396,7 @@ body[data-page="areas"] footer{display:none}
     if (!typed) return;
     deny(typed);
     this.value = "";
-    say("「" + typed + "」拉黑了，记得保存", "ok");
+    say(F("f18", typed), "ok");
   });
 
   function deny(name){
@@ -1410,7 +1417,7 @@ body[data-page="areas"] footer{display:none}
       chip.className = "chip deny";
       chip.dataset.on = "1";
       chip.textContent = name + "  ×";
-      chip.title = "点一下移除";
+      chip.title = T("j55");
       chip.addEventListener("click", function(){
         state.rules.stores.deny = state.rules.stores.deny.filter(function(n){ return n !== name; });
         drawDenied(); counts();
@@ -1429,16 +1436,16 @@ body[data-page="areas"] footer{display:none}
   });
 
   $("usePhone").addEventListener("click", function(){
-    say("正在定位…");
+    say(T("j25"));
     API.location().then(function(data){
       if (data.location) {
         $("anchorLat").value = data.location.lat;
         $("anchorLon").value = data.location.lon;
         drawAnchor();
         if (map) map.setView([data.location.lat, data.location.lon], 12);
-        say("已用这台电脑的位置", "ok");
+        say(T("j28"), "ok");
       } else {
-        say("浏览器没给出位置 —— 允许定位后再试", "bad");
+        say(T("j29"), "bad");
       }
     });
   });
@@ -1477,8 +1484,8 @@ body[data-page="areas"] footer{display:none}
 
   function drawJobs(jobs, detail){
     $("jobsSub").textContent = jobs.length
-      ? jobs.length + " 单，点地址在 Google 地图打开"
-      : (detail || "手机上现在没有单");
+      ? F("f19", jobs.length)
+      : (detail || T("j56"));
     var list = $("jobsList");
     list.textContent = "";
     jobs.forEach(function(job){
@@ -1487,7 +1494,7 @@ body[data-page="areas"] footer{display:none}
       head.className = "money";
       head.textContent = clockOf(job.at) + "  " + (job.payout || "");
       li.appendChild(head);
-      [["取货", job.pickup], ["送到", job.dropoff]].forEach(function(pair){
+      [[T("j61"), job.pickup], [T("t34"), job.dropoff]].forEach(function(pair){
         if (!pair[1]) return;
         var row = document.createElement("div");
         row.className = "jobrow";
@@ -1504,7 +1511,7 @@ body[data-page="areas"] footer{display:none}
 
         var copy = document.createElement("button");
         copy.className = "btn plain tiny";
-        copy.textContent = "复制";
+        copy.textContent = T("j10");
         copy.addEventListener("click", function(){ copyText(pair[1], copy); });
 
         row.append(link, copy);
@@ -1518,15 +1525,15 @@ body[data-page="areas"] footer{display:none}
   function copyText(text, button){
     var said = function(word){
       button.textContent = word;
-      setTimeout(function(){ button.textContent = "复制"; }, 1200);
+      setTimeout(function(){ button.textContent = T("j10"); }, 1200);
     };
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text)
-        .then(function(){ said("已复制"); })
-        .catch(function(){ said(fallbackCopy(text) ? "已复制" : "复制不了"); });
+        .then(function(){ said(T("j59")); })
+        .catch(function(){ said(fallbackCopy(text) ? T("j59") : T("j60")); });
       return;
     }
-    said(fallbackCopy(text) ? "已复制" : "复制不了");
+    said(fallbackCopy(text) ? T("j59") : T("j60"));
   }
 
   /** For the browsers and contexts the clipboard API is not given to. */
@@ -1564,18 +1571,18 @@ body[data-page="areas"] footer{display:none}
     sending.places = state.places || [];
 
     if (!sending.suburbs.allow.length) {
-      return say("一个区都没选，等于哪都不去", "bad");
+      return say(T("j24"), "bad");
     }
 
     $("save").disabled = true;
-    $("save").textContent = "保存中…";
-    say("保存中…");
+    $("save").textContent = T("j14");
+    say(T("j14"));
     API.save(sending, state.stamp).then(function(data){
       $("save").disabled = false;
-      $("save").textContent = "保存";
+      $("save").textContent = T("t4");
       if (data.stale) {
-        say("没保存", "bad");
-        showResult("bad", "这个页面过期了", data.detail, []);
+        say(T("j16"), "bad");
+        showResult("bad", T("j21"), data.detail, []);
         return;
       }
       state.stamp = data.stamp;
@@ -1583,21 +1590,21 @@ body[data-page="areas"] footer{display:none}
       // the data disagreeing is what made a save look like it had reverted.
       applyToMap();
       var rows = [
-        ["选区方案", state.rules.active + (state.editing === FAR ? "（在改远区）" : "")],
-        ["去的区", sending.suburbs.allow.length + " 个"],
-        ["远区 >$" + (far().overDollars || 30), far().suburbs.length + " 个"],
-        ["市中心不接的店", (sending.stores.cbdDeny || []).length + " 家"],
-        ["手动拉黑的店", sending.stores.deny.length + " 家"],
-        ["不接单框", (sending.noGo || []).length + " 个"],
+        [T("j69"), state.rules.active + (state.editing === FAR ? T("f20") : "")],
+        [T("j72"), F("f21", sending.suburbs.allow.length)],
+        [farLabel(), F("f21", far().suburbs.length)],
+        [T("j70"), F("f22", (sending.stores.cbdDeny || []).length)],
+        [T("j71"), F("f22", sending.stores.deny.length)],
+        [T("t17"), F("f21", (sending.noGo || []).length)],
       ];
-      say("已保存", "ok");
-      showResult("ok", "已保存到云端", "手机登录着的话，几秒内就按这套规则判单", rows);
+      say(T("j13"), "ok");
+      showResult("ok", T("j18"), T("j19"), rows);
     }).catch(function(error){
       $("save").disabled = false;
-      $("save").textContent = "保存";
-      say("保存失败", "bad");
-      showResult("bad", "没保存成功", "云端没收下，规则一个字都没写出去。",
-        [["出错", String(error.message || error).slice(0, 120)]]);
+      $("save").textContent = T("t4");
+      say(T("j15"), "bad");
+      showResult("bad", T("j17"), T("j20"),
+        [[T("j22"), String(error.message || error).slice(0, 120)]]);
     });
   });
 })();

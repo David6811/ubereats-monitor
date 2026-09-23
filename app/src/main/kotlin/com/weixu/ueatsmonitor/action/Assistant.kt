@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.weixu.ueatsmonitor.domain.Briefing
 import com.weixu.ueatsmonitor.domain.Geo
+import com.weixu.ueatsmonitor.domain.Lang
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.first
@@ -39,13 +40,14 @@ object Assistant {
     }
 
     suspend fun ask(context: Context, question: String): Reply = withContext(Dispatchers.IO) {
-        val token = accessToken() ?: return@withContext Reply.Failed("没登录").also {
+        val token = accessToken() ?: return@withContext Reply.Failed(driverWords().notSignedIn).also {
             Log.w(TAG, "assistant: no access token, session status " + Cloud.session.value)
         }
         val body = JsonObject(
             mapOf(
                 "question" to JsonPrimitive(question),
                 "context" to JsonPrimitive(briefing(context)),
+                "lang" to JsonPrimitive(if (lang() == Lang.ENGLISH) "en" else "zh"),
                 "history" to JsonArray(
                     history.takeLast(HISTORY).map {
                         JsonObject(mapOf("question" to JsonPrimitive(it.question), "answer" to JsonPrimitive(it.answer)))
@@ -99,6 +101,9 @@ object Assistant {
     /** A fresh process loads the saved session in well under this. */
     private const val SESSION_WAIT_MILLIS = 10_000L
 
+    /** The language the driver reads and listens in, as the settings have it. */
+    private fun lang(): Lang = LiveSettings.current?.lang ?: Lang.CHINESE
+
     /** The picture of now that goes with every question. */
     fun briefing(context: Context): String {
         val carAt = CurrentPosition(context).lastKnown()?.at
@@ -108,6 +113,7 @@ object Assistant {
                 ?.takeIf { Geo.straightLine(car, it.at).value * 1.609344 < NEAR_ENOUGH_KM }?.name
         }
         return Briefing.text(
+            lang = lang(),
             nowMillis = System.currentTimeMillis(),
             jobs = JobStore.list(context),
             where = Briefing.Whereabouts(carAt = carAt, centre = Profiles.centre(context), nearestSuburb = nearest),

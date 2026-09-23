@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.action.Cloud
+import com.weixu.ueatsmonitor.domain.Words
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun LoginScreen() {
+    val words = words()
     val scope = rememberCoroutineScope()
     val store = App.instance.settingsStore
     val focus = LocalFocusManager.current
@@ -79,8 +81,8 @@ fun LoginScreen() {
     fun attempt(what: String, action: suspend () -> Unit) {
         val trimmedEmail = email.trim()
         problem = when {
-            !trimmedEmail.contains('@') -> "邮箱不对"
-            password.length < 6 -> "密码至少 6 位"
+            !trimmedEmail.contains('@') -> words.badEmail
+            password.length < 6 -> words.shortPassword
             else -> null
         }
         if (problem != null) return
@@ -89,7 +91,7 @@ fun LoginScreen() {
         scope.launch {
             runCatching { action() }
                 .onSuccess { store.rememberLogin(trimmedEmail, password) }
-                .onFailure { problem = plainWords(what, it) }
+                .onFailure { problem = plainWords(what, it, words) }
             busy = false
         }
     }
@@ -99,7 +101,7 @@ fun LoginScreen() {
         email = saved.lastEmail
         password = saved.lastPassword
         if (saved.lastEmail.isNotEmpty() && saved.lastPassword.isNotEmpty()) {
-            attempt("登录") { Cloud.signIn(saved.lastEmail, saved.lastPassword) }
+            attempt(words.signIn) { Cloud.signIn(saved.lastEmail, saved.lastPassword) }
         }
         signingInQuietly = false
     }
@@ -118,9 +120,9 @@ fun LoginScreen() {
         ) {
             Mark()
             Spacer(Modifier.height(18.dp))
-            Text("接单助手", style = MaterialTheme.typography.headlineMedium, color = Dash.Ink, fontWeight = FontWeight.Bold)
+            Text(words.appName, style = MaterialTheme.typography.headlineMedium, color = Dash.Ink, fontWeight = FontWeight.Bold)
             Text(
-                "登录后，规则在手机和电脑上是同一份",
+                words.rulesShared,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Dash.Muted,
                 modifier = Modifier.padding(top = 4.dp),
@@ -128,19 +130,19 @@ fun LoginScreen() {
             Spacer(Modifier.height(28.dp))
             Panel(padding = PaddingValues(20.dp), spacing = 12.dp) {
                 LoginField(
-                    label = "邮箱",
+                    label = words.email,
                     value = email,
                     icon = { Icon(Icons.Filled.Email, null, tint = Dash.Muted) },
                     keyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                     actions = KeyboardActions(onNext = { passwordField.requestFocus() }),
                 ) { email = it; problem = null }
                 LoginField(
-                    label = "密码",
+                    label = words.password,
                     value = password,
                     icon = { Icon(Icons.Filled.Lock, null, tint = Dash.Muted) },
                     trailing = {
                         Text(
-                            if (showPassword) "隐藏" else "显示",
+                            if (showPassword) words.hide else words.show,
                             color = Dash.Gold,
                             fontSize = 14.sp,
                             modifier = Modifier.clickable { showPassword = !showPassword }.padding(8.dp),
@@ -148,30 +150,30 @@ fun LoginScreen() {
                     },
                     hide = !showPassword,
                     keyboard = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    actions = KeyboardActions(onDone = { attempt("登录") { Cloud.signIn(email.trim(), password) } }),
+                    actions = KeyboardActions(onDone = { attempt(words.signIn) { Cloud.signIn(email.trim(), password) } }),
                     modifier = Modifier.focusRequester(passwordField),
                 ) { password = it; problem = null }
                 problem?.let { Problem(it) }
                 Spacer(Modifier.height(4.dp))
-                GoldButton("登录", Modifier.fillMaxWidth()) {
-                    attempt("登录") { Cloud.signIn(email.trim(), password) }
+                GoldButton(words.signIn, Modifier.fillMaxWidth()) {
+                    attempt(words.signIn) { Cloud.signIn(email.trim(), password) }
                 }
             }
             Spacer(Modifier.height(22.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("还没有账号？", color = Dash.Muted, style = MaterialTheme.typography.bodyMedium)
+                Text(words.noAccountYet, color = Dash.Muted, style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "注册",
+                    words.signUp,
                     color = Dash.Gold,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .clickable { attempt("注册") { Cloud.signUp(email.trim(), password) } }
+                        .clickable { attempt(words.signUp) { Cloud.signUp(email.trim(), password) } }
                         .padding(horizontal = 6.dp, vertical = 8.dp),
                 )
             }
             Text(
-                "填好邮箱和密码再点注册",
+                words.fillBothFirst,
                 color = Dash.Muted,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -182,6 +184,7 @@ fun LoginScreen() {
 /** The app's mark: a gold ring with the one character that says what it does. */
 @Composable
 private fun Mark() {
+    val words = words()
     Box(
         modifier = Modifier
             .size(72.dp)
@@ -190,16 +193,17 @@ private fun Mark() {
             .border(2.dp, Dash.Gold, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text("接", color = Dash.Gold, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Text(words.markGlyph, color = Dash.Gold, fontSize = 34.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 /** A spinner and one line, while a remembered login is being tried. */
 @Composable
 private fun QuietSignIn() {
+    val words = words()
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CircularProgressIndicator(color = Dash.Gold, strokeWidth = 3.dp, modifier = Modifier.size(36.dp))
-        Text("正在登录…", color = Dash.Muted, style = MaterialTheme.typography.bodyMedium)
+        Text(words.signingIn, color = Dash.Muted, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -256,13 +260,14 @@ private fun LoginField(
 }
 
 /** Calculation. The server's words, in the driver's. */
-internal fun plainWords(what: String, error: Throwable): String {
+internal fun plainWords(what: String, error: Throwable, words: Words): String {
     val text = error.message.orEmpty().lowercase()
     return when {
-        "invalid login credentials" in text || "invalid_credentials" in text -> "邮箱或密码不对"
-        "already registered" in text || "already been registered" in text || "user_already_exists" in text -> "这个邮箱已经注册过，直接登录"
-        "email not confirmed" in text -> "邮箱还没确认，去邮箱点一下链接"
-        "network" in text || "unable to resolve host" in text || "timeout" in text || "connect" in text -> "没网，连不上"
-        else -> what + "失败：" + (error.message ?: "未知原因")
+        "invalid login credentials" in text || "invalid_credentials" in text -> words.wrongEmailOrPassword
+        "already registered" in text || "already been registered" in text || "user_already_exists" in text -> words.alreadyRegistered
+        "email not confirmed" in text -> words.emailNotConfirmed
+        "network" in text || "unable to resolve host" in text || "timeout" in text || "connect" in text -> words.noNetwork
+        else -> words.failed(what, error.message.orEmpty())
     }
 }
+

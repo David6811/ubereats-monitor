@@ -30,7 +30,7 @@ class RuleJudgeTest {
         assertTrue(ruling is Ruling.Leave)
 
         // assert
-        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling))
+        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -43,7 +43,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
-        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling))
+        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -56,7 +56,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
-        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling))
+        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -125,7 +125,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
-        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling))
+        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     private fun card(pickup: String, dropoff: String, payout: Cents = Cents(907)) = OfferCard(
@@ -215,7 +215,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
 
         // assert
-        assertEquals("送餐点在「Springvale 西」里", RulingText.reason(ruling))
+        assertEquals("送餐点在「Springvale 西」里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -230,7 +230,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
 
         // assert
-        assertEquals("取餐 Pho Hung 在「Springvale 西」里", RulingText.reason(ruling))
+        assertEquals("取餐 Pho Hung 在「Springvale 西」里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -273,7 +273,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
 
         // assert
-        assertEquals("远区单每小时 ${'$'}8.84，低于 ${'$'}10", RulingText.reason(ruling))
+        assertEquals("远区单每小时 ${'$'}8.84，低于 ${'$'}10", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -328,7 +328,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
 
         // assert
-        assertEquals("离中心更远：现在 4.0 公里，送完 14.1 公里", RulingText.reason(ruling))
+        assertEquals("离中心更远：现在 4.0 公里，送完 14.1 公里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -400,7 +400,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, RULES.copy(homeward = HOMEWARD), GAZETTEER, stops)
 
         // assert
-        assertEquals("要 37 分钟，超过 20 分钟", RulingText.reason(ruling))
+        assertEquals("要 37 分钟，超过 20 分钟", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -452,7 +452,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS.copy(maxKm = 3.0)), GAZETTEER, stops)
 
         // assert
-        assertEquals("送完离中心 4.0 公里，超过 3 公里", RulingText.reason(ruling))
+        assertEquals("送完离中心 4.0 公里，超过 3 公里", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
@@ -466,7 +466,7 @@ class RuleJudgeTest {
         val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS), GAZETTEER, stops)
 
         // assert
-        assertEquals("要 37 分钟，超过 30 分钟", RulingText.reason(ruling))
+        assertEquals("要 37 分钟，超过 30 分钟", RulingText.reason(ruling, Lang.CHINESE))
     }
 
     @Test
