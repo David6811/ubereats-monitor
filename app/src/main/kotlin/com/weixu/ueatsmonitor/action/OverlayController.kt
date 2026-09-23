@@ -158,8 +158,9 @@ class OverlayController(private val context: Context) {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
-            // Top right corner, just under the status bar and clear of the
-            // verdict chip's own row; nothing Uber asks to be pressed lives there.
+            // Down the right edge, below everything Google Maps puts at the top.
+            // At the old height these sat on the lens-search icon in the search
+            // bar and on the first suggestion chip.
             gravity = Gravity.TOP or Gravity.END
             x = dp(8)
             y = dp(TOOLS_TOP_DP)
@@ -434,8 +435,12 @@ class OverlayController(private val context: Context) {
         /** Enough to read at a glance, thin enough to see the map through. */
         const val TOOLS_ALPHA = 0.7f
 
-        /** Below the status bar; the verdict chip starts at 20 px and is a row tall. */
-        const val TOOLS_TOP_DP = 36
+        /**
+         * Below Maps' search bar (ends near 86dp), its row of chips (138dp) and
+         * the layers button (192dp), all of which are on the right and tappable.
+         * The map itself is clear from here down.
+         */
+        const val TOOLS_TOP_DP = 200
 
         /** Far enough in from the edge to clear the heartbeat dot's own window. */
         const val DOTS_FROM_EDGE_DP = 44

@@ -104,6 +104,9 @@ interface Words {
     val notSignedIn: String
     val noGoBoxDefault: String
     val markGlyph: String
+
+    /** How many orders were collected at this shop, and how many of their drops are known. */
+    fun ordersHere(orders: Int, known: Int): String
     val stopping: String
     val navigationClosed: String
     val mapsNotNavigating: String
@@ -314,6 +317,8 @@ object Zh : Words {
     override val notSignedIn = "没登录"
     override val noGoBoxDefault = "不接单区"
     override val markGlyph = "接"
+    override fun ordersHere(orders: Int, known: Int) =
+        if (known >= orders) "$orders 单一起取" else "$orders 单一起取 · 还差 ${orders - known} 个地址"
     override val stopping = "关…"
     override val navigationClosed = "已关导航"
     override val mapsNotNavigating = "地图没在导航"
@@ -514,6 +519,8 @@ object En : Words {
     override val notSignedIn = "not signed in"
     override val noGoBoxDefault = "no-go box"
     override val markGlyph = "M"
+    override fun ordersHere(orders: Int, known: Int) =
+        if (known >= orders) "$orders orders, one stop" else "$orders orders, one stop · ${orders - known} address left"
     override val stopping = "Stop…"
     override val navigationClosed = "Navigation closed"
     override val mapsNotNavigating = "Maps is not navigating"

@@ -23,9 +23,9 @@ class BriefingTest {
             dropNote = "Press doorbell",
             noteCn = null,
             dropNoteCn = "请按门铃",
-            extraDrops = emptyList(),
+            extraDrops = emptyList(), ordersAtPickup = 1,
         )
-        val refused = Job(now - 3 * 60_000, woolies, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList())
+        val refused = Job(now - 3 * 60_000, woolies, taken = false, address = null, note = null, dropAddress = null, dropUnit = null, dropNote = null, noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1)
         val where = Briefing.Whereabouts(carAt = GeoPoint(-38.0054, 145.1674), centre = GeoPoint(-38.02506, 145.12873), nearestSuburb = "Keysborough")
 
         // act
@@ -64,7 +64,7 @@ class BriefingTest {
             dropNote = "Press doorbell",
             noteCn = null,
             dropNoteCn = "请按门铃",
-            extraDrops = emptyList(),
+            extraDrops = emptyList(), ordersAtPickup = 1,
         )
         val where = Briefing.Whereabouts(carAt = GeoPoint(-38.0054, 145.1674), centre = GeoPoint(-38.02506, 145.12873), nearestSuburb = "Keysborough")
 

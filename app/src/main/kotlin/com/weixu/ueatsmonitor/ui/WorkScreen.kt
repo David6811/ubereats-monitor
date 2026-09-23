@@ -227,6 +227,18 @@ private fun JobCard(job: Job, shelf: Shelf, onClear: () -> Unit) {
             if (shelf != Shelf.TAKEN) {
                 Tag(if (job.taken) words.shelfTaken else words.notTaken, ink = if (job.taken) Dash.Ink else Dash.Muted, ground = Dash.Raised)
             }
+            // Uber batches two orders at one shop without a second offer card, so
+            // the only warning is the pickup screen's count. Said out loud here,
+            // with how many of the drops are known, because a drop that never
+            // arrived used to be invisible.
+            if (job.ordersAtPickup > 1) {
+                val known = 1 + job.extraDrops.size
+                Tag(
+                    words.ordersHere(job.ordersAtPickup, known),
+                    ink = if (known >= job.ordersAtPickup) Dash.Ink else Dash.Orange,
+                    ground = if (known >= job.ordersAtPickup) Dash.Raised else Dash.OrangeDeep,
+                )
+            }
             advice?.let {
                 // Tapped, it says why: the one question a refused job raises.
                 Tag(
