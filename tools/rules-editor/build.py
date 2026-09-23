@@ -24,6 +24,7 @@ def main():
     os.makedirs(os.path.join(OUT, "data"), exist_ok=True)
     shutil.copy(os.path.join(HERE, "index.html"), os.path.join(OUT, "index.html"))
     shutil.copy(os.path.join(HERE, "cloud.js"), os.path.join(OUT, "cloud.js"))
+    shutil.copy(os.path.join(HERE, "i18n.js"), os.path.join(OUT, "i18n.js"))
     shutil.copy(os.path.join(HERE, "suburbs.geojson"), os.path.join(OUT, "suburbs.geojson"))
     tables = {
         "suburbs.json": server.suburbs(),
