@@ -54,6 +54,12 @@ sealed interface VoiceCommand {
  */
 object VoiceCommands {
 
+    // None of the English below can be reached today. The recogniser runs a
+    // Chinese model against [GRAMMAR], which is Chinese only, so no English
+    // sentence ever gets this far - it is kept as the shape an English model
+    // would slot into, not as a feature. Two pieces are missing from it:
+    // stopping the microphone, and ending a conversation.
+
     // Single characters are enough: an app name has to be in the sentence too.
     private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去", "switch", "open", "goto")
 
