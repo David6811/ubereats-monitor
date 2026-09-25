@@ -197,6 +197,12 @@ object JobBoard {
      * already has and must change nothing.
      */
     private fun withDrop(job: Job, dropoff: Dropoff): Job = when {
+        // The shop, not a customer. Uber shows the pickup and the next delivery
+        // on one screen, and the address read off it was the shop's: $5.00 on
+        // 25 Sept was recorded as collected from Busy Burgers and delivered to
+        // "Busy Burgers, 63 Florence St" - the same door, which no job has.
+        namesTheShop(job, dropoff.address) -> job
+
         // Nothing here yet, or this is the same door read again: fill it in.
         job.dropAddress == null || sameAddress(job.dropAddress, dropoff.address) ->
             job.copy(taken = true, dropAddress = dropoff.address, dropUnit = dropoff.unit, dropNote = dropoff.note)
@@ -213,6 +219,19 @@ object JobBoard {
             job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
 
         else -> job
+    }
+
+    /**
+     * Whether an address read as a delivery is really the shop this job was
+     * collected from - by its name, which the screen prints in front, or by the
+     * street address the pickup screen already gave us.
+     */
+    private fun namesTheShop(job: Job, address: String): Boolean {
+        val here = fold(address)
+        val shop = fold(job.offer.pickup)
+        if (shop.length >= MIN_STORE && here.contains(shop)) return true
+        val collectedAt = job.address?.let(::fold) ?: return false
+        return collectedAt.length >= MIN_STORE && here.contains(collectedAt)
     }
 
     /**

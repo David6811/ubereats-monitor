@@ -350,6 +350,60 @@ class JobBoardTest {
     }
 
     @Test
+    fun `given the shop's own address read as a delivery, when it is applied, then it is refused`() {
+        // arrange  25 Sept 19:35: collected from Busy Burgers, "delivered" to Busy Burgers
+        val job = Job(
+            1_000, pizza.copy(pickup = "Busy Burgers", dropoff = "Sea Parade & Sea Terrace, Mentone"),
+            taken = true, address = "63 Florence St, Mentone, VIC 3194", note = "To front door/counter",
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val shop = Dropoff(customer = null, address = "Busy Burgers, 63 Florence St, Mentone VIC 3194", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(listOf(job), shop, suburb = "Mentone VIC 3194", now = 2_000)
+
+        // assert  no customer lives at the shop
+        assertEquals(job, next[0])
+    }
+
+    @Test
+    fun `given the shop's name spelt differently, when its address is read as a delivery, then it is still refused`() {
+        // arrange  the tree drops a letter: "Busy Burges" against the card's "Busy Burgers"
+        val job = Job(
+            1_000, pizza.copy(pickup = "Busy Burgers", dropoff = "Sea Parade & Sea Terrace, Mentone"),
+            taken = true, address = "63 Florence St, Mentone, VIC 3194", note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val shop = Dropoff(customer = null, address = "Busy Burges, 63 Florence St, Mentone VIC 3194", unit = null, note = null)
+
+        // act  the street address is what gives it away
+        val next = JobBoard.delivered(listOf(job), shop, suburb = "Mentone VIC 3194", now = 2_000)
+
+        // assert
+        assertEquals(job, next[0])
+    }
+
+    @Test
+    fun `given a real customer in the shop's suburb, when their screen is read, then it is kept`() {
+        // arrange  the guard must not swallow an ordinary delivery near the shop
+        val job = Job(
+            1_000, pizza.copy(pickup = "Busy Burgers", dropoff = "Sea Parade & Sea Terrace, Mentone"),
+            taken = true, address = "63 Florence St, Mentone, VIC 3194", note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val customer = Dropoff(customer = "Ken W.", address = "12 Sea Parade, Mentone VIC 3194", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(listOf(job), customer, suburb = "Mentone VIC 3194", now = 2_000)
+
+        // assert
+        assertEquals("12 Sea Parade, Mentone VIC 3194", next[0].dropAddress)
+    }
+
+    @Test
     fun `given one order at the shop, when a strange address is read, then it is not kept`() {
         // arrange  25 Sept 17:46, Mario's Pizza: "Pick up 1 order", one door
         val job = Job(
