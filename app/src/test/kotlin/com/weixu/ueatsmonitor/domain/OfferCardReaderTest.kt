@@ -649,4 +649,45 @@ class OfferCardReaderTest {
         // assert
         assertEquals("12 Cole Street, Noble Park", card?.dropoff)
     }
+
+    @Test
+    fun `given a grocery card, when it is read, then the verification badge is not part of the address`() {
+        // arrange  19 Sept 19:06, Woolworths: the badge sits under the suburb
+        val lines = listOf(
+            "Delivery",
+            "$9.36",
+            "22 min (7.4 km) total",
+            "Woolworths Supermarket AU - Keysborough South",
+            "Amron Street & Fourth Avenue,",
+            "Chelsea Heights",
+            "Customer verification",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // assert
+        assertEquals("Amron Street & Fourth Avenue, Chelsea Heights", card?.dropoff)
+    }
+
+    @Test
+    fun `given google maps navigation on screen, when it is read, then it is not an offer`() {
+        // arrange  18 Sept 11:47: the tree returns the whole navigation screen as lines
+        val lines = listOf(
+            "$13.32",
+            "26 min (14.3 km) total",
+            "Map bearing 279 degrees.",
+            "3.4 kilometers, Use the right 2 lanes to turn right onto the M3/Eastlink ramp to Ringwood 3.4 km " +
+                "M3 Eastlink Ringwood Voice search Search along route Audio level selector: unmuted Add a report " +
+                "Activate to open step list 15 min Time until arrival is 15 min Tolls remaining 16 km",
+            "Accept",
+        )
+
+        // act
+        val card = OfferCardReader.read(lines)
+
+        // assert  no address is this long
+        assertEquals(null, card)
+    }
 }

@@ -717,4 +717,22 @@ class JobBoardTest {
         // assert
         assertEquals(board, next)
     }
+
+    @Test
+    fun `given one card read twice disagreeing about Match, when both are added, then the board holds one`() {
+        // arrange  19 Sept 11:26, Gloria Jeans: the same offer 13 seconds apart
+        val offer = pizza.copy(payout = "${'$'}17.05", pickup = "Gloria Jeans (Parkmore SC Store)", dropoff = "Cecil Street & Victoria Parade, Frankston")
+        val asMatch = Job(
+            1_000, offer.copy(isMatch = true), taken = false, address = null, note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val asPlain = asMatch.copy(atMillis = 14_000, offer = offer.copy(isMatch = false))
+
+        // act
+        val next = JobBoard.add(JobBoard.add(emptyList(), asMatch), asPlain)
+
+        // assert
+        assertEquals(1, next.size)
+    }
 }

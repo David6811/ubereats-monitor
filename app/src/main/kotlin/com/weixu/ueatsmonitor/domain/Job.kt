@@ -309,7 +309,10 @@ object JobBoard {
      * so one being inside the other is as close as it gets.
      */
     private fun sameOffer(job: Job, other: Job): Boolean {
-        if (job.offer.isMatch != other.offer.isMatch) return false
+        // Whether the button said "Match" is not what makes it the same card.
+        // A Match counts down and the word comes and goes between frames, and
+        // on 19 Sept one Gloria Jeans offer landed on the board twice, thirteen
+        // seconds apart, because two readings of it disagreed about that word.
         if (abs(job.atMillis - other.atMillis) > SAME_OFFER_MILLIS) return false
         if (job.offer.payout == other.offer.payout) return true
         val here = fold(job.offer.dropoff)

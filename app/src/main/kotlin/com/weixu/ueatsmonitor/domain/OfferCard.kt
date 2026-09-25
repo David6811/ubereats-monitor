@@ -87,6 +87,12 @@ object OfferCardReader {
         "verify", "reserved", "scheduled",
     )
 
+    /**
+     * Longer than any address the card has ever shown. A "stop" past this came
+     * from a screen that is not a card.
+     */
+    private const val MAX_STOP_LENGTH = 100
+
     /** Cheap presence test: the Accept button, plus a payout or a totals line. */
     fun looksLikeCard(lines: List<String>): Boolean {
         val clean = clean(lines)
@@ -129,21 +135,32 @@ object OfferCardReader {
         // and every map label live.
         val stopsFrom = if (totalsAt >= 0) totalsAt + 1 else payoutAt + 1
         val stops = joinWrapped(clean.subList(stopsFrom.coerceIn(0, end), end))
+            .map(::withoutBadges)
             .filterNot(::isChrome)
             .filterNot(::looksLikeTotals)
             .filter { it.length >= MIN_STOP_LENGTH }
         if (stops.isEmpty()) return null
+
+        val pickup = stops.first()
+        // An address wraps over two or three lines and OCR keeps none of the
+        // punctuation that would say where it ends, so everything below the
+        // pickup is one destination.
+        val dropoff = stops.drop(1).joinToString(" ") { it.trimEnd(',') }.ifEmpty { pickup }
+
+        // A stop this long is not a stop. Google Maps' navigation screen, read
+        // through the tree, is one long line of every button and instruction on
+        // it, and twice on 18 Sept it came out of here as an offer - money,
+        // minutes, distance and all - and rang the chime. The longest real
+        // dropoff this board has ever held is 50 characters.
+        if (pickup.length > MAX_STOP_LENGTH || dropoff.length > MAX_STOP_LENGTH) return null
 
         return OfferCard(
             isMatch = isMatch,
             payout = payout,
             duration = minutes,
             distance = distance,
-            pickup = stops.first(),
-            // An address wraps over two or three lines and OCR keeps none of the
-            // punctuation that would say where it ends, so everything below the
-            // pickup is one destination.
-            dropoff = stops.drop(1).joinToString(" ") { it.trimEnd(',') }.ifEmpty { stops.first() },
+            pickup = pickup,
+            dropoff = dropoff,
             stops = stops,
         )
     }
@@ -198,4 +215,16 @@ object OfferCardReader {
 
     private fun isChrome(line: String): Boolean =
         CHROME.any { line.contains(it, ignoreCase = true) }
+
+    /**
+     * Uber's badges, which sit under the address and are not part of it. A
+     * grocery order carries "Customer verification", and it was ending up glued
+     * to the suburb on one row in five.
+     */
+    private val BADGES = listOf(
+        Regex("""\s*customer verification\s*""", RegexOption.IGNORE_CASE),
+    )
+
+    private fun withoutBadges(line: String): String =
+        BADGES.fold(line) { text, badge -> badge.replace(text, " ") }.trim()
 }
