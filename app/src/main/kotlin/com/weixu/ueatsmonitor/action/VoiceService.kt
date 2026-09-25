@@ -337,18 +337,9 @@ class VoiceService : Service() {
 
     /** Puts [target] on screen. False when it is not installed. */
     private fun bringForward(target: VoiceTarget): Boolean {
-        val launch = packageManager.getLaunchIntentForPackage(target.packageName)
-        if (launch == null) {
-            toast(driverWords().couldNotFind(target.spoken))
-            return false
-        }
-        runCatching {
-            startActivity(
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-            )
-        }.onFailure { Log.w(TAG, "voice: switch failed", it) }
-        return true
+        if (AppSwitch.bringForward(this, target)) return true
+        toast(driverWords().couldNotFind(target.spoken))
+        return false
     }
 
     private fun confirmWords(words: String) = announce(words)

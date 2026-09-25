@@ -110,6 +110,7 @@ interface Words {
     val stopping: String
     val navigationClosed: String
     val mapsNotNavigating: String
+    val hideTools: String
 
     // The job board.
     val shelfTaken: String
@@ -322,6 +323,7 @@ object Zh : Words {
     override val stopping = "关…"
     override val navigationClosed = "已关导航"
     override val mapsNotNavigating = "地图没在导航"
+    override val hideTools = "关按钮"
 
     override val shelfTaken = "已接"
     override val shelfWorth = "建议接"
@@ -524,6 +526,7 @@ object En : Words {
     override val stopping = "Stop…"
     override val navigationClosed = "Navigation closed"
     override val mapsNotNavigating = "Maps is not navigating"
+    override val hideTools = "Hide"
 
     override val shelfTaken = "Taken"
     override val shelfWorth = "Worth it"

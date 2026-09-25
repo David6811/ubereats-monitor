@@ -19,6 +19,12 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.weixu.ueatsmonitor.App
+import com.weixu.ueatsmonitor.R
+import com.weixu.ueatsmonitor.domain.VoiceTarget
 import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
 import com.weixu.ueatsmonitor.domain.Ruling
@@ -102,73 +108,100 @@ class OverlayController(private val context: Context) {
      */
     private var tools: View? = null
 
-    fun showTools(on: Boolean) = main.post {
-        if (on == (tools != null)) return@post
-        if (!on) {
-            tools?.let { runCatching { windowManager.removeView(it) } }
-            tools = null
-            return@post
-        }
-        if (!canDraw()) return@post
-        val words = driverWords()
-        val navigation = toolButton(words.stopNavigation).apply {
-            setOnClickListener {
-                text = words.stopping
-                MapsNavigation.stop(context) { pressed ->
-                    text = words.stopNavigation
-                    val said = if (pressed) words.navigationClosed else words.mapsNotNavigating
-                    android.widget.Toast.makeText(context, said, android.widget.Toast.LENGTH_SHORT).show()
+    fun showTools(on: Boolean) {
+        main.post {
+            if (on == (tools != null)) return@post
+            if (!on) {
+                tools?.let { runCatching { windowManager.removeView(it) } }
+                tools = null
+                return@post
+            }
+            if (!canDraw()) return@post
+            val words = driverWords()
+            val navigation = toolButton(R.drawable.ic_tool_nav_off, words.stopNavigation).apply {
+                setOnClickListener {
+                    alpha = PRESSED_ALPHA
+                    MapsNavigation.stop(context) { pressed ->
+                        alpha = 1f
+                        val said = if (pressed) words.navigationClosed else words.mapsNotNavigating
+                        android.widget.Toast.makeText(context, said, android.widget.Toast.LENGTH_SHORT).show()
+                        // The map is done with; what comes next is the delivery
+                        // screen, so Uber is brought back rather than left behind
+                        // whatever the map was showing.
+                        AppSwitch.bringForward(context, VoiceTarget.UBER)
+                    }
                 }
             }
-        }
-        // Words and bright-against-dim, never hue: on is bold on the gold fill,
-        // off is muted on the dark one.
-        val voice = toolButton("").apply {
-            fun paint() {
-                val on = VoiceService.isRunning()
-                text = if (on) words.voiceOn else words.voiceOff
-                setTextColor(if (on) INK else Color.parseColor("#8F8C85"))
-                (background as GradientDrawable).setColor(if (on) FILL else Color.parseColor("#F0141416"))
+            // The microphone is drawn struck through when it is off, and the
+            // circle behind it goes dim: a shape and a brightness, never a hue.
+            val voice = toolButton(R.drawable.ic_tool_mic, words.voiceOn).apply {
+                fun paint() {
+                    val on = VoiceService.isRunning()
+                    setImageResource(if (on) R.drawable.ic_tool_mic else R.drawable.ic_tool_mic_off)
+                    contentDescription = if (on) words.voiceOn else words.voiceOff
+                    imageTintList = android.content.res.ColorStateList.valueOf(if (on) INK else OFF_INK)
+                    (background as GradientDrawable).setColor(if (on) FILL else OFF_FILL)
+                }
+                paint()
+                setOnClickListener {
+                    VoiceService.toggle(context) { paint() }
+                    main.postDelayed({ paint() }, 1_500L)
+                }
             }
-            paint()
-            setOnClickListener {
-                VoiceService.toggle(context) { paint() }
-                main.postDelayed({ paint() }, 1_500L)
+            // Last, and set further down than the gap between the other two: it
+            // is the one press that cannot be undone from here.
+            val hide = toolButton(R.drawable.ic_tool_hide, words.hideTools).apply {
+                setOnClickListener {
+                    showTools(false)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        App.instance.settingsStore.setToolsEnabled(false)
+                    }
+                    // No word about it. This button is pressed to get the screen
+                    // back, and a message over the map is the opposite of that.
+                }
             }
+            val button = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.END
+                // See-through, so what Uber draws under the corner still shows.
+                alpha = TOOLS_ALPHA
+                addView(navigation)
+                addView(voice, stacked(TOOLS_GAP_DP))
+                addView(hide, stacked(TOOLS_LAST_GAP_DP))
+            }
+            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                android.graphics.PixelFormat.TRANSLUCENT,
+            ).apply {
+                // Down the right edge, below everything Google Maps puts at the top.
+                // At the old height these sat on the lens-search icon in the search
+                // bar and on the first suggestion chip.
+                gravity = Gravity.TOP or Gravity.END
+                x = dp(8)
+                y = dp(TOOLS_TOP_DP)
+            }
+            runCatching { windowManager.addView(button, params) }
+                .onSuccess { tools = button }
+                    .onFailure { Log.w(TAG, "overlay: tools addView failed", it) }
         }
-        val button = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            // See-through, so what Uber draws under the corner still shows.
-            alpha = TOOLS_ALPHA
-            addView(navigation)
-            addView(voice, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
-        }
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            android.graphics.PixelFormat.TRANSLUCENT,
-        ).apply {
-            // Down the right edge, below everything Google Maps puts at the top.
-            // At the old height these sat on the lens-search icon in the search
-            // bar and on the first suggestion chip.
-            gravity = Gravity.TOP or Gravity.END
-            x = dp(8)
-            y = dp(TOOLS_TOP_DP)
-        }
-        runCatching { windowManager.addView(button, params) }
-            .onSuccess { tools = button }
-            .onFailure { Log.w(TAG, "overlay: tools addView failed", it) }
     }
+
+    /** The gap between the stacked tool buttons. */
+    private fun stacked(gapDp: Int): LinearLayout.LayoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+    ).apply { topMargin = dp(gapDp) }
 
     /** Whether a verdict is up right now, as opposed to nothing or "thinking". */
     fun showingVerdict(): Boolean = showing.isNotEmpty() && showing != THINKING
@@ -205,19 +238,27 @@ class OverlayController(private val context: Context) {
         runCatching { windowManager.removeView(chip) }
     }
 
-    private fun toolButton(label: String): TextView = TextView(context).apply {
-        text = label
-        textSize = 15f
-        setTextColor(INK)
-        setTypeface(typeface, Typeface.BOLD)
-        gravity = Gravity.CENTER
-        setPadding(dp(14), dp(10), dp(14), dp(10))
-        background = GradientDrawable().apply {
-            cornerRadius = dp(14).toFloat()
-            setColor(FILL)
-            setStroke(dp(2), EDGE)
+    /**
+     * A round button with one icon in it. Round because a thumb aiming at the
+     * corner of the screen hits a circle as well from any side, and because
+     * three of them stacked take less of the map than three words would. The
+     * name stays as the content description, which is what a screen reader and
+     * a long press both say.
+     */
+    private fun toolButton(icon: Int, name: String): android.widget.ImageView =
+        android.widget.ImageView(context).apply {
+            setImageResource(icon)
+            contentDescription = name
+            imageTintList = android.content.res.ColorStateList.valueOf(INK)
+            val pad = dp(TOOLS_ICON_PAD_DP)
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(dp(TOOLS_SIZE_DP), dp(TOOLS_SIZE_DP))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(FILL)
+                setStroke(dp(2), EDGE)
+            }
         }
-    }
 
     private fun keyOf(state: State): String = when (state) {
         State.Thinking -> THINKING
@@ -432,8 +473,12 @@ class OverlayController(private val context: Context) {
          */
         const val TOP_PIXELS = 20
 
-        /** Enough to read at a glance, thin enough to see the map through. */
-        const val TOOLS_ALPHA = 0.7f
+        /**
+         * Thin enough to see the map through, solid enough to read at a glance.
+         * At 0.7 a shop's name on a satellite map read straight across the
+         * microphone.
+         */
+        const val TOOLS_ALPHA = 0.88f
 
         /**
          * Below Maps' search bar (ends near 86dp), its row of chips (138dp) and
@@ -441,6 +486,29 @@ class OverlayController(private val context: Context) {
          * The map itself is clear from here down.
          */
         const val TOOLS_TOP_DP = 200
+
+        /** A comfortable thumb target; Android's own floor is 48. */
+        const val TOOLS_SIZE_DP = 52
+
+        /** The icon is 24dp inside that circle. */
+        const val TOOLS_ICON_PAD_DP = 14
+
+        /** Wide enough that a thumb aiming at one does not land on its neighbour. */
+        const val TOOLS_GAP_DP = 18
+
+        /** Wider still before "hide", because pressing it by mistake needs the settings page to undo. */
+        const val TOOLS_LAST_GAP_DP = 30
+
+        /** Dimmed while the map is being asked to stop. */
+        const val PRESSED_ALPHA = 0.45f
+
+        /**
+         * The off state: dark where on is gold, and light grey where on is ink.
+         * Both had to come up in brightness - at 0.7 alpha over a satellite map,
+         * Google's own street labels were reading straight through the circle.
+         */
+        val OFF_FILL: Int = Color.parseColor("#FF15171A")
+        val OFF_INK: Int = Color.parseColor("#FFBFBCB4")
 
         /** Far enough in from the edge to clear the heartbeat dot's own window. */
         const val DOTS_FROM_EDGE_DP = 44
