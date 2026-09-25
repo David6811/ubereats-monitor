@@ -317,7 +317,7 @@ class JobBoardTest {
             1_000, pizza.copy(pickup = "Oporto (Springvale)", dropoff = "Linden Drive & Rosette Crescent, Keysborough"),
             taken = true, address = "17 Springvale road, Springvale", note = null,
             dropAddress = "4 Rosette Cct, Keysborough VIC", dropUnit = null, dropNote = null,
-            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 2,
         )
         val second = Dropoff(customer = "Rocco T.", address = "2-4 Hutton Street, Dandenong Melbourne VIC", unit = "11", note = "Meet outside")
 
@@ -347,6 +347,64 @@ class JobBoardTest {
 
         // assert
         assertEquals(listOf(Drop("8 Temple Court, Noble Park Melbourne VIC", null, null)), next[0].extraDrops)
+    }
+
+    @Test
+    fun `given one order at the shop, when a strange address is read, then it is not kept`() {
+        // arrange  25 Sept 17:46, Mario's Pizza: "Pick up 1 order", one door
+        val job = Job(
+            1_000, pizza.copy(pickup = "Mario's Pizza And Pasta", dropoff = "Diesel Street & Hanna Street, Noble Park"),
+            taken = true, address = "517 Princes Hwy, Noble Park, Victoria 3174", note = null,
+            dropAddress = "14 Blamey Street, Noble Park Melbourne VIC", dropUnit = null, dropNote = "Please do not knock",
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val elsewhere = Dropoff(customer = null, address = "9 Diesel Street, Noble Park Melbourne VIC", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(listOf(job), elsewhere, suburb = "Noble Park Melbourne VIC", now = 2_000)
+
+        // assert  one order can only have one door
+        assertEquals(job, next[0])
+    }
+
+    @Test
+    fun `given the same door written two ways, when both are read, then it stays one drop`() {
+        // arrange  the tree writes the house number on one read and not the next
+        val job = Job(
+            1_000, pizza.copy(dropoff = "Diesel Street & Hanna Street, Noble Park"),
+            taken = true, address = null, note = null,
+            dropAddress = "Blamey Street, Noble Park", dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 2,
+        )
+        val fuller = Dropoff(customer = null, address = "14 Blamey Street, Noble Park Melbourne VIC", unit = null, note = "Please do not knock")
+
+        // act
+        val next = JobBoard.delivered(listOf(job), fuller, suburb = "Noble Park Melbourne VIC", now = 2_000)
+
+        // affirm  the fuller address wins
+        assertEquals("14 Blamey Street, Noble Park Melbourne VIC", next[0].dropAddress)
+
+        // assert
+        assertEquals(emptyList<Drop>(), next[0].extraDrops)
+    }
+
+    @Test
+    fun `given a second drop already kept, when its screen is read again, then the first drop stays`() {
+        // arrange  25 Sept: reading the extra drop's screen again wrote it over dropAddress
+        val job = Job(
+            1_000, pizza.copy(dropoff = "Prior Road & Temple Court, Noble Park"),
+            taken = true, address = null, note = null,
+            dropAddress = "50 Prior Road, Noble Park Melbourne VIC", dropUnit = null, dropNote = "Ring the bell",
+            noteCn = null, dropNoteCn = null,
+            extraDrops = listOf(Drop("8 Temple Court, Noble Park Melbourne VIC", null, null)), ordersAtPickup = 2,
+        )
+        val again = Dropoff(customer = null, address = "8 Temple Court, Noble Park Melbourne VIC", unit = null, note = null)
+
+        // act
+        val next = JobBoard.delivered(listOf(job), again, suburb = "Noble Park Melbourne VIC", now = 2_000)
+
+        // assert
+        assertEquals(job, next[0])
     }
 
     @Test

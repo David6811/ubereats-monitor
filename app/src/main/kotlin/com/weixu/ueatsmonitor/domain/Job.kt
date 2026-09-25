@@ -184,52 +184,52 @@ object JobBoard {
         } ?: return jobs
         val at = matches.firstOrNull { jobs[it].taken } ?: matches.first()
 
-        // Two orders picked up at one shop usually go to the same suburb, so this
-        // screen matches the job the first one already filled. Overwriting it
-        // dropped the first customer's address and note on the floor - which is
-        // what happened at Nene Chicken on 23 Sept. A different address against a
-        // job that already has one is a second delivery, not a correction.
-        if (isAnotherDrop(jobs[at], dropoff)) return withExtraDrop(jobs, at, dropoff)
-
         return jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(
-                taken = true,
-                dropAddress = dropoff.address,
-                dropUnit = dropoff.unit,
-                dropNote = dropoff.note,
-            )
+            if (index != at) job else withDrop(job, dropoff)
         }
     }
 
     /**
-     * Whether this screen names a delivery the job does not have yet. The same
-     * screen is read every couple of seconds, and the driver goes back and forth
-     * between the two drops, so the address already on the job - first drop or
-     * extra - is the common case and means no.
+     * This job, with what the delivery screen just said.
+     *
+     * The screen is read every couple of seconds and the driver goes back and
+     * forth between two doors, so nearly every read names an address the job
+     * already has and must change nothing.
      */
-    private fun isAnotherDrop(job: Job, dropoff: Dropoff): Boolean {
-        val here = job.dropAddress ?: return false
-        return !sameAddress(here, dropoff.address) &&
-            job.extraDrops.none { sameAddress(it.address, dropoff.address) }
+    private fun withDrop(job: Job, dropoff: Dropoff): Job = when {
+        // Nothing here yet, or this is the same door read again: fill it in.
+        job.dropAddress == null || sameAddress(job.dropAddress, dropoff.address) ->
+            job.copy(taken = true, dropAddress = dropoff.address, dropUnit = dropoff.unit, dropNote = dropoff.note)
+
+        // A door already kept as a second delivery. Leaving it alone is the whole
+        // point: writing it into dropAddress instead is what put one address on a
+        // job twice on 25 Sept, on an offer that only ever had one order.
+        job.extraDrops.any { sameAddress(it.address, dropoff.address) } -> job
+
+        // A door this job has never seen. Only a batch can have one, and the
+        // pickup screen is what says whether this is a batch. Without that, the
+        // screen belongs to some other job and is left where it was found.
+        job.ordersAtPickup > job.extraDrops.size + 1 ->
+            job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
+
+        else -> job
     }
 
     /**
-     * The tree writes the same address the same way, but "50 Prior Road, Noble
-     * Park" and "50 Prior Road, Noble Park Melbourne VIC" are one place, so one
-     * being the start of the other counts as the same.
+     * Whether two delivery screens name one door. The tree writes an address
+     * differently from read to read - "Blamey Street, Noble Park" against
+     * "14 Blamey Street, Noble Park Melbourne VIC" - so the house number in
+     * front and the city behind are both dropped before comparing.
      */
     private fun sameAddress(one: String, other: String): Boolean {
-        val a = fold(one)
-        val b = fold(other)
-        return a.startsWith(b) || b.startsWith(a)
+        val a = street(one)
+        val b = street(other)
+        return a.isNotEmpty() && (a.startsWith(b) || b.startsWith(a))
     }
 
-    private fun withExtraDrop(jobs: List<Job>, at: Int, dropoff: Dropoff): List<Job> =
-        jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
-        }
+    /** An address without its leading unit or house number: "14/2-4 Blamey St" -> "blameyst". */
+    private fun street(address: String): String =
+        fold(address.trim().replace(Regex("""^[\d/\-]+\s*"""), ""))
 
     /**
      * A delivery screen whose suburb no job names. On a batched offer -
@@ -241,8 +241,8 @@ object JobBoard {
         val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
         val inHand = recent.filter { jobs[it].taken }
         val at = inHand.singleOrNull() ?: return jobs
-        if (!isAnotherDrop(jobs[at], dropoff)) return jobs
-        return withExtraDrop(jobs, at, dropoff)
+        if (jobs[at].dropAddress == null) return jobs
+        return jobs.mapIndexed { index, job -> if (index != at) job else withDrop(job, dropoff) }
     }
 
     /** "Clarinda Melbourne" -> ["clarindamelbourne", "clarinda"], longest first. */
