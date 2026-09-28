@@ -111,6 +111,10 @@ interface Words {
     val navigationClosed: String
     val mapsNotNavigating: String
     val hideTools: String
+    val sendToMaps: String
+    val noStopYet: String
+    fun drivingToShop(where: String): String
+    fun drivingToCustomer(where: String): String
 
     // The job board.
     val shelfTaken: String
@@ -324,6 +328,10 @@ object Zh : Words {
     override val navigationClosed = "已关导航"
     override val mapsNotNavigating = "地图没在导航"
     override val hideTools = "关按钮"
+    override val sendToMaps = "发到谷歌地图"
+    override val noStopYet = "还不知道去哪 —— 在 Uber 里打开这一站再按"
+    override fun drivingToShop(where: String) = "去取餐：$where"
+    override fun drivingToCustomer(where: String) = "去送餐：$where"
 
     override val shelfTaken = "已接"
     override val shelfWorth = "建议接"
@@ -390,7 +398,7 @@ object Zh : Words {
     override val gotIt = "知道了"
     override val areaSound = "区域提示音"
     override val floatingButtons = "悬浮按钮"
-    override val floatingButtonsHint = "跑单时右上角的「关导航」「语音」"
+    override val floatingButtonsHint = "跑单时屏幕右边：关导航、发到谷歌地图、语音、收起"
     override val voiceCommands = "语音命令"
     override val voiceCommandsHint = "一直在听：说「地图」「送餐」「应用」「回中心」"
     override val whatCanISay = "能说什么？"
@@ -527,6 +535,10 @@ object En : Words {
     override val navigationClosed = "Navigation closed"
     override val mapsNotNavigating = "Maps is not navigating"
     override val hideTools = "Hide"
+    override val sendToMaps = "Send to Google Maps"
+    override val noStopYet = "No stop yet - open it in Uber, then press this"
+    override fun drivingToShop(where: String) = "To the shop: $where"
+    override fun drivingToCustomer(where: String) = "To the customer: $where"
 
     override val shelfTaken = "Taken"
     override val shelfWorth = "Worth it"
@@ -593,7 +605,7 @@ object En : Words {
     override val gotIt = "Got it"
     override val areaSound = "Area chime"
     override val floatingButtons = "Floating buttons"
-    override val floatingButtonsHint = "Stop navigation and voice, top right, while on shift"
+    override val floatingButtonsHint = "Down the right edge while on shift: stop nav, send to Maps, voice, hide"
     override val voiceCommands = "Voice commands"
     override val voiceCommandsHint = "Always listening: say 地图, 送餐, 应用, 回中心"
     override val whatCanISay = "What can I say?"

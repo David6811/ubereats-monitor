@@ -132,6 +132,21 @@ class OverlayController(private val context: Context) {
                     }
                 }
             }
+            // Uber's own map will not say where it is going, but it cannot be
+            // started without opening the stop first, and that screen is read.
+            // So this hands Google Maps whatever Uber last said the stop was.
+            val sendToMaps = toolButton(R.drawable.ic_tool_send_map, words.sendToMaps).apply {
+                setOnClickListener {
+                    val stop = CurrentStop.stop
+                    val said = when {
+                        stop == null -> words.noStopYet
+                        stop.toShop -> words.drivingToShop(stop.address)
+                        else -> words.drivingToCustomer(stop.address)
+                    }
+                    android.widget.Toast.makeText(context, said, android.widget.Toast.LENGTH_SHORT).show()
+                    if (stop != null) Navigation.driveTo(context, stop.address)
+                }
+            }
             // The microphone is drawn struck through when it is off, and the
             // circle behind it goes dim: a shape and a brightness, never a hue.
             val voice = toolButton(R.drawable.ic_tool_mic, words.voiceOn).apply {
@@ -166,6 +181,7 @@ class OverlayController(private val context: Context) {
                 // See-through, so what Uber draws under the corner still shows.
                 alpha = TOOLS_ALPHA
                 addView(navigation)
+                addView(sendToMaps, stacked(TOOLS_GAP_DP))
                 addView(voice, stacked(TOOLS_GAP_DP))
                 addView(hide, stacked(TOOLS_LAST_GAP_DP))
             }

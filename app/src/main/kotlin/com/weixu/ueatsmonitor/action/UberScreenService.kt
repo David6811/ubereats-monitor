@@ -452,10 +452,17 @@ class UberScreenService : AccessibilityService() {
         // version instead - the same words, wrapped and mangled.
         PickupScreen.read(treeLines)?.let { pickup ->
             JobStore.markTaken(this, pickup)
+            // Opening this screen is how Uber's own navigation is started, so
+            // this is where the driver is going until a delivery screen says
+            // otherwise. The floating button hands it to Google Maps.
+            CurrentStop.headingToShop(pickup.address)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
         }
         DropoffScreen.read(treeLines)?.let { dropoff ->
             JobStore.markDelivered(this, dropoff)
+            // The street address only. A unit number is for the door, not for the
+            // drive, and Maps reads "3/144 Collins Street" as a house number.
+            CurrentStop.headingToCustomer(dropoff.address)
             Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
         // Whatever notes are on the board, in Chinese. Does nothing once they are
