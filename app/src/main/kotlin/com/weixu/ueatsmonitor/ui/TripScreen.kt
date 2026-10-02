@@ -1,6 +1,7 @@
 package com.weixu.ueatsmonitor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -30,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.ExclusionStore
+import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.action.NoGoOffStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
@@ -51,6 +54,8 @@ fun TripScreen() {
     val live = profiles.firstOrNull { it.active }
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    val boxes = remember { RulesStore.drawn(context) }
+    var boxesOff: Set<String> by remember { mutableStateOf(NoGoOffStore.inForce(context)) }
     // The last suburb a finger landed on, named above the map: on a map this small
     // a suburb is a few millimetres, and a miss has to be visible to be undone.
     var touched: String? by remember { mutableStateOf(null) }
@@ -192,6 +197,46 @@ fun TripScreen() {
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (on) Dash.Gold else Dash.Muted,
                         textDecoration = if (on) null else TextDecoration.LineThrough,
+                    )
+                }
+            }
+        }
+
+        // The boxes drawn on the laptop, where until now the only way to stop
+        // one refusing offers was to open the laptop and delete it.
+        Panel {
+            SectionLabel(words.noGoBoxes + "  ·  " + words.noGoBoxesOff(boxesOff.size))
+            Text(
+                text = if (boxes.isEmpty()) words.noGoBoxesNone else words.noGoBoxesHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = Dash.Muted,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                boxes.forEach { box ->
+                    // On means the box is refusing, which is the opposite way
+                    // round from a suburb: there, on means going.
+                    val refusing = boxesOff.none { it.equals(box.label, ignoreCase = true) }
+                    Text(
+                        text = box.label,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (refusing) Dash.OrangeDeep else Dash.Ground)
+                            .border(
+                                1.dp,
+                                if (refusing) Dash.Orange.copy(alpha = 0.5f) else Dash.Line,
+                                RoundedCornerShape(10.dp),
+                            )
+                            .clickable {
+                                NoGoOffStore.toggle(context, box.label)
+                                boxesOff = NoGoOffStore.inForce(context)
+                            }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (refusing) Dash.Orange else Dash.Muted,
+                        textDecoration = if (refusing) null else TextDecoration.LineThrough,
                     )
                 }
             }

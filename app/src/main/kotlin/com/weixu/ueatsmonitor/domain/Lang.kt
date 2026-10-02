@@ -71,6 +71,12 @@ interface Words {
 
     val seeOnMap: String
     val restoreAll: String
+
+    /** The no-go boxes, listed on the trip page so one can be switched off at the wheel. */
+    val noGoBoxes: String
+    val noGoBoxesHint: String
+    val noGoBoxesNone: String
+    fun noGoBoxesOff(off: Int): String
     val thisTripOnly: String
     fun areasCount(n: Int): String
 
@@ -300,6 +306,10 @@ object Zh : Words {
     override val notTaken = "没接"
     override val seeOnMap = "看地图"
     override val restoreAll = "恢复全部"
+    override val noGoBoxes = "不接单框"
+    override val noGoBoxesHint = "点一下暂时关掉，电脑推新规则就全部恢复"
+    override val noGoBoxesNone = "还没画过框。在电脑的「选区」页上画。"
+    override fun noGoBoxesOff(off: Int) = if (off == 0) "全在用" else "关了 $off 个"
     override val thisTripOnly = "只管这一趟。换选区或电脑推新规则，就全恢复。"
     override fun areasCount(n: Int) = "$n 个区"
     override val noLocationPermission = "没有定位权限，回中心模式开不了"
@@ -507,6 +517,10 @@ object En : Words {
     override val notTaken = "Not taken"
     override val seeOnMap = "See on map"
     override val restoreAll = "Restore all"
+    override val noGoBoxes = "No-go boxes"
+    override val noGoBoxesHint = "Tap to switch one off for now; new rules from the laptop restore them all"
+    override val noGoBoxesNone = "No boxes drawn yet. Draw them on the laptop's Areas page."
+    override fun noGoBoxesOff(off: Int) = if (off == 0) "all in use" else "$off switched off"
     override val thisTripOnly = "This trip only. Switching sets, or new rules from the laptop, brings them all back."
     override fun areasCount(n: Int) = if (n == 1) "1 area" else "$n areas"
     override val noLocationPermission = "Without location, homeward mode cannot be switched on"
