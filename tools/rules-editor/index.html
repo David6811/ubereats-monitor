@@ -251,6 +251,21 @@ body[data-page="areas"] footer{display:none}
 .set.far .name{color:var(--orange)}
 .set.far[data-on="1"]{background:var(--orange-deep); border-style:solid}
 .set.add{text-align:center; color:var(--ink-2); border-style:dashed}
+/* The boxes, listed under the map. A box is a rule you cannot see the name of
+   on the map itself once the map is zoomed out past it. */
+.boxes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.box{
+  display:flex; align-items:center; gap:10px; padding:7px 12px;
+  border:1px dashed rgba(240,136,62,.55); border-radius:var(--r-ctl);
+  background:var(--orange-deep); font-size:13px;
+}
+.box[data-off="1"]{background:var(--sunk); border-style:solid; border-color:var(--line)}
+.box .label{font-weight:600; color:var(--orange); cursor:pointer}
+.box[data-off="1"] .label{color:var(--ink-3); text-decoration:line-through}
+.box .acts{display:flex; gap:9px; color:var(--ink-2)}
+.box .acts span{cursor:pointer; border-bottom:1px dotted var(--line-2)}
+.box .acts span:hover{color:var(--gold)}
+.boxes .none{color:var(--ink-3); font-size:12.5px}
 .set.add:hover{color:var(--gold)}
 .leaflet-container{font-family:inherit;background:#0E0E10}
 .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.25)}
@@ -336,6 +351,10 @@ body[data-page="areas"] footer{display:none}
       <span><i style="background:transparent;border:1px solid #6B6A66"></i><span data-t="t16">不去（只剩轮廓）</span></span>
       <span><i style="background:rgba(240,136,62,.25);border:1px dashed #F0883E"></i><span data-t="t17">不接单框</span></span>
     </div>
+
+    <h3 class="sub" data-t="t71">不接单框<span class="count" id="boxCount"></span></h3>
+    <p class="hint" data-t="t70">框里的店不取，框里的地址不送。关掉的框手机上也不算数，再点一下开回来。</p>
+    <div class="boxes" id="boxList"></div>
 
     <input type="hidden" id="pickLat"><input type="hidden" id="pickLon"><input type="hidden" id="pickLabel">
     <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
@@ -721,8 +740,12 @@ body[data-page="areas"] footer{display:none}
     if (noGoLayer) noGoLayer.remove();
     noGoLayer = L.layerGroup().addTo(map);
     noGo().forEach(function(box, index){
+      // A box switched off stays on the map as an outline. Hiding it would
+      // leave the driver wondering where it went, and it is coming back.
+      var off = box.off === true;
       var rect = L.rectangle([[box.south, box.west], [box.north, box.east]], {
-        color: "#F0883E", weight: 2, fillColor: "#F0883E", fillOpacity: 0.2, dashArray: "6 4",
+        color: "#F0883E", weight: off ? 1 : 2, opacity: off ? 0.45 : 1,
+        fillColor: "#F0883E", fillOpacity: off ? 0 : 0.2, dashArray: "6 4",
       }).addTo(noGoLayer);
       rect.bindTooltip("⛔ " + box.label + T("j54"), { sticky: true });
       rect.on("click", function(event){
@@ -734,6 +757,72 @@ body[data-page="areas"] footer{display:none}
         say(T("j53"), "ok");
       });
     });
+    listNoGo();
+  }
+
+  /**
+   * The same boxes as a list under the map: on a map zoomed out past them they
+   * are specks with no names, and until now there was no way to see what had
+   * been drawn, let alone stop one without deleting it.
+   */
+  function listNoGo(){
+    var list = $("boxList");
+    list.textContent = "";
+    var boxes = noGo();
+    var offCount = boxes.filter(function(b){ return b.off === true; }).length;
+    $("boxCount").textContent = offCount ? F("f25", boxes.length, offCount) : F("f26", boxes.length);
+    if (!boxes.length) {
+      var none = document.createElement("div");
+      none.className = "none";
+      none.textContent = T("j79");
+      list.appendChild(none);
+      return;
+    }
+    boxes.forEach(function(box, index){
+      var off = box.off === true;
+      var row = document.createElement("div");
+      row.className = "box";
+      row.dataset.off = off ? "1" : "0";
+
+      var label = document.createElement("span");
+      label.className = "label";
+      label.textContent = box.label;
+      label.addEventListener("click", function(){ rename(box); });
+
+      var acts = document.createElement("div");
+      acts.className = "acts";
+      function act(text, onClick){
+        var a = document.createElement("span");
+        a.textContent = text;
+        a.addEventListener("click", onClick);
+        acts.appendChild(a);
+      }
+      act(off ? T("j74") : T("j75"), function(){
+        if (off) delete box.off; else box.off = true;
+        drawNoGo();
+        say(off ? F("f28", box.label) : F("f27", box.label), "ok");
+      });
+      act(T("j76"), function(){
+        map.fitBounds([[box.south, box.west], [box.north, box.east]], { padding: [60, 60] });
+      });
+      act(T("j77"), function(){ rename(box); });
+      act(T("j78"), function(){
+        if (!confirm(F("f5", box.label))) return;
+        noGo().splice(index, 1);
+        drawNoGo();
+        say(T("j53"), "ok");
+      });
+
+      row.append(label, acts);
+      list.appendChild(row);
+    });
+  }
+
+  function rename(box){
+    var next = (prompt(T("j80"), box.label) || "").trim();
+    if (!next || next === box.label) return;
+    box.label = next;
+    drawNoGo();
   }
 
   function showNoGo(on){

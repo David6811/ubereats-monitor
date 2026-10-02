@@ -190,6 +190,9 @@ object RulesStore {
             // rather than read as zero, which would stretch it to the equator.
             val noGo = root["noGo"]?.jsonArray?.mapNotNull { entry ->
                 val box = entry.jsonObject
+                // Switched off on the laptop. Not a box with a flag on it here -
+                // it simply is not one of the rules until it is switched back.
+                if (box["off"]?.jsonPrimitive?.content == "true") return@mapNotNull null
                 fun edge(key: String) = box[key]?.jsonPrimitive?.content?.toDoubleOrNull()
                 val south = edge("south") ?: return@mapNotNull null
                 val west = edge("west") ?: return@mapNotNull null

@@ -150,6 +150,15 @@
   j72: ["去的区", "Areas going"],
   j73: ["可以", "OK"],
 
+  t70: ["框里的店不取，框里的地址不送。关掉的框手机上也不算数，再点一下开回来。", "No pickup and no delivery inside a box. A box switched off does not count on the phone either; click it again to bring it back."],
+  j74: ["用", "On"],
+  j75: ["不用", "Off"],
+  j76: ["看", "Show"],
+  j77: ["改名", "Rename"],
+  j78: ["删", "Delete"],
+  j79: ["还没画框。用上面的「画不接单框」在地图上拉一个。", "No boxes yet. Use \"Draw a no-go box\" above and drag one on the map."],
+  j80: ["框的名字", "Name of the box"],
+  t71: ["不接单框", "No-go boxes"],
   // Sentences with a number or a name in them: %s in order, filled by f().
   f1: ["（取…）", "(fetching…)"],
   f2: ["（%s 单）", "(%s jobs)"],
@@ -174,6 +183,10 @@
   f21: ["%s 个", "%s"],
   f22: ["%s 家", "%s"],
   f23: ["先选一个位置", "Pick a place first"],
+  f25: ["（%s 个，关了 %s）", "(%s, %s off)"],
+  f26: ["（%s 个）", "(%s)"],
+  f27: ["「%s」关掉了，记得保存", "\"%s\" switched off; remember to save"],
+  f28: ["「%s」开回来了，记得保存", "\"%s\" switched back on; remember to save"],
   f24: ["「%s」的中心设好了", "Centre set for \"%s\""],
   };
 
@@ -195,8 +208,22 @@
   function applyLang(){
     document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
     document.title = t("t1");
-    document.querySelectorAll("[data-t]").forEach(function(node){ node.textContent = t(node.dataset.t); });
+    document.querySelectorAll("[data-t]").forEach(function(node){ say(node, t(node.dataset.t)); });
     document.querySelectorAll("[data-tp]").forEach(function(node){ node.placeholder = t(node.dataset.tp); });
+  }
+
+  /**
+   * The node's own words, leaving its children alone. Several headings carry a
+   * count in a span after the text - "Areas (8 going)" - and textContent would
+   * throw that span away, which it did: every count span was missing from the
+   * page, and the script that fills them was one signed-in page load from
+   * reading textContent off null.
+   */
+  function say(node, text){
+    if (!node.children.length) { node.textContent = text; return; }
+    var first = node.firstChild;
+    if (first && first.nodeType === 3) first.nodeValue = text;
+    else node.insertBefore(document.createTextNode(text), first);
   }
 
   function setLang(next){
