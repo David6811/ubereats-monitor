@@ -61,6 +61,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.weixu.ueatsmonitor.action.CaptureKeeperService
 import com.weixu.ueatsmonitor.action.Cloud
+import com.weixu.ueatsmonitor.action.LiveSettings
+import com.weixu.ueatsmonitor.domain.Lang
+import com.weixu.ueatsmonitor.domain.Words
+import com.weixu.ueatsmonitor.domain.Zh
+import com.weixu.ueatsmonitor.domain.wordsIn
 import com.weixu.ueatsmonitor.action.RulesSync
 import io.github.jan.supabase.auth.status.SessionStatus
 import com.weixu.ueatsmonitor.action.CaptureStatus
@@ -104,7 +109,7 @@ class MainActivity : ComponentActivity() {
             if (!granted) {
                 android.widget.Toast.makeText(
                     this,
-                    "通知权限没开：常驻通知和上面的两个按钮不会出现",
+                    wordsIn(LiveSettings.current?.lang ?: Lang.CHINESE).notificationsOff,
                     android.widget.Toast.LENGTH_LONG,
                 ).show()
             }
@@ -146,8 +151,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             DashTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
-                    Gate()
+                val settings by App.instance.settingsStore.settings.collectAsStateWithLifecycle(initialValue = null)
+                androidx.compose.runtime.CompositionLocalProvider(
+                    LocalWords provides wordsIn(settings?.lang ?: Lang.CHINESE)
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = Dash.Ground) {
+                        Gate()
+                    }
                 }
             }
         }
@@ -161,12 +171,30 @@ class MainActivity : ComponentActivity() {
  * laptop, where a shift is actually looked into, so the phone no longer carries
  * a page for them.
  */
-private enum class Place(val label: String, val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
-    WORK("工作", Icons.Filled.Home),
-    TRIP("这趟", Icons.Filled.Check),
-    AREAS("选区", Icons.Filled.LocationOn),
-    SETTINGS("设置", Icons.Filled.Settings),
+private enum class Place(val glyph: androidx.compose.ui.graphics.vector.ImageVector) {
+    WORK(Icons.Filled.Home),
+    TRIP(Icons.Filled.Check),
+    AREAS(Icons.Filled.LocationOn),
+    SETTINGS(Icons.Filled.Settings),
+    ;
+
+    fun label(words: Words): String = when (this) {
+        WORK -> words.tabWork
+        TRIP -> words.tabTrip
+        AREAS -> words.tabAreas
+        SETTINGS -> words.tabSettings
+    }
 }
+
+/**
+ * The words every screen reads, set once from the settings and taken from the
+ * air by whatever needs them. A screen that wants a phrase asks [words]; it
+ * never holds a Chinese sentence of its own.
+ */
+val LocalWords = androidx.compose.runtime.staticCompositionLocalOf<Words> { Zh }
+
+@Composable
+fun words(): Words = LocalWords.current
 
 /**
  * The login screen until the driver is signed in, then the app. While the
@@ -194,16 +222,17 @@ private fun HomeTabs() {
     // Bumped by 刷新: the page is built again from scratch, reading the rules
     // file as it is now rather than as it was when the page was opened.
     var reload by remember { mutableStateOf(0) }
+    val words = words()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val refresh: () -> Unit = {
         scope.launch {
             val outcome = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { RulesSync.pull(context) }
             say(context, when (outcome) {
-                RulesSync.Outcome.Updated -> "拿到了新规则"
-                RulesSync.Outcome.Unchanged -> "已经是最新的"
-                is RulesSync.Outcome.Failed -> "拿不到：" + outcome.why
-                else -> "刷新了"
+                RulesSync.Outcome.Updated -> words.rulesUpdated
+                RulesSync.Outcome.Unchanged -> words.rulesAlreadyCurrent
+                is RulesSync.Outcome.Failed -> words.couldNotFetch(outcome.why)
+                else -> words.refreshed
             })
             reload++
         }
@@ -249,9 +278,11 @@ private fun StatusStrip(onRefresh: () -> Unit) {
             .fillMaxWidth()
             .padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("接单助手", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        // No name here. The three chips say what the app is doing, and in English
+        // they fill the row; a title squeezed to "Offer ..." told the driver
+        // nothing he did not know from having opened it.
         Spacer(Modifier.weight(1f))
         settings?.let { VoiceChip(it.voiceEnabled) }
         WatchLamp(live.first)
@@ -272,11 +303,12 @@ private fun WatchLamp(watch: Watch) {
     val context = LocalContext.current
     when (watch) {
         Watch.Watching -> Text(
-            text = "✓ 在监控",
+            text = words().watching,
             style = MaterialTheme.typography.bodyMedium,
             color = Dash.Muted,
         )
         is Watch.NotWatching -> {
+            val hint = hintFor(watch.what)
             val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
             val alpha by pulse.animateFloat(
                 initialValue = 1f,
@@ -288,7 +320,7 @@ private fun WatchLamp(watch: Watch) {
                 label = "alpha",
             )
             Text(
-                text = "✕ 没在监控",
+                text = words().notWatching,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Dash.Ground,
                 fontWeight = FontWeight.Bold,
@@ -297,7 +329,7 @@ private fun WatchLamp(watch: Watch) {
                     .clip(Dash.ControlShape)
                     .background(Dash.Gold)
                     .clickable {
-                        say(context, hintFor(watch.what))
+                        say(context, hint)
                         fix(context, watch.what)
                     }
                     .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -307,10 +339,11 @@ private fun WatchLamp(watch: Watch) {
 }
 
 /** What to switch on once the system page opens, in the words that page shows. */
+@Composable
 private fun hintFor(missing: Missing): String = when (missing) {
-    Missing.READER -> "在「无障碍」里打开「接单助手」"
-    Missing.READER_STALLED -> "读屏卡住了：在「无障碍」里把「接单助手」关掉再打开"
-    Missing.OVERLAY -> "允许「接单助手」显示在其他应用上层"
+    Missing.READER -> words().turnOnReader
+    Missing.READER_STALLED -> words().readerStalled
+    Missing.OVERLAY -> words().allowOverlay
 }
 
 private fun fix(context: Context, missing: Missing) = when (missing) {
@@ -320,6 +353,7 @@ private fun fix(context: Context, missing: Missing) = when (missing) {
 
 @Composable
 private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
+    val words = words()
     Column {
         Hairline()
         Row(
@@ -343,12 +377,12 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
                     ) {
                         androidx.compose.material3.Icon(
                             imageVector = place.glyph,
-                            contentDescription = place.label,
+                            contentDescription = place.label(words),
                             tint = if (on) Dash.Gold else Dash.Muted,
                         )
                     }
                     Text(
-                        text = place.label,
+                        text = place.label(words),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (on) Dash.Gold else Dash.Muted,
                         fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
@@ -361,6 +395,7 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
 
 @Composable
 private fun MonitorScreen(store: SettingsStore) {
+    val words = words()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val settings by store.settings.collectAsStateWithLifecycle(initialValue = null)
@@ -378,8 +413,8 @@ private fun MonitorScreen(store: SettingsStore) {
         if (!Permissions.screenReadingGranted(context)) {
             item {
                 PermissionCard(
-                    title = "读屏没开",
-                    hint = "唯一能看到派单卡片的通道。关掉就什么都记录不到",
+                    title = words.readerOff,
+                    hint = words.readerOffHint,
                     onFix = { Permissions.openAccessibilitySettings(context) },
                 )
             }
@@ -388,8 +423,8 @@ private fun MonitorScreen(store: SettingsStore) {
         if (!Permissions.overlayGranted(context)) {
             item {
                 PermissionCard(
-                    title = "悬浮窗没开",
-                    hint = "打开后判断结果会盖在派单卡片上",
+                    title = words.overlayOff,
+                    hint = words.overlayOffHint,
                     onFix = { Permissions.openOverlaySettings(context) },
                 )
             }
@@ -397,14 +432,14 @@ private fun MonitorScreen(store: SettingsStore) {
 
         item {
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
-                SectionLabel("监控")
+                SectionLabel(words.settingsWatching)
                 Column {
                     // Named with its own numbers, because the threshold and the
                     // size of the far set are the laptop's, not this app's.
                     Profiles.far(context)?.let { far ->
                         SwitchRow(
-                            label = "超过 $" + far.overDollars + " 用远区",
-                            hint = far.suburbs.toString() + " 个区，每小时不够也不接",
+                            label = words.farOver(far.overDollars.toString()),
+                            hint = words.farAreas(far.suburbs),
                             checked = current.farEnabled,
                         ) { scope.launch { store.setFarEnabled(it) } }
                         Hairline()
@@ -417,22 +452,24 @@ private fun MonitorScreen(store: SettingsStore) {
                     NearCentreToggle(current.nearCentreEnabled) { scope.launch { store.setNearCentreEnabled(it) } }
                     if (current.nearCentreEnabled) {
                         LimitsRow(
-                            kmLabel = "离中心 公里内 才接",
-                            minutesLabel = "分钟内 才接",
+                            kmLabel = words.withinKmLabel,
+                            minutesLabel = words.withinMinutesLabel,
                             km = current.nearCentreMaxKm,
                             minutes = current.nearCentreMaxMinutes,
                         ) { km, max -> scope.launch { store.saveNearCentreLimits(km, max) } }
                     }
                     Hairline()
-                    SwitchRow("区域提示音", null, current.areaSoundEnabled) {
+                    SwitchRow(words.areaSound, null, current.areaSoundEnabled) {
                         scope.launch { store.setAreaSoundEnabled(it) }
                     }
                     Hairline()
                     VoiceToggle(current.voiceEnabled)
                     Hairline()
-                    SwitchRow("悬浮按钮", "跑单时右上角的「关导航」「语音」", current.toolsEnabled) {
+                    SwitchRow(words.floatingButtons, words.floatingButtonsHint, current.toolsEnabled) {
                         scope.launch { store.setToolsEnabled(it) }
                     }
+                    Hairline()
+                    LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
                 }
             }
         }
@@ -453,9 +490,10 @@ private fun MonitorScreen(store: SettingsStore) {
  */
 @Composable
 private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
+    val words = words()
     LimitsRow(
-        kmLabel = "离中心小于 公里 照接",
-        minutesLabel = "超过 分钟 不接",
+        kmLabel = words.nearKmLabel,
+        minutesLabel = words.maxMinutesLabel,
         km = settings.homewardNearKm,
         minutes = settings.homewardMaxMinutes,
         onSave = onSave,
@@ -465,6 +503,7 @@ private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double,
 /** A kilometres field and a minutes field with one save button, for the rules that bend on two numbers. */
 @Composable
 private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes: Int, onSave: (Double, Int) -> Unit) {
+    val words = words()
     var kmText by remember { mutableStateOf("") }
     var minutesText by remember { mutableStateOf("") }
 
@@ -481,7 +520,7 @@ private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes
             DashField(kmLabel, kmText, Modifier.weight(1f)) { kmText = it }
             DashField(minutesLabel, minutesText, Modifier.weight(1f)) { minutesText = it }
         }
-        GoldButton("保存", Modifier.fillMaxWidth()) {
+        GoldButton(words.save, Modifier.fillMaxWidth()) {
             onSave(
                 kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: km,
                 minutesText.toIntOrNull()?.takeIf { it > 0 } ?: minutes,
@@ -497,17 +536,46 @@ private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes
  */
 @Composable
 private fun NearCentreToggle(enabled: Boolean, save: (Boolean) -> Unit) {
+    val words = words()
     val context = LocalContext.current
     val centre = remember { Profiles.centre(context) }
     SwitchRow(
-        label = "近中心模式",
-        hint = if (centre == null) "这套选区没设中心，先在电脑上设一个" else "只接离中心几公里内、时间短的单",
+        label = words.nearCentreMode,
+        hint = if (centre == null) words.noCentreSet else words.nearCentreHint,
         checked = enabled,
     ) { on ->
         when {
             !on -> save(false)
-            centre == null -> say(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送")
+            centre == null -> say(context, words.noCentreSetLong)
             else -> save(true)
+        }
+    }
+}
+
+/** Chinese or English, for every word the app says. Both names are written in their own language. */
+@Composable
+private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("语言 · Language", style = MaterialTheme.typography.titleMedium, color = Dash.Ink)
+        }
+        listOf(Lang.CHINESE to "中文", Lang.ENGLISH to "English").forEach { (which, name) ->
+            val on = which == lang
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (on) Dash.Ground else Dash.Ink,
+                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .clip(Dash.ControlShape)
+                    .background(if (on) Dash.Gold else Dash.Raised)
+                    .clickable { onChoose(which) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }
@@ -522,40 +590,41 @@ private fun NearCentreToggle(enabled: Boolean, save: (Boolean) -> Unit) {
  */
 @Composable
 private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
+    val words = words()
     val context = LocalContext.current
     val centre = remember { Profiles.centre(context) }
     val fix = remember { CurrentPosition(context).lastKnown() }
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val now = if (granted) CurrentPosition(context).lastKnown() else null
         when {
-            !granted -> say(context, "没有定位权限，回中心模式开不了")
-            now == null -> say(context, "还没有定位，到车里开着定位再试")
+            !granted -> say(context, words.noLocationPermission)
+            now == null -> say(context, words.noFixYet)
             !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
             centre != null -> save(true)
         }
     }
 
     SwitchRow(
-        label = "回中心模式",
+        label = words.homewardMode,
         hint = when {
-            centre == null -> "这套选区没设中心，先在电脑上设一个"
-            !Permissions.backgroundLocationGranted(context) -> "定位要设成「始终允许」才有用，点这里去改"
-            fix == null -> "手机还没有定位，开不了"
-            else -> "只接离中心更近的单，远区也一样"
+            centre == null -> words.noCentreSet
+            !Permissions.backgroundLocationGranted(context) -> words.needAlwaysLocation
+            fix == null -> words.noFixYet
+            else -> words.homewardHint
         },
         checked = enabled,
     ) { on ->
         when {
             !on -> save(false)
             centre == null ->
-                android.widget.Toast.makeText(context, "这套选区没设中心，在电脑编辑器里点「设中心」再推送", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, words.noCentreSetLong, android.widget.Toast.LENGTH_LONG).show()
             !Permissions.locationGranted(context) ->
                 askLocation.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
             // Uber is in front while a card is judged, so "while using the app"
             // hands back nothing. Only the system settings page can change that.
             !Permissions.backgroundLocationGranted(context) -> askForAllTheTime(context)
             CurrentPosition(context).lastKnown() == null ->
-                say(context, "手机还没有定位，到车里开着定位再试")
+                say(context, words.noFixYet)
             else -> save(true)
         }
     }
@@ -566,7 +635,7 @@ private fun say(context: Context, words: String) {
 }
 
 private fun askForAllTheTime(context: Context) {
-    say(context, "把定位改成「始终允许」：权限 → 位置信息 → 始终允许")
+    say(context, Zh.setLocationAlways)
     Permissions.openAppSettings(context)
 }
 
@@ -577,30 +646,31 @@ private fun askForAllTheTime(context: Context) {
  */
 @Composable
 private fun VoiceToggle(enabled: Boolean) {
+    val words = words()
     val switchVoice = rememberVoiceSwitch()
     var explaining by remember { mutableStateOf(false) }
-    SwitchRow("语音命令", "一直在听：说「地图」「送餐」「应用」「回中心」", enabled, switchVoice)
-    TextButton(onClick = { explaining = true }) { Text("能说什么？", color = Dash.Gold) }
+    SwitchRow(words.voiceCommands, words.voiceCommandsHint, enabled, switchVoice)
+    TextButton(onClick = { explaining = true }) { Text(words.whatCanISay, color = Dash.Gold) }
 
     if (explaining) {
         AlertDialog(
             onDismissRequest = { explaining = false },
-            title = { Text("语音命令") },
+            title = { Text(words.voiceCommands) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VOICE_HELP.forEach { (say, does) ->
+                    voiceHelp().forEach { (say, does) ->
                         Row {
                             Text(say, Modifier.weight(1f), fontWeight = FontWeight.Bold)
                             Text(does, Modifier.weight(1.4f))
                         }
                     }
                     Text(
-                        "前面加「切」「打开」也行，比如「切地图」。英文也听得懂：map、uber eats、application、centre、stop navigation。",
+                        words.voiceHelpTail,
                         color = Dash.Muted,
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { explaining = false }) { Text("知道了") } },
+            confirmButton = { TextButton(onClick = { explaining = false }) { Text(words.gotIt) } },
         )
     }
 }
@@ -614,6 +684,7 @@ private fun VoiceToggle(enabled: Boolean) {
 @Composable
 private fun rememberVoiceSwitch(): (Boolean) -> Unit {
     val context = LocalContext.current
+    val words = words()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val store = App.instance.settingsStore
     val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -621,7 +692,7 @@ private fun rememberVoiceSwitch(): (Boolean) -> Unit {
             scope.launch { store.setVoiceEnabled(true) }
             VoiceService.start(context)
         } else {
-            say(context, "没有麦克风权限，语音命令开不了")
+            say(context, words.noMicrophonePermission)
         }
     }
     return { on ->
@@ -645,7 +716,7 @@ private fun rememberVoiceSwitch(): (Boolean) -> Unit {
 private fun VoiceChip(enabled: Boolean) {
     val switchVoice = rememberVoiceSwitch()
     Text(
-        text = if (enabled) "语音开" else "语音关",
+        text = if (enabled) words().voiceOn else words().voiceOff,
         style = MaterialTheme.typography.bodyMedium,
         color = if (enabled) Dash.Ink else Dash.Muted,
         fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
@@ -657,16 +728,23 @@ private fun VoiceChip(enabled: Boolean) {
     )
 }
 
-/** What each spoken command does, in the words the driver says. Kept beside [VoiceCommands]'s names. */
-private val VOICE_HELP = listOf(
-    "「地图」" to "切到谷歌地图",
-    "「送餐」" to "切到 Uber",
-    "「应用」" to "切回接单助手",
-    "「回中心」" to "导航回选区中心",
-    "「关导航」" to "关掉谷歌地图的导航",
-    "「你好，…」" to "问助手：你好，现在送哪一单",
-    "「关语音」" to "关掉语音，再开要点一下按钮",
-)
+/**
+ * What each spoken command does. The words to say stay Mandarin whatever the
+ * language is set to: the recogniser on the phone knows no English.
+ */
+@Composable
+private fun voiceHelp(): List<Pair<String, String>> {
+    val words = words()
+    return listOf(
+        "「地图」" to words.sayMap,
+        "「送餐」" to words.sayUber,
+        "「应用」" to words.sayApp,
+        "「回中心」" to words.sayCentre,
+        "「关导航」" to words.sayStopNavigation,
+        "「你好，…」" to words.sayAsk,
+        "「关语音」" to words.sayVoiceOff,
+    )
+}
 
 /**
  * Everything off at the end of a shift. Kept to the bottom of the last page and
@@ -675,23 +753,24 @@ private val VOICE_HELP = listOf(
  */
 @Composable
 private fun QuitCard() {
+    val words = words()
     val context = LocalContext.current
     val activity = context as? Activity
     var asking by remember { mutableStateOf(false) }
 
     Panel {
-        SectionLabel("收工")
+        SectionLabel(words.settingsFinishing)
         Text(
-            text = "停掉读屏和后台守护。下次要用，得去「系统设置 → 无障碍 → 接单助手」重新打开。",
+            text = words.quitHint,
             style = MaterialTheme.typography.bodyMedium,
             color = Dash.Muted,
         )
-        GhostButton("退出并停止监控", Modifier.fillMaxWidth(), color = Dash.Orange) { asking = true }
+        GhostButton(words.quitAndStop, Modifier.fillMaxWidth(), color = Dash.Orange) { asking = true }
         val scope = androidx.compose.runtime.rememberCoroutineScope()
-        GhostButton("退出登录", Modifier.fillMaxWidth()) {
+        GhostButton(words.signOut, Modifier.fillMaxWidth()) {
             scope.launch {
                 App.instance.settingsStore.forgetLogin()
-                runCatching { Cloud.signOut() }.onFailure { say(context, "退不出去：" + it.message) }
+                runCatching { Cloud.signOut() }.onFailure { say(context, words.couldNotSignOut(it.message.orEmpty())) }
             }
         }
     }
@@ -699,17 +778,17 @@ private fun QuitCard() {
     if (asking) {
         AlertDialog(
             onDismissRequest = { asking = false },
-            title = { Text("停掉监控？") },
-            text = { Text("派单来了就不会再有判断和记录，直到你在系统的无障碍设置里重新打开。") },
+            title = { Text(words.quitAsk) },
+            text = { Text(words.quitAskBody) },
             confirmButton = {
                 TextButton(onClick = {
                     asking = false
                     UberScreenService.stopEverything(context)
                     activity?.finish()
-                }) { Text("停掉") }
+                }) { Text(words.quitIt) }
             },
             dismissButton = {
-                TextButton(onClick = { asking = false }) { Text("取消") }
+                TextButton(onClick = { asking = false }) { Text(words.cancel) }
             },
         )
     }
@@ -787,12 +866,13 @@ private fun PermissionCard(title: String, hint: String, onFix: () -> Unit) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Dash.Orange)
         }
         Text(hint, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
-        GoldButton("去开启", Modifier.fillMaxWidth(), onFix)
+        GoldButton(words().goTurnOn, Modifier.fillMaxWidth(), onFix)
     }
 }
 
 @Composable
 private fun ThresholdCard(thresholds: Thresholds, onSave: (Thresholds) -> Unit) {
+    val words = words()
     var payout by remember { mutableStateOf("") }
     var perMile by remember { mutableStateOf("") }
     var perHour by remember { mutableStateOf("") }
@@ -823,7 +903,7 @@ private fun ThresholdCard(thresholds: Thresholds, onSave: (Thresholds) -> Unit) 
                         )
                     )
                 },
-            ) { Text("保存") }
+            ) { Text(words.save) }
         }
     }
 }
@@ -834,6 +914,7 @@ private fun ThresholdCard(thresholds: Thresholds, onSave: (Thresholds) -> Unit) 
  */
 @Composable
 private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Double, Double) -> Unit) {
+    val words = words()
     var fuel by remember { mutableStateOf("") }
     var factor by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
@@ -845,18 +926,18 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
     }
 
     Panel {
-        SectionLabel("每小时收入")
+        SectionLabel(words.settingsPerHour)
         Text(
-            text = "(钱 − 公里 × 2 × 油钱) ÷ (分钟 × 倍数 ÷ 60)",
+            text = words.perHourFormula,
             style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
             color = Dash.Muted,
         )
-        DashField("每公里油钱 $", fuel) { fuel = it }
+        DashField(words.fuelPerKm, fuel) { fuel = it }
         ButtonRow {
-            DashField("时间倍数", factor, Modifier.weight(1f)) { factor = it }
-            DashField("远区最低 $/时", floor, Modifier.weight(1f)) { floor = it }
+            DashField(words.timeFactor, factor, Modifier.weight(1f)) { factor = it }
+            DashField(words.farFloorPerHour, floor, Modifier.weight(1f)) { floor = it }
         }
-        GoldButton("保存", Modifier.fillMaxWidth()) {
+        GoldButton(words.save, Modifier.fillMaxWidth()) {
             onSave(
                 fuel.toDoubleOrNull() ?: settings.fuelPerKm,
                 factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,

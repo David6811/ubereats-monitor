@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.weixu.ueatsmonitor.domain.Cents
+import com.weixu.ueatsmonitor.domain.Lang
 import com.weixu.ueatsmonitor.domain.Miles
 import com.weixu.ueatsmonitor.domain.Thresholds
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +55,8 @@ class SettingsStore(private val context: Context) {
         val nearCentreMaxMinutes: Int,
         /** The floating 关导航 / 语音 buttons over other apps during a shift. */
         val toolsEnabled: Boolean,
+        /** The language every word the driver reads is written in. */
+        val lang: Lang,
     )
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -82,6 +85,7 @@ class SettingsStore(private val context: Context) {
             nearCentreMaxKm = prefs[NEAR_CENTRE_MAX_KM] ?: DEFAULT_NEAR_CENTRE_MAX_KM,
             nearCentreMaxMinutes = prefs[NEAR_CENTRE_MAX_MINUTES] ?: DEFAULT_NEAR_CENTRE_MAX_MINUTES,
             toolsEnabled = prefs[TOOLS] ?: true,
+            lang = if ((prefs[LANG] ?: defaultLang()) == "en") Lang.ENGLISH else Lang.CHINESE,
         )
     }
 
@@ -122,6 +126,14 @@ class SettingsStore(private val context: Context) {
     suspend fun setNearCentreEnabled(enabled: Boolean) = putBoolean(NEAR_CENTRE, enabled)
 
     suspend fun setToolsEnabled(enabled: Boolean) = putBoolean(TOOLS, enabled)
+
+    suspend fun setLang(lang: Lang) {
+        context.dataStore.edit { prefs -> prefs[LANG] = if (lang == Lang.ENGLISH) "en" else "zh" }
+    }
+
+    /** Before the driver has chosen, the phone's own language decides. */
+    private fun defaultLang(): String =
+        if (java.util.Locale.getDefault().language == "zh") "zh" else "en"
 
     suspend fun saveNearCentreLimits(maxKm: Double, maxMinutes: Int) {
         context.dataStore.edit { prefs ->
@@ -167,6 +179,7 @@ class SettingsStore(private val context: Context) {
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
         private val NEAR_CENTRE = booleanPreferencesKey("near_centre")
         private val TOOLS = booleanPreferencesKey("tools")
+        private val LANG = androidx.datastore.preferences.core.stringPreferencesKey("lang")
         private val NEAR_CENTRE_MAX_KM = doublePreferencesKey("near_centre_max_km")
         private val NEAR_CENTRE_MAX_MINUTES = intPreferencesKey("near_centre_max_minutes")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")

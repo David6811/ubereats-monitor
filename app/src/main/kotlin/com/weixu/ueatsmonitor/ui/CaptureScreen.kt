@@ -87,7 +87,7 @@ fun CaptureScreen() {
                         style = MaterialTheme.typography.bodyMedium,
                         color = Dash.Muted,
                     )
-                    GoldButton("去开启", Modifier.fillMaxWidth()) { Permissions.openAccessibilitySettings(context) }
+                    GoldButton(words().goTurnOn, Modifier.fillMaxWidth()) { Permissions.openAccessibilitySettings(context) }
                 }
             }
         }

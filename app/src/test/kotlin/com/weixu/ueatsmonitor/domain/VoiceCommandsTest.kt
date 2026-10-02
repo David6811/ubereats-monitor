@@ -45,13 +45,25 @@ class VoiceCommandsTest {
     @Test
     fun `given the short chinese for uber, when it is parsed, then uber comes to the front`() {
         // arrange
-        val heard = listOf("切优步")
+        val heard = listOf("切送餐")
 
         // act
         val command = VoiceCommands.parse(heard)
 
         // assert
         assertEquals(VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE), command)
+    }
+
+    @Test
+    fun `given the word dropped from the list, when it is parsed, then nothing happens`() {
+        // arrange  "优步" was taken off both the grammar and the names
+        val heard = listOf("切优步")
+
+        // act
+        val command = VoiceCommands.parse(heard)
+
+        // assert
+        assertEquals(null, command)
     }
 
     @Test
@@ -102,7 +114,6 @@ class VoiceCommandsTest {
         assertEquals(
             listOf(
                 VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
                 VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
                 VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),

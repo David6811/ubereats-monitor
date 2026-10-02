@@ -125,32 +125,38 @@ object StoreKinds {
     private const val MAX_SLIP = 2
 
     /** OpenStreetMap's word for it, in the driver's language. */
-    fun label(kind: String): String = when (kind) {
-        "restaurant" -> "餐厅"
-        "fast_food" -> "快餐"
-        "cafe" -> "咖啡"
-        "convenience" -> "便利店"
-        "supermarket" -> "超市"
-        "bakery" -> "面包"
-        "alcohol" -> "酒铺"
-        "butcher" -> "肉店"
-        "pub", "bar" -> "酒吧"
-        "greengrocer" -> "果蔬"
-        "ice_cream" -> "冰淇淋"
-        "deli" -> "熟食"
-        "chemist", "pharmacy" -> "药店"
-        "fuel" -> "加油站"
-        else -> kind
+    fun label(kind: String, lang: Lang): String {
+        val english = lang == Lang.ENGLISH
+        return when (kind) {
+            "restaurant" -> if (english) "restaurant" else "餐厅"
+            "fast_food" -> if (english) "fast food" else "快餐"
+            "cafe" -> if (english) "cafe" else "咖啡"
+            "convenience" -> if (english) "convenience" else "便利店"
+            "supermarket" -> if (english) "supermarket" else "超市"
+            "bakery" -> if (english) "bakery" else "面包"
+            "alcohol" -> if (english) "bottle shop" else "酒铺"
+            "butcher" -> if (english) "butcher" else "肉店"
+            "pub", "bar" -> if (english) "pub" else "酒吧"
+            "greengrocer" -> if (english) "greengrocer" else "果蔬"
+            "ice_cream" -> if (english) "ice cream" else "冰淇淋"
+            "deli" -> if (english) "deli" else "熟食"
+            "chemist", "pharmacy" -> if (english) "chemist" else "药店"
+            "fuel" -> if (english) "petrol" else "加油站"
+            else -> kind
+        }
     }
 
     /** No car park of its own: you will be circling, or walking. */
     fun hardToPark(setting: String): Boolean = setting == "MALL" || setting == "STRIP"
 
     /** Where the shop stands, which is where you will be parking. */
-    fun where(setting: String): String? = when (setting) {
-        "MALL" -> "商场"
-        "STRIP" -> "主街"
-        "STANDALONE_PARKING" -> "有停车场"
-        else -> null
+    fun where(setting: String, lang: Lang): String? {
+        val english = lang == Lang.ENGLISH
+        return when (setting) {
+            "MALL" -> if (english) "mall" else "商场"
+            "STRIP" -> if (english) "strip" else "主街"
+            "STANDALONE_PARKING" -> if (english) "own car park" else "有停车场"
+            else -> null
+        }
     }
 }

@@ -178,4 +178,42 @@ class PickupScreenTest {
         // assert
         assertEquals("(Chemist2U) Pharmacy 4 Less Parkmore", pickup?.store)
     }
+
+    @Test
+    fun `given two orders at one shop, when the pickup screen is read, then it says two`() {
+        // arrange  23 Sept 18:46, Nene Chicken: two orders, one offer card
+        val lines = listOf(
+            "Nene Chicken (Parkmore)",
+            "Nene Chicken",
+            "L01 Z12/317 Cheltenham Road, Keysborough VIC 3173, APAC, AU",
+            "Merchant Note: Please use google map instead of uber map to find store.",
+            "Pick up 2 orders",
+            "Rebecca Q.",
+            "jojey L.",
+            "Complete pickup",
+        )
+
+        // act
+        val pickup = PickupScreen.read(lines)
+
+        // assert
+        assertEquals(2, pickup?.orders)
+    }
+
+    @Test
+    fun `given one order, when the pickup screen is read, then it says one`() {
+        // arrange
+        val lines = listOf(
+            "KFC (Dandenong)",
+            "55 Princes Highway, Dandenong VIC 3175, Australia",
+            "Pick up 1 order",
+            "Complete pickup",
+        )
+
+        // act
+        val pickup = PickupScreen.read(lines)
+
+        // assert
+        assertEquals(1, pickup?.orders)
+    }
 }

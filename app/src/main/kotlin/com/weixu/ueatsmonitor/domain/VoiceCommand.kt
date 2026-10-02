@@ -54,6 +54,12 @@ sealed interface VoiceCommand {
  */
 object VoiceCommands {
 
+    // None of the English below can be reached today. The recogniser runs a
+    // Chinese model against [GRAMMAR], which is Chinese only, so no English
+    // sentence ever gets this far - it is kept as the shape an English model
+    // would slot into, not as a feature. Two pieces are missing from it:
+    // stopping the microphone, and ending a conversation.
+
     // Single characters are enough: an app name has to be in the sentence too.
     private val SWITCH_VERBS = listOf("切换", "切回", "打开", "回到", "切", "去", "switch", "open", "goto")
 
@@ -76,7 +82,7 @@ object VoiceCommands {
      */
     private val NAMES: List<Pair<VoiceTarget, List<String>>> = listOf(
         VoiceTarget.MAPS to listOf("地图", "谷歌", "导航", "google", "map", "maps"),
-        VoiceTarget.UBER to listOf("优步", "司机", "送餐", "外卖", "派单", "接单", "uber", "ubereats"),
+        VoiceTarget.UBER to listOf("司机", "送餐", "外卖", "派单", "接单", "uber", "ubereats"),
         VoiceTarget.SELF to listOf("接单助手", "助手", "应用", "我们的", "application", "app"),
     )
 
@@ -87,9 +93,9 @@ object VoiceCommands {
      */
     val GRAMMAR: List<String> = listOf(
         "你好",
-        "切地图", "切优步", "切送餐", "切应用", "切助手",
+        "切地图", "切送餐", "切应用", "切助手",
         "打开地图", "打开送餐", "打开应用", "回到应用", "回到地图",
-        "地图", "送餐", "助手", "应用", "优步",
+        "地图", "送餐", "助手", "应用",
         "回中心", "回工作点",
         "关导航", "关闭导航", "停止导航", "结束导航",
         "关语音", "关闭语音", "停止语音",
@@ -97,7 +103,7 @@ object VoiceCommands {
 
     /** The short sentences to say, and to steer the recognizer towards. */
     val PHRASES: List<String> = listOf(
-        "切地图", "切优步", "切送餐", "切应用", "切助手",
+        "切地图", "切送餐", "切应用", "切助手",
         "地图", "送餐", "助手", "应用",
         "map", "uber eats", "application",
         "switch to map", "switch to uber eats", "switch to application",

@@ -23,6 +23,7 @@ import com.weixu.ueatsmonitor.domain.OfferShape
 import com.weixu.ueatsmonitor.domain.PickupScreen
 import com.weixu.ueatsmonitor.domain.RuleJudge
 import com.weixu.ueatsmonitor.domain.Ruling
+import com.weixu.ueatsmonitor.domain.Lang
 import com.weixu.ueatsmonitor.domain.RulingText
 import com.weixu.ueatsmonitor.domain.VerdictText
 import com.weixu.ueatsmonitor.domain.Suburb
@@ -451,10 +452,17 @@ class UberScreenService : AccessibilityService() {
         // version instead - the same words, wrapped and mangled.
         PickupScreen.read(treeLines)?.let { pickup ->
             JobStore.markTaken(this, pickup)
+            // Opening this screen is how Uber's own navigation is started, so
+            // this is where the driver is going until a delivery screen says
+            // otherwise. The floating button hands it to Google Maps.
+            CurrentStop.headingToShop(pickup.address)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
         }
         DropoffScreen.read(treeLines)?.let { dropoff ->
             JobStore.markDelivered(this, dropoff)
+            // The street address only. A unit number is for the door, not for the
+            // drive, and Maps reads "3/144 Collins Street" as a house number.
+            CurrentStop.headingToCustomer(dropoff.address)
             Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
         // Whatever notes are on the board, in Chinese. Does nothing once they are
@@ -497,7 +505,7 @@ class UberScreenService : AccessibilityService() {
      */
     private fun fromCentre(spot: Spot?): String? {
         val centre = Profiles.centre(this) ?: return null
-        return ChipText.fromCentre(spot ?: return null, centre)
+        return ChipText.fromCentre(spot ?: return null, centre, driverLang())
     }
 
     /** Where the card's shop and dropoff are on the map, as far as the tables know. */
@@ -557,7 +565,10 @@ class UberScreenService : AccessibilityService() {
             LiveSettings.current?.areaSoundEnabled == false -> "suppressed_setting_off"
             ruling == null -> "none_no_card"
             else -> {
-                val signature = RulingText.headline(ruling, card.isMatch) + RulingText.reason(ruling)
+                // A key, not something read: one language always, so switching
+                // languages mid-shift does not ring the same call twice.
+                val signature = RulingText.headline(ruling, card.isMatch, Lang.CHINESE) +
+                    RulingText.reason(ruling, Lang.CHINESE)
                 if (signature == lastRungSignature && now - lastRungAtMillis < SAME_CALL_MILLIS) {
                     "suppressed_same_within_3s"
                 } else {
@@ -596,15 +607,15 @@ class UberScreenService : AccessibilityService() {
                     payout = card.payout.toString(),
                     pickup = card.pickup,
                     dropoff = card.dropoff,
-                    ruling = ruling?.let { RulingText.headline(it, card.isMatch) },
-                    why = ruling?.let(RulingText::reason),
+                    ruling = ruling?.let { RulingText.headline(it, card.isMatch, driverLang()) },
+                    why = ruling?.let { RulingText.reason(it, driverLang()) },
                     fromTree = fromTree,
                 ),
             )
         }
 
         Log.i(TAG, "decide card=" + (card != null) + " offer=" + offerShape +
-            " ruling=" + (ruling?.let { RulingText.headline(it, card.isMatch) } ?: "-") + " chime=" + chime)
+            " ruling=" + (ruling?.let { RulingText.headline(it, card.isMatch, Lang.CHINESE) } ?: "-") + " chime=" + chime)
 
         return buildString {
             append("card=").append(card != null).append('\n')
@@ -620,8 +631,8 @@ class UberScreenService : AccessibilityService() {
             }
             if (ruling != null) {
                 append("card_kind=").append(if (card.isMatch) "match" else "accept").append('\n')
-                append("ruling=").append(RulingText.headline(ruling, card.isMatch)).append('\n')
-                append("ruling_why=").append(RulingText.reason(ruling)).append('\n')
+                append("ruling=").append(RulingText.headline(ruling, card.isMatch, Lang.CHINESE)).append('\n')
+                append("ruling_why=").append(RulingText.reason(ruling, Lang.CHINESE)).append('\n')
             }
             append("rules_suburbs=").append(rules.allowedSuburbs.size).append('\n')
             append("rules_denied_stores=").append(rules.deniedStores.size).append('\n')

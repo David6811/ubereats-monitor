@@ -17,9 +17,12 @@ data class PositionFix(val at: GeoPoint, val measuredAtMillis: Long)
 data class Suburb(val name: String, val at: GeoPoint)
 
 /** Data. The eight directions a driver actually thinks in. */
-enum class Compass(val label: String) {
-    N("正北"), NE("东北"), E("正东"), SE("东南"),
-    S("正南"), SW("西南"), W("正西"), NW("西北"),
+enum class Compass(val label: String, val english: String) {
+    N("正北", "north"), NE("东北", "north-east"), E("正东", "east"), SE("东南", "south-east"),
+    S("正南", "south"), SW("西南", "south-west"), W("正西", "west"), NW("西北", "north-west"),
+    ;
+
+    fun labelIn(lang: Lang): String = if (lang == Lang.ENGLISH) english else label
 }
 
 /** Data. Where a place is, seen from where you stand. */

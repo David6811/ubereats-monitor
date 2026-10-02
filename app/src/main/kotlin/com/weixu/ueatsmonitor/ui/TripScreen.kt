@@ -1,6 +1,7 @@
 package com.weixu.ueatsmonitor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -30,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.ExclusionStore
+import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.action.NoGoOffStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
@@ -45,11 +48,14 @@ import com.weixu.ueatsmonitor.domain.SuburbAt
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun TripScreen() {
+    val words = words()
     val context = LocalContext.current
     val profiles = remember { Profiles.list(context) }
     val live = profiles.firstOrNull { it.active }
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    val boxes = remember { RulesStore.drawn(context) }
+    var boxesOff: Set<String> by remember { mutableStateOf(NoGoOffStore.inForce(context)) }
     // The last suburb a finger landed on, named above the map: on a map this small
     // a suburb is a few millimetres, and a miss has to be visible to be undone.
     var touched: String? by remember { mutableStateOf(null) }
@@ -57,9 +63,9 @@ fun TripScreen() {
     if (live == null) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
             Panel {
-                SectionLabel("还没有选区")
+                SectionLabel(words.noAreasYet)
                 Text(
-                    text = "在电脑的编辑器里点一次「保存并推送到手机」。",
+                    text = words.pushFromTheWeb,
                     style = MaterialTheme.typography.bodyLarge,
                     color = Dash.Muted,
                 )
@@ -90,7 +96,7 @@ fun TripScreen() {
                 modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SectionLabel("这一趟 · " + live.name)
+                SectionLabel(words.thisTrip(live.name))
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = going.size.toString(),
@@ -99,8 +105,8 @@ fun TripScreen() {
                     )
                     Text(
                         text = touched?.let { name ->
-                            name + (if (name in going) " 去" else " 不去")
-                        } ?: if (excluded.isEmpty()) "个区，全都去" else "个区，点掉了 " + excluded.size + " 个",
+                            name + (if (name in going) words.going else words.notGoing)
+                        } ?: if (excluded.isEmpty()) words.areasAllGoing else words.areasSomeOff(excluded.size),
                         modifier = Modifier.padding(bottom = 6.dp),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Dash.Muted,
@@ -132,33 +138,35 @@ fun TripScreen() {
         }
 
         Panel {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SectionLabel("点一下切换 · 长按只留它")
-                    Text(
-                        text = "只管这一趟。换选区或电脑推新规则，就全恢复。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Dash.Muted,
-                    )
+            // The line and the buttons are stacked, not side by side: the English
+            // line is long enough that sharing a row squeezed both into columns
+            // four words wide.
+            SectionLabel(words.tapToToggle)
+            Text(
+                text = words.thisTripOnly,
+                style = MaterialTheme.typography.bodySmall,
+                color = Dash.Muted,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                middle?.let { here ->
+                    GhostButton(words.keepCentreOnly, color = Dash.Gold) {
+                        ExclusionStore.keepOnly(context, here, all)
+                        excluded = ExclusionStore.inForce(context)
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    middle?.let { here ->
-                        GhostButton("只留中心", color = Dash.Gold) {
-                            ExclusionStore.keepOnly(context, here, all)
-                            excluded = ExclusionStore.inForce(context)
-                        }
+                if (going.isNotEmpty()) {
+                    GhostButton(words.clearAll, color = Dash.Muted) {
+                        ExclusionStore.excludeAll(context, all)
+                        excluded = ExclusionStore.inForce(context)
                     }
-                    if (going.isNotEmpty()) {
-                        GhostButton("全不选", color = Dash.Muted) {
-                            ExclusionStore.excludeAll(context, all)
-                            excluded = ExclusionStore.inForce(context)
-                        }
-                    }
-                    if (excluded.isNotEmpty()) {
-                        GhostButton("恢复全部", color = Dash.Gold) {
-                            ExclusionStore.clear(context)
-                            excluded = ExclusionStore.inForce(context)
-                        }
+                }
+                if (excluded.isNotEmpty()) {
+                    GhostButton(words.restoreAll, color = Dash.Gold) {
+                        ExclusionStore.clear(context)
+                        excluded = ExclusionStore.inForce(context)
                     }
                 }
             }
@@ -189,6 +197,46 @@ fun TripScreen() {
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (on) Dash.Gold else Dash.Muted,
                         textDecoration = if (on) null else TextDecoration.LineThrough,
+                    )
+                }
+            }
+        }
+
+        // The boxes drawn on the laptop, where until now the only way to stop
+        // one refusing offers was to open the laptop and delete it.
+        Panel {
+            SectionLabel(words.noGoBoxes + "  ·  " + words.noGoBoxesOff(boxesOff.size))
+            Text(
+                text = if (boxes.isEmpty()) words.noGoBoxesNone else words.noGoBoxesHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = Dash.Muted,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                boxes.forEach { box ->
+                    // On means the box is refusing, which is the opposite way
+                    // round from a suburb: there, on means going.
+                    val refusing = boxesOff.none { it.equals(box.label, ignoreCase = true) }
+                    Text(
+                        text = box.label,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (refusing) Dash.OrangeDeep else Dash.Ground)
+                            .border(
+                                1.dp,
+                                if (refusing) Dash.Orange.copy(alpha = 0.5f) else Dash.Line,
+                                RoundedCornerShape(10.dp),
+                            )
+                            .clickable {
+                                NoGoOffStore.toggle(context, box.label)
+                                boxesOff = NoGoOffStore.inForce(context)
+                            }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (refusing) Dash.Orange else Dash.Muted,
+                        textDecoration = if (refusing) null else TextDecoration.LineThrough,
                     )
                 }
             }

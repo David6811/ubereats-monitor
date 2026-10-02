@@ -31,6 +31,12 @@ data class Job(
      * half an hour later, naming a suburb no job on the board mentions.
      */
     val extraDrops: List<Drop>,
+    /**
+     * How many orders the pickup screen said were being collected. One until
+     * that screen has been read. More than one and a second delivery is coming,
+     * whether or not its screen has been seen yet.
+     */
+    val ordersAtPickup: Int,
 )
 
 /** Data. One more delivery of the same offer: where it goes and what the customer wrote. */
@@ -45,7 +51,7 @@ enum class Advice {
     companion object {
         /** Calculation. The headline the judge wrote, read back as the two cases it has. */
         fun of(offer: OfferRecord): Advice =
-            if (offer.ruling?.startsWith("可以") == true) WORTH_TAKING else NOT_WORTH_TAKING
+            if (offer.ruling != null && RulingText.saysTake(offer.ruling)) WORTH_TAKING else NOT_WORTH_TAKING
     }
 }
 
@@ -147,7 +153,7 @@ object JobBoard {
         }
         return jobs.mapIndexed { index, job ->
             if (index != at) job
-            else job.copy(taken = true, address = pickup.address, note = pickup.note)
+            else job.copy(taken = true, address = pickup.address, note = pickup.note, ordersAtPickup = pickup.orders)
         }
     }
 
@@ -179,15 +185,70 @@ object JobBoard {
         val at = matches.firstOrNull { jobs[it].taken } ?: matches.first()
 
         return jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(
-                taken = true,
-                dropAddress = dropoff.address,
-                dropUnit = dropoff.unit,
-                dropNote = dropoff.note,
-            )
+            if (index != at) job else withDrop(job, dropoff)
         }
     }
+
+    /**
+     * This job, with what the delivery screen just said.
+     *
+     * The screen is read every couple of seconds and the driver goes back and
+     * forth between two doors, so nearly every read names an address the job
+     * already has and must change nothing.
+     */
+    private fun withDrop(job: Job, dropoff: Dropoff): Job = when {
+        // The shop, not a customer. Uber shows the pickup and the next delivery
+        // on one screen, and the address read off it was the shop's: $5.00 on
+        // 25 Sept was recorded as collected from Busy Burgers and delivered to
+        // "Busy Burgers, 63 Florence St" - the same door, which no job has.
+        namesTheShop(job, dropoff.address) -> job
+
+        // Nothing here yet, or this is the same door read again: fill it in.
+        job.dropAddress == null || sameAddress(job.dropAddress, dropoff.address) ->
+            job.copy(taken = true, dropAddress = dropoff.address, dropUnit = dropoff.unit, dropNote = dropoff.note)
+
+        // A door already kept as a second delivery. Leaving it alone is the whole
+        // point: writing it into dropAddress instead is what put one address on a
+        // job twice on 25 Sept, on an offer that only ever had one order.
+        job.extraDrops.any { sameAddress(it.address, dropoff.address) } -> job
+
+        // A door this job has never seen. Only a batch can have one, and the
+        // pickup screen is what says whether this is a batch. Without that, the
+        // screen belongs to some other job and is left where it was found.
+        job.ordersAtPickup > job.extraDrops.size + 1 ->
+            job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
+
+        else -> job
+    }
+
+    /**
+     * Whether an address read as a delivery is really the shop this job was
+     * collected from - by its name, which the screen prints in front, or by the
+     * street address the pickup screen already gave us.
+     */
+    private fun namesTheShop(job: Job, address: String): Boolean {
+        val here = fold(address)
+        val shop = fold(job.offer.pickup)
+        if (shop.length >= MIN_STORE && here.contains(shop)) return true
+        val collectedAt = job.address?.let(::fold) ?: return false
+        return collectedAt.length >= MIN_STORE && here.contains(collectedAt)
+    }
+
+    /**
+     * Whether two delivery screens name one door. The tree writes an address
+     * differently from read to read - "Blamey Street, Noble Park" against
+     * "14 Blamey Street, Noble Park Melbourne VIC" - so the house number in
+     * front and the city behind are both dropped before comparing.
+     */
+    private fun sameAddress(one: String, other: String): Boolean {
+        val a = street(one)
+        val b = street(other)
+        return a.isNotEmpty() && (a.startsWith(b) || b.startsWith(a))
+    }
+
+    /** An address without its leading unit or house number: "14/2-4 Blamey St" -> "blameyst". */
+    private fun street(address: String): String =
+        fold(address.trim().replace(Regex("""^[\d/\-]+\s*"""), ""))
 
     /**
      * A delivery screen whose suburb no job names. On a batched offer -
@@ -199,13 +260,8 @@ object JobBoard {
         val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
         val inHand = recent.filter { jobs[it].taken }
         val at = inHand.singleOrNull() ?: return jobs
-        val already = jobs[at].dropAddress == dropoff.address ||
-            jobs[at].extraDrops.any { it.address == dropoff.address }
-        if (jobs[at].dropAddress == null || already) return jobs
-        return jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(extraDrops = job.extraDrops + Drop(dropoff.address, dropoff.unit, dropoff.note))
-        }
+        if (jobs[at].dropAddress == null) return jobs
+        return jobs.mapIndexed { index, job -> if (index != at) job else withDrop(job, dropoff) }
     }
 
     /** "Clarinda Melbourne" -> ["clarindamelbourne", "clarinda"], longest first. */
@@ -253,7 +309,10 @@ object JobBoard {
      * so one being inside the other is as close as it gets.
      */
     private fun sameOffer(job: Job, other: Job): Boolean {
-        if (job.offer.isMatch != other.offer.isMatch) return false
+        // Whether the button said "Match" is not what makes it the same card.
+        // A Match counts down and the word comes and goes between frames, and
+        // on 19 Sept one Gloria Jeans offer landed on the board twice, thirteen
+        // seconds apart, because two readings of it disagreed about that word.
         if (abs(job.atMillis - other.atMillis) > SAME_OFFER_MILLIS) return false
         if (job.offer.payout == other.offer.payout) return true
         val here = fold(job.offer.dropoff)

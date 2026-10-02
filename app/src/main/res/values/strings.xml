@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  English is the fallback, so a phone in any language other than Chinese reads
+  these. The Chinese lives in values-zh. Android picks between them by the
+  phone's own language: these four are shown by Android itself, in its own
+  settings pages, where the app's language switch does not reach.
+-->
 <resources>
-    <string name="app_name">接单助手</string>
-    <string name="listener_label">Uber 派单监听</string>
-    <string name="accessibility_description">读取 Uber 派单界面上的文字并留档，用于判断要不要接单。只读，不会替你点任何按钮。</string>
-    <string name="accessibility_label">Uber 派单读屏</string>
-    <string name="keeper_title">派单监控运行中</string>
-    <string name="keeper_text">这条通知消失就说明监控停了</string>
-    <string name="keeper_open">打开助手</string>
-    <string name="keeper_uber">回 Uber</string>
+    <string name="app_name">Offer Mate</string>
+    <string name="listener_label">Uber offer listener</string>
+    <string name="accessibility_description">Reads the words on Uber\'s offer card and keeps them, to judge whether the offer is worth taking. Reading only; it presses nothing for you.</string>
+    <string name="accessibility_label">Uber offer reader</string>
+    <string name="keeper_title">Watching for offers</string>
+    <string name="keeper_text">This notice gone means the watching has stopped</string>
+    <string name="keeper_open">Open Offer Mate</string>
+    <string name="keeper_uber">Back to Uber</string>
 </resources>

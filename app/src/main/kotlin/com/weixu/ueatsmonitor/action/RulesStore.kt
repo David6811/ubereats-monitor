@@ -7,6 +7,7 @@ import com.weixu.ueatsmonitor.domain.NearCentreLimits
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.NoGoBox
+import com.weixu.ueatsmonitor.domain.NoGoOff
 import com.weixu.ueatsmonitor.domain.TripCost
 import com.weixu.ueatsmonitor.domain.Rules
 import kotlinx.serialization.json.Json
@@ -41,6 +42,7 @@ object RulesStore {
 
     @Volatile
     private var readWithExcluded: Set<String> = emptySet()
+    private var readWithBoxesOff: Set<String> = emptySet()
 
     @Volatile
     private var readWithFar: Boolean = true
@@ -54,6 +56,14 @@ object RulesStore {
     @Volatile
     private var readWithNearCentre: NearCentreLimits? = null
 
+    /**
+     * Every box the laptop drew, switched off or not. [current] hands out the
+     * ones still being judged against; this is what the trip page lists, since
+     * a box cannot be switched back on if it is not shown.
+     */
+    fun drawn(context: Context): List<NoGoBox> =
+        parse(File(context.getExternalFilesDir(null), FILE_NAME)).noGoBoxes
+
     fun current(context: Context): Rules {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
         val stamp = if (file.exists()) file.lastModified() else 0L
@@ -62,6 +72,7 @@ object RulesStore {
         val profile = Profiles.chosen(context)
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
+        val boxesOffNow = NoGoOffStore.inForce(context)
         val farNow = LiveSettings.current?.farEnabled != false
         val costNow = costOf(LiveSettings.current)
         // The set's own centre, but only while the switch is on: off, the rule
@@ -77,7 +88,8 @@ object RulesStore {
             }
         }
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
-            excludedNow == readWithExcluded && farNow == readWithFar && costNow == readWithCost &&
+            excludedNow == readWithExcluded && boxesOffNow == readWithBoxesOff &&
+            farNow == readWithFar && costNow == readWithCost &&
             homewardNow == readWithHomeward && nearCentreNow == readWithNearCentre
         ) {
             return known
@@ -96,6 +108,8 @@ object RulesStore {
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
                 farSuburbs = far,
+                // A box switched off on the phone is not there for this shift.
+                noGoBoxes = NoGoOff.apply(rules.noGoBoxes, boxesOffNow),
                 tripCost = costNow.first,
                 farMinPerHour = costNow.second,
                 homeward = homewardNow,
@@ -106,6 +120,7 @@ object RulesStore {
         readAtMillis = stamp
         readForProfile = profile
         readWithExcluded = excluded
+        readWithBoxesOff = boxesOffNow
         readWithFar = farNow
         readWithCost = costNow
         readWithHomeward = homewardNow
@@ -175,12 +190,15 @@ object RulesStore {
             // rather than read as zero, which would stretch it to the equator.
             val noGo = root["noGo"]?.jsonArray?.mapNotNull { entry ->
                 val box = entry.jsonObject
+                // Switched off on the laptop. Not a box with a flag on it here -
+                // it simply is not one of the rules until it is switched back.
+                if (box["off"]?.jsonPrimitive?.content == "true") return@mapNotNull null
                 fun edge(key: String) = box[key]?.jsonPrimitive?.content?.toDoubleOrNull()
                 val south = edge("south") ?: return@mapNotNull null
                 val west = edge("west") ?: return@mapNotNull null
                 val north = edge("north") ?: return@mapNotNull null
                 val east = edge("east") ?: return@mapNotNull null
-                NoGoBox(box["label"]?.jsonPrimitive?.content ?: "不接单区", south, west, north, east)
+                NoGoBox(box["label"]?.jsonPrimitive?.content ?: driverWords().noGoBoxDefault, south, west, north, east)
             }.orEmpty()
 
             Rules(

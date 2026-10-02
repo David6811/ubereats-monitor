@@ -94,7 +94,7 @@ class StoreKindsTest {
         val store = StoreKinds.find("Coles (Springvale)", stores)
 
         // act
-        val where = store?.setting?.let(StoreKinds::where)
+        val where = store?.setting?.let { StoreKinds.where(it, Lang.CHINESE) }
 
         // assert
         assertEquals("商场", where)
