@@ -231,6 +231,13 @@ class UberScreenService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val fromUber = OfferParser.isUberPackage(event.packageName?.toString().orEmpty())
+        // What the driver pressed, written down to be read after a shift. The
+        // press on Accept would say a job was taken at the moment it was taken,
+        // which no screen can; whether Uber's button sends one is the question.
+        if (fromUber && event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            val pressed = (event.text.joinToString(" ") + " " + (event.contentDescription ?: "")).trim()
+            TripProbe.note(this, "click ", pressed.ifEmpty { "(no words) " + event.className })
+        }
         val appeared = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
         if (!fromUber && !appeared) return

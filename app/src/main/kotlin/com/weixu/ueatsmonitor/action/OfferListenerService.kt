@@ -25,6 +25,17 @@ class OfferListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         ListenerStatus.connected.value = true
         Log.i(TAG, "listener connected")
+        // An ongoing notification is posted once and then sits there. Connecting
+        // after it was posted - every restart, every reboot - means onPosted
+        // never fires for it, so what is already on the shade is read here.
+        runCatching {
+            activeNotifications.orEmpty()
+                .filter { OfferParser.isUberPackage(it.packageName) }
+                .forEach { sbn ->
+                    val raw = readNotification(sbn)
+                    TripProbe.note(this, "onshade", listOfNotNull(raw.title, raw.text).joinToString(" | "))
+                }
+        }.onFailure { Log.w(TAG, "listener: could not read what is already posted", it) }
     }
 
     override fun onListenerDisconnected() {
@@ -37,6 +48,11 @@ class OfferListenerService : NotificationListenerService() {
 
         val settings = LiveSettings.current
         val fromUber = OfferParser.isUberPackage(sbn.packageName)
+        // Uber's own words about the trip, written down to be read after a
+        // shift. Nothing acts on them yet; see TripProbe.
+        if (fromUber) {
+            TripProbe.note(this, "notify", listOfNotNull(raw.title, raw.text).joinToString(" | "))
+        }
         if (!fromUber && settings?.logEveryNotification != true) return
 
         // Settings load asynchronously; a real offer must never be dropped waiting for them.
