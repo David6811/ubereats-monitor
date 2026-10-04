@@ -13,6 +13,7 @@ import com.weixu.ueatsmonitor.domain.OfferParser
 import com.weixu.ueatsmonitor.domain.ParseResult
 import com.weixu.ueatsmonitor.domain.RawNotification
 import com.weixu.ueatsmonitor.domain.Thresholds
+import com.weixu.ueatsmonitor.domain.TripNotice
 import com.weixu.ueatsmonitor.domain.Verdict
 
 /**
@@ -33,7 +34,9 @@ class OfferListenerService : NotificationListenerService() {
                 .filter { OfferParser.isUberPackage(it.packageName) }
                 .forEach { sbn ->
                     val raw = readNotification(sbn)
-                    TripProbe.note(this, "onshade", listOfNotNull(raw.title, raw.text).joinToString(" | "))
+                    val line = listOfNotNull(raw.title, raw.text).joinToString(" | ")
+                    TripProbe.note(this, "onshade", line)
+                    TripNotice.read(line)?.let { CurrentStop.saw(it) }
                 }
         }.onFailure { Log.w(TAG, "listener: could not read what is already posted", it) }
     }
@@ -51,7 +54,12 @@ class OfferListenerService : NotificationListenerService() {
         // Uber's own words about the trip, written down to be read after a
         // shift. Nothing acts on them yet; see TripProbe.
         if (fromUber) {
-            TripProbe.note(this, "notify", listOfNotNull(raw.title, raw.text).joinToString(" | "))
+            val line = listOfNotNull(raw.title, raw.text).joinToString(" | ")
+            TripProbe.note(this, "notify", line)
+            // Uber's own words about the trip. Better than either screen: this
+            // arrives with the phone in a pocket, which is where a quarter of
+            // the pickup screens were lost.
+            TripNotice.read(line)?.let { CurrentStop.saw(it) }
         }
         if (!fromUber && settings?.logEveryNotification != true) return
 
