@@ -41,6 +41,16 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".action.NotificationButtons"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.weixu.ueatsmonitor.STOP_NAVIGATION" />
+                <action android:name="com.weixu.ueatsmonitor.SEND_TO_MAPS" />
+                <action android:name="com.weixu.ueatsmonitor.TOGGLE_VOICE" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".action.OfferListenerService"
             android:exported="false"

@@ -8,4 +8,7 @@
     <string name="keeper_text">这条通知消失就说明监控停了</string>
     <string name="keeper_open">打开助手</string>
     <string name="keeper_uber">回 Uber</string>
+    <string name="keeper_nav">关导航</string>
+    <string name="keeper_map">发到谷歌地图</string>
+    <string name="keeper_voice">语音</string>
 </resources>

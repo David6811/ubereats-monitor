@@ -2,47 +2,82 @@
 <!--
   The keeper notification's own body. A plain notification hides its actions
   until the shade entry is expanded, and this one is meant to be reachable at a
-  glance while driving, so the buttons live in the collapsed view instead.
+  glance while driving, so everything lives in the collapsed view: one line of
+  words, then one row of the same buttons that float over the map.
+
+  Icons, not labels, because six labels do not fit a phone's width and these
+  six are already learnt from the floating row.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingTop="2dp"
-    android:paddingBottom="4dp">
+    android:paddingBottom="2dp">
 
     <TextView
         android:id="@+id/keeperTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
         android:textAppearance="@android:style/TextAppearance.Material.Notification.Title"
         android:text="@string/keeper_title" />
-
-    <TextView
-        android:id="@+id/keeperText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="@android:style/TextAppearance.Material.Notification"
-        android:text="@string/keeper_text" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="6dp">
+        android:layout_marginTop="4dp">
 
-        <Button
-            android:id="@+id/keeperOpen"
-            style="@android:style/Widget.Material.Button.Borderless.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/keeper_open" />
+        <ImageView
+            android:id="@+id/keeperNav"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="@string/keeper_nav"
+            android:src="@drawable/ic_tool_nav_off" />
 
-        <Button
+        <ImageView
+            android:id="@+id/keeperMap"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="@string/keeper_map"
+            android:src="@drawable/ic_tool_send_map" />
+
+        <ImageView
+            android:id="@+id/keeperVoice"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="@string/keeper_voice"
+            android:src="@drawable/ic_tool_mic" />
+
+        <ImageView
             android:id="@+id/keeperUber"
-            style="@android:style/Widget.Material.Button.Borderless.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/keeper_uber" />
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="@string/keeper_uber"
+            android:src="@drawable/ic_tool_uber" />
+
+        <ImageView
+            android:id="@+id/keeperOpen"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="@string/keeper_open"
+            android:src="@drawable/ic_tool_home" />
     </LinearLayout>
 </LinearLayout>

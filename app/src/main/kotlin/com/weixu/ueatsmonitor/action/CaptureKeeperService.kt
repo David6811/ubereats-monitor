@@ -118,9 +118,14 @@ class CaptureKeeperService : Service() {
             // driver chose in the app over the top of it.
             val words = driverWords()
             setTextViewText(R.id.keeperTitle, words.keeperTitle)
-            setTextViewText(R.id.keeperText, words.keeperText)
-            setTextViewText(R.id.keeperOpen, words.keeperOpen)
-            setTextViewText(R.id.keeperUber, words.keeperUber)
+            // The same row of buttons that floats over the map, here in the
+            // collapsed notification: one swipe reaches them, and nothing has
+            // to be expanded, which at the wheel is a second of eyes off the road.
+            setInt(R.id.keeperVoice, "setImageResource",
+                if (VoiceService.isRunning()) R.drawable.ic_tool_mic else R.drawable.ic_tool_mic_off)
+            setOnClickPendingIntent(R.id.keeperNav, broadcast(NotificationButtons.STOP_NAVIGATION, 11))
+            setOnClickPendingIntent(R.id.keeperMap, broadcast(NotificationButtons.SEND_TO_MAPS, 12))
+            setOnClickPendingIntent(R.id.keeperVoice, broadcast(NotificationButtons.TOGGLE_VOICE, 13))
             setOnClickPendingIntent(R.id.keeperOpen, activity(Intent(this@CaptureKeeperService, MainActivity::class.java), 1))
             // Android 11 hides other packages unless the manifest names them;
             // without that this comes back null and the button does nothing.
@@ -141,6 +146,14 @@ class CaptureKeeperService : Service() {
             .build()
         startForeground(NOTIFICATION_ID, notification)
     }
+
+    private fun broadcast(action: String, requestCode: Int): PendingIntent =
+        PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            Intent(action).setPackage(packageName),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private fun activity(target: Intent, requestCode: Int): PendingIntent =
         PendingIntent.getActivity(
