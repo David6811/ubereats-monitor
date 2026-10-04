@@ -100,6 +100,16 @@ object JobStore {
         if (next != jobs) write(context, next)
     }
 
+    /**
+     * Uber's notification named the shop it is sending the driver to, which is
+     * the earliest and the most reliable word that an offer was accepted.
+     */
+    fun markTakenAtShop(context: Context, shop: String) {
+        val jobs = list(context)
+        val next = JobBoard.takenAtShop(jobs, shop, System.currentTimeMillis())
+        if (next != jobs) write(context, next)
+    }
+
     /** The pickup screen appeared: mark the job it belongs to, if it is still here. */
     fun markTaken(context: Context, pickup: Pickup) {
         val jobs = list(context)

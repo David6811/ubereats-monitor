@@ -114,46 +114,68 @@ object JobBoard {
      * where the food is going or what it pays.
      */
     fun taken(jobs: List<Job>, pickup: Pickup, now: Long): List<Job> {
-        val wanted = fold(pickup.store)
-        if (wanted.length < MIN_STORE) return jobs
-        val address = fold(pickup.address)
-        val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
+        val at = shopMatch(jobs, pickup.store, fold(pickup.address), now) ?: return jobs
+        return jobs.mapIndexed { index, job ->
+            if (index != at) job
+            else job.copy(taken = true, address = pickup.address, note = pickup.note, ordersAtPickup = pickup.orders)
+        }
+    }
 
-        // Either name can be the longer one. OCR cuts the card's short: the card
-        // said "Chemist2u) Pharmacy 4 Less" for "(Chemist2U) Pharmacy 4 Less Parkmore".
+    /**
+     * Uber's notification says "Going to <shop>" the moment an offer is taken,
+     * and keeps saying it with the phone in a pocket - which is where 16 of 71
+     * pickup screens were lost. It names the shop and nothing else, so it marks
+     * the job taken and leaves the street address and the order count to the
+     * screen, if the screen ever comes.
+     */
+    fun takenAtShop(jobs: List<Job>, shop: String, now: Long): List<Job> {
+        val at = shopMatch(jobs, shop, address = "", now = now) ?: return jobs
+        if (jobs[at].taken) return jobs
+        return jobs.mapIndexed { index, job -> if (index != at) job else job.copy(taken = true) }
+    }
+
+    /**
+     * Which job on the board this shop is the pickup of, or none.
+     *
+     * Either name can be the longer one. OCR cuts the card's short: the card
+     * said "Chemist2u) Pharmacy 4 Less" for "(Chemist2U) Pharmacy 4 Less Parkmore".
+     *
+     * [address] decides between two branches of a chain, and is empty when the
+     * caller has none - the notification gives a name alone. The bracket after
+     * a chain's name tells two branches apart, and that is the only thing it is
+     * good for. It is not always a suburb: as often it is the shopping centre,
+     * and a centre's name never appears in the street address it stands on -
+     * "Pizza Hut (Parkmore)" is picked up at 317 Cheltenham Rd, Keysborough.
+     * Asking the address to agree with it therefore refused every pickup from a
+     * centre, and the job kept the card's address instead of the real one.
+     *
+     * So it is asked only when there is something to decide. One job naming the
+     * chain is that job. Two, with neither branch in the address, is a question
+     * this cannot answer - and answering it wrong sends the driver to another
+     * branch, so nothing is claimed at all.
+     */
+    private fun shopMatch(jobs: List<Job>, shop: String, address: String, now: Long): Int? {
+        val wanted = fold(shop)
+        if (wanted.length < MIN_STORE) return null
+        val recent = jobs.indices.filter { now - jobs[it].atMillis <= IN_HAND_MILLIS }
         val named = recent.filter { index ->
             val onCard = fold(jobs[index].offer.pickup)
             onCard.contains(wanted) || (onCard.length >= MIN_CARD_STORE && wanted.contains(onCard))
         }
-        if (named.isEmpty()) return jobs
+        if (named.isEmpty()) return null
 
-        // The bracket after a chain's name tells two of its branches apart, and
-        // that is the only thing it is good for. It is not always a suburb: as
-        // often it is the shopping centre, and a centre's name never appears in
-        // the street address it stands on - "Pizza Hut (Parkmore)" is picked up
-        // at 317 Cheltenham Rd, Keysborough. Asking the address to agree with it
-        // therefore refused every pickup from a centre, and the job kept the
-        // card's address instead of the real one.
-        //
-        // So it is asked only when there is something to decide. One job naming
-        // the chain is that job. Two, with neither branch in the address, is a
-        // question this screen cannot answer - and answering it wrong sends the
-        // driver to another branch, so nothing is claimed at all.
         // Two orders from the same shop, one after the other - a second Coles
         // order added while the first was being collected - both name it, and
-        // the one already collected is not the one this screen is about.
+        // the one already collected is not the one this is about.
         val open = named.filterNot { jobs[it].taken }
-        val at = when {
+        return when {
             named.size == 1 -> named.first()
             open.size == 1 -> open.first()
+            address.isEmpty() -> null
             else -> named.firstOrNull { index ->
                 val branch = branchOf(jobs[index].offer.pickup)
                 branch != null && address.contains(fold(branch))
-            } ?: return jobs
-        }
-        return jobs.mapIndexed { index, job ->
-            if (index != at) job
-            else job.copy(taken = true, address = pickup.address, note = pickup.note, ordersAtPickup = pickup.orders)
+            }
         }
     }
 

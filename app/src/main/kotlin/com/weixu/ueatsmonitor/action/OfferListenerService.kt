@@ -14,6 +14,7 @@ import com.weixu.ueatsmonitor.domain.ParseResult
 import com.weixu.ueatsmonitor.domain.RawNotification
 import com.weixu.ueatsmonitor.domain.Thresholds
 import com.weixu.ueatsmonitor.domain.TripNotice
+import com.weixu.ueatsmonitor.domain.TripState
 import com.weixu.ueatsmonitor.domain.Verdict
 
 /**
@@ -59,7 +60,13 @@ class OfferListenerService : NotificationListenerService() {
             // Uber's own words about the trip. Better than either screen: this
             // arrives with the phone in a pocket, which is where a quarter of
             // the pickup screens were lost.
-            TripNotice.read(line)?.let { CurrentStop.saw(it) }
+            TripNotice.read(line)?.let { state ->
+                CurrentStop.saw(state)
+                // "Going to <shop>" is Uber saying the offer was accepted, and
+                // it says so whether or not the pickup screen is ever read.
+                val shop = (state as? TripState.ToShop)?.shop ?: (state as? TripState.AtShop)?.shop
+                if (shop != null) JobStore.markTakenAtShop(this, shop)
+            }
         }
         if (!fromUber && settings?.logEveryNotification != true) return
 
