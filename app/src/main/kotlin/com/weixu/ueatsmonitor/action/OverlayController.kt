@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.R
 import com.weixu.ueatsmonitor.domain.VoiceTarget
+import com.weixu.ueatsmonitor.domain.StoreKinds
+import com.weixu.ueatsmonitor.domain.TripNotice
 import com.weixu.ueatsmonitor.domain.Words
 import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
@@ -227,9 +229,9 @@ class OverlayController(private val context: Context) {
         }
         // One stop known and nothing to choose between: go, and say where.
         if (stops.size == 1) {
-            val (label, address, _) = stops.first()
-            android.widget.Toast.makeText(context, label + "  " + address, android.widget.Toast.LENGTH_SHORT).show()
-            Navigation.driveTo(context, address)
+            val (label, where, _) = stops.first()
+            android.widget.Toast.makeText(context, label + "  " + where, android.widget.Toast.LENGTH_SHORT).show()
+            driveTo(where)
             return
         }
         showPicker(words, trip, stops)
@@ -256,7 +258,7 @@ class OverlayController(private val context: Context) {
         stops.forEach { (label, address, guessed) ->
             panel.addView(stopRow(words, label, address, guessed) {
                 closePicker()
-                Navigation.driveTo(context, address)
+                driveTo(address)
             }, stacked(8))
         }
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -291,6 +293,22 @@ class OverlayController(private val context: Context) {
                 main.postDelayed(closePicker, PICKER_TTL_MILLIS)
             }
             .onFailure { Log.w(TAG, "overlay: picker addView failed", it) }
+    }
+
+    /**
+     * Uber's notification names the shop but never gives its address - only the
+     * pickup screen does, and that screen is missed often enough to be worth
+     * doing without. The bundled table holds a thousand shops with their
+     * coordinates, so a name is navigated to as a point, exactly, and only a
+     * shop that is not in the table is handed over as words for Maps to search.
+     */
+    private fun driveTo(where: String) {
+        if (TripNotice.looksLikeAddress(where)) {
+            Navigation.driveTo(context, where)
+            return
+        }
+        val found = StoreKinds.find(where, StoreTable.all(context))
+        if (found != null) Navigation.driveTo(context, found.at) else Navigation.driveTo(context, where)
     }
 
     private fun stopRow(words: Words, label: String, address: String, guessed: Boolean, onPick: () -> Unit): View =
