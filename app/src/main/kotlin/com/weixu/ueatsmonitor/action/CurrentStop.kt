@@ -3,91 +3,117 @@ package com.weixu.ueatsmonitor.action
 import com.weixu.ueatsmonitor.domain.TripState
 
 /**
- * Action. What Uber last said about the job in hand: where the food is, where
- * it is going, and which of the two the driver was last shown.
+ * Action. The job Uber is running right now: which shop, which door, and which
+ * of the two the driver is on the way to.
  *
- * Uber's map cannot be asked where it is going. Its pickup screen and its
- * delivery screen both carry a full street address, and both are read - but
- * only while Uber's window is on screen, which on this board failed for 16 of
- * 71 pickups and 7 of 71 deliveries.
+ * Uber's ongoing notification is the authority on *which job*, because it is
+ * the only thing that says when one ends and the next begins. The screens fill
+ * in what the notification leaves out - the shop's street address - and are
+ * believed only when they name the shop the notification named.
  *
- * So the last screen read is a guess, not an answer, and it is held as one.
- * The one that matters is kept with the time it was read, and both addresses
- * are kept whether or not they are the guess, because a driver sent to the
- * shop he has just left loses more than a tap.
+ * It used to be one record of two fields, overwritten and never cleared, and on
+ * 4 Oct it showed the shop of one job beside the door of the one before it,
+ * while Uber's own screen named a third. Nothing here survives the end of the
+ * job it belongs to.
  *
- * Read from any thread, written from the reader's.
+ * Read from any thread, written from the reader's and the listener's.
  */
 object CurrentStop {
 
-    /** Data. The two ends of the job in hand, and which was last on screen. */
+    /** Data. One job in progress, as far as anything has said. */
     data class Trip(
-        val shop: String?,
+        /** What Uber calls the shop. Null until a notice names one. */
+        val shopName: String?,
+        /** Its street address, which only the pickup screen carries. */
+        val shopAddress: String?,
+        /** The customer's address, in full, from the notice or the delivery screen. */
         val customer: String?,
-        /** True when the pickup screen was the last of the two seen. */
-        val lastSeenWasShop: Boolean,
+        val headingToShop: Boolean,
         val seenAtMillis: Long,
         /** True when Uber's notification said it, which is the better word. */
         val fromNotice: Boolean,
     ) {
-        /** How sure the guess is. A reading this old has probably been overtaken. */
+        /** What to drive to for the pickup: the street address when known, else the name. */
+        val shop: String? get() = shopAddress ?: shopName
+
         fun stale(nowMillis: Long): Boolean = nowMillis - seenAtMillis > STALE_AFTER_MILLIS
+
+        val empty: Boolean get() = shop == null && customer == null
     }
 
+    private val NOTHING = Trip(null, null, null, headingToShop = true, seenAtMillis = 0L, fromNotice = false)
+
     @Volatile
-    var trip: Trip = Trip(shop = null, customer = null, lastSeenWasShop = true, seenAtMillis = 0L, fromNotice = false)
+    var trip: Trip = NOTHING
         private set
 
     /**
-     * The pickup screen. It carries the shop's street address, which the notice
-     * does not, so the address is always worth keeping - but which half of the
-     * job is running is left to the notice when the notice is still fresh.
-     */
-    fun headingToShop(address: String) {
-        if (address.isBlank()) return
-        val now = System.currentTimeMillis()
-        val noticeWins = trip.fromNotice && !trip.stale(now)
-        trip = trip.copy(
-            shop = address,
-            lastSeenWasShop = if (noticeWins) trip.lastSeenWasShop else true,
-            seenAtMillis = if (noticeWins) trip.seenAtMillis else now,
-            fromNotice = noticeWins,
-        )
-    }
-
-    fun headingToCustomer(address: String) {
-        if (address.isBlank()) return
-        val now = System.currentTimeMillis()
-        val noticeWins = trip.fromNotice && !trip.stale(now)
-        trip = trip.copy(
-            customer = address,
-            lastSeenWasShop = if (noticeWins) trip.lastSeenWasShop else false,
-            seenAtMillis = if (noticeWins) trip.seenAtMillis else now,
-            fromNotice = noticeWins,
-        )
-    }
-
-    /**
-     * What Uber's own notification said. It beats both screens: it arrives with
-     * the phone in a pocket, and it names which half of the job is running
-     * rather than leaving that to be inferred from whichever screen was read
-     * last. A screen reading never overwrites a notification newer than itself.
+     * Uber's own words. A shop it has not named before is the next job, and the
+     * job before it is gone - its door is not this job's door.
      */
     fun saw(state: TripState) {
         val now = System.currentTimeMillis()
         trip = when (state) {
-            is TripState.Idle -> Trip(null, null, lastSeenWasShop = true, seenAtMillis = 0L, fromNotice = true)
-            is TripState.ToShop -> trip.copy(shop = state.shop, lastSeenWasShop = true, seenAtMillis = now, fromNotice = true)
-            is TripState.AtShop -> trip.copy(shop = state.shop, lastSeenWasShop = true, seenAtMillis = now, fromNotice = true)
-            is TripState.ToCustomer -> trip.copy(customer = state.address, lastSeenWasShop = false, seenAtMillis = now, fromNotice = true)
-            is TripState.AtCustomer -> trip.copy(lastSeenWasShop = false, seenAtMillis = now, fromNotice = true)
+            is TripState.Idle -> NOTHING
+            is TripState.ToShop -> atShop(state.shop, now)
+            is TripState.AtShop -> atShop(state.shop, now)
+            is TripState.ToCustomer ->
+                trip.copy(customer = state.address, headingToShop = false, seenAtMillis = now, fromNotice = true)
+            is TripState.AtCustomer ->
+                trip.copy(headingToShop = false, seenAtMillis = now, fromNotice = true)
         }
     }
 
-    /** A new offer's pickup screen starts a new trip; the last job's addresses are not this one's. */
-    fun startOver() {
-        trip = Trip(shop = null, customer = null, lastSeenWasShop = true, seenAtMillis = 0L, fromNotice = false)
+    private fun atShop(name: String, now: Long): Trip =
+        if (sameShop(trip.shopName, name)) {
+            trip.copy(headingToShop = true, seenAtMillis = now, fromNotice = true)
+        } else {
+            Trip(name, shopAddress = null, customer = null, headingToShop = true, seenAtMillis = now, fromNotice = true)
+        }
+
+    /**
+     * The pickup screen, which is the only place the shop's street address is
+     * written. Believed when it names the shop the notice named, or when no
+     * notice has named one; a screen left over from an earlier job is what put
+     * another suburb's address on this job's panel.
+     */
+    fun pickupScreen(store: String, address: String) {
+        if (address.isBlank()) return
+        val now = System.currentTimeMillis()
+        val named = trip.shopName
+        when {
+            named != null && sameShop(named, store) -> trip = trip.copy(shopAddress = address)
+            named != null -> Unit
+            else -> trip = Trip(store, address, customer = null, headingToShop = true, seenAtMillis = now, fromNotice = false)
+        }
     }
+
+    /**
+     * The delivery screen. The notice carries the same address and carries it
+     * sooner, so this only fills a gap it left - never argues with it.
+     */
+    fun dropoffScreen(address: String) {
+        if (address.isBlank()) return
+        val now = System.currentTimeMillis()
+        if (trip.fromNotice && !trip.stale(now)) {
+            if (trip.customer == null) trip = trip.copy(customer = address)
+            return
+        }
+        trip = trip.copy(customer = address, headingToShop = false, seenAtMillis = now, fromNotice = false)
+    }
+
+    /** Either name inside the other: "KFC" against "KFC (Noble Park)". */
+    private fun sameShop(one: String?, other: String?): Boolean {
+        val a = fold(one ?: return false)
+        val b = fold(other ?: return false)
+        if (a.length < MIN_NAME || b.length < MIN_NAME) return false
+        return a.contains(b) || b.contains(a)
+    }
+
+    private fun fold(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
+
+    /** "KFC" is a shop. Shorter than this and a name would sit inside anything. */
+    private const val MIN_NAME = 3
 
     /** Longer than a pickup wait, shorter than a delivery. */
     private const val STALE_AFTER_MILLIS = 25L * 60 * 1000

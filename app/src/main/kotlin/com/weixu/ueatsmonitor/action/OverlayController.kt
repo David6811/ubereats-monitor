@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.R
 import com.weixu.ueatsmonitor.domain.VoiceTarget
+import com.weixu.ueatsmonitor.domain.DropoffScreen
+import com.weixu.ueatsmonitor.domain.PickupScreen
 import com.weixu.ueatsmonitor.domain.StoreKinds
 import com.weixu.ueatsmonitor.domain.TripNotice
 import com.weixu.ueatsmonitor.domain.Words
@@ -218,10 +220,25 @@ class OverlayController(private val context: Context) {
      * One tap, and it cannot be wrong.
      */
     private fun askWhere(words: Words) {
+        // What is on screen beats anything remembered. If Uber is showing the
+        // delivery screen, the address on it is the address being driven to -
+        // there is nothing to choose and nothing to get wrong.
+        val onScreen = UberScreenService.uberScreenNow()
+        DropoffScreen.read(onScreen)?.let { there ->
+            android.widget.Toast.makeText(context, words.toCustomerLabel + "  " + there.address, android.widget.Toast.LENGTH_SHORT).show()
+            Navigation.driveTo(context, there.address)
+            return
+        }
+        PickupScreen.read(onScreen)?.let { here ->
+            android.widget.Toast.makeText(context, words.toShopLabel + "  " + here.address, android.widget.Toast.LENGTH_SHORT).show()
+            Navigation.driveTo(context, here.address)
+            return
+        }
+
         val trip = CurrentStop.trip
         val stops = listOfNotNull(
-            trip.shop?.let { Triple(words.toShopLabel, it, trip.lastSeenWasShop) },
-            trip.customer?.let { Triple(words.toCustomerLabel, it, !trip.lastSeenWasShop) },
+            trip.shop?.let { Triple(words.toShopLabel, it, trip.headingToShop) },
+            trip.customer?.let { Triple(words.toCustomerLabel, it, !trip.headingToShop) },
         )
         if (stops.isEmpty()) {
             android.widget.Toast.makeText(context, words.noStopYet, android.widget.Toast.LENGTH_LONG).show()

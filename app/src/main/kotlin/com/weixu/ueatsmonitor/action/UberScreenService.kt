@@ -462,14 +462,14 @@ class UberScreenService : AccessibilityService() {
             // Opening this screen is how Uber's own navigation is started. It
             // is a guess at where the driver is going, not an answer - the
             // button offers both ends and says how old this reading is.
-            CurrentStop.headingToShop(pickup.address)
+            CurrentStop.pickupScreen(pickup.store, pickup.address)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
         }
         DropoffScreen.read(treeLines)?.let { dropoff ->
             JobStore.markDelivered(this, dropoff)
             // The street address only. A unit number is for the door, not for the
             // drive, and Maps reads "3/144 Collins Street" as a house number.
-            CurrentStop.headingToCustomer(dropoff.address)
+            CurrentStop.dropoffScreen(dropoff.address)
             Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
         // Whatever notes are on the board, in Chinese. Does nothing once they are
@@ -699,6 +699,19 @@ class UberScreenService : AccessibilityService() {
     }
 
     /** Every Uber window currently up - an offer card can sit in its own. */
+    /**
+     * What Uber is showing this second, read on demand rather than remembered.
+     *
+     * Everything else here is a memory of a screen that has gone, and a memory
+     * can be of the wrong job. The screen in front of the driver cannot be: if
+     * it is the delivery screen, the address on it is the address he is driving
+     * to. Called from the floating button, on the main thread, and cheap -
+     * walking the tree is what every frame already does.
+     */
+    private fun screenNow(): List<String> = runCatching {
+        uberRoots().flatMap { ScreenReader.readAll(it) }
+    }.getOrDefault(emptyList())
+
     private fun uberRoots(): List<AccessibilityNodeInfo> {
         val fromWindows = runCatching {
             windows.orEmpty().mapNotNull { it.root }
@@ -753,6 +766,9 @@ class UberScreenService : AccessibilityService() {
         /** Set while the service is bound, so the keeper's clock can drive it. */
         @Volatile
         private var live: UberScreenService? = null
+
+        /** The lines Uber has on screen right now, or none when it is not in front. */
+        fun uberScreenNow(): List<String> = live?.screenNow().orEmpty()
 
         /** Called once a second by [CaptureKeeperService], off the main thread. */
         fun pokeFromKeeper() {
