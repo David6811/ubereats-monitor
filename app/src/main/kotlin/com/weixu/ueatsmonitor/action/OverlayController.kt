@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.R
 import com.weixu.ueatsmonitor.domain.VoiceTarget
+import com.weixu.ueatsmonitor.domain.Words
 import com.weixu.ueatsmonitor.domain.ChipText
 import com.weixu.ueatsmonitor.domain.OfferCard
 import com.weixu.ueatsmonitor.domain.Ruling
@@ -136,16 +137,7 @@ class OverlayController(private val context: Context) {
             // started without opening the stop first, and that screen is read.
             // So this hands Google Maps whatever Uber last said the stop was.
             val sendToMaps = toolButton(R.drawable.ic_tool_send_map, words.sendToMaps).apply {
-                setOnClickListener {
-                    val stop = CurrentStop.stop
-                    val said = when {
-                        stop == null -> words.noStopYet
-                        stop.toShop -> words.drivingToShop(stop.address)
-                        else -> words.drivingToCustomer(stop.address)
-                    }
-                    android.widget.Toast.makeText(context, said, android.widget.Toast.LENGTH_SHORT).show()
-                    if (stop != null) Navigation.driveTo(context, stop.address)
-                }
+                setOnClickListener { askWhere(words) }
             }
             // The microphone is drawn struck through when it is off, and the
             // circle behind it goes dim: a shape and a brightness, never a hue.
@@ -211,6 +203,129 @@ class OverlayController(private val context: Context) {
                 .onSuccess { tools = button }
                     .onFailure { Log.w(TAG, "overlay: tools addView failed", it) }
         }
+    }
+
+    /**
+     * Which stop to navigate to, asked rather than guessed.
+     *
+     * Guessing was wrong often enough to send the driver back to the shop he
+     * had just left: the delivery screen is missed on one job in ten and the
+     * pickup screen on nearly one in four, so "whichever screen was last read"
+     * is stale as often as it is right. Both ends of the job are offered, the
+     * last one seen is marked, and how long ago it was read is said out loud.
+     * One tap, and it cannot be wrong.
+     */
+    private fun askWhere(words: Words) {
+        val trip = CurrentStop.trip
+        val stops = listOfNotNull(
+            trip.shop?.let { Triple(words.toShopLabel, it, trip.lastSeenWasShop) },
+            trip.customer?.let { Triple(words.toCustomerLabel, it, !trip.lastSeenWasShop) },
+        )
+        if (stops.isEmpty()) {
+            android.widget.Toast.makeText(context, words.noStopYet, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+        // One stop known and nothing to choose between: go, and say where.
+        if (stops.size == 1) {
+            val (label, address, _) = stops.first()
+            android.widget.Toast.makeText(context, label + "  " + address, android.widget.Toast.LENGTH_SHORT).show()
+            Navigation.driveTo(context, address)
+            return
+        }
+        showPicker(words, trip, stops)
+    }
+
+    private fun showPicker(words: Words, trip: CurrentStop.Trip, stops: List<Triple<String, String, Boolean>>) {
+        closePicker()
+        val minutes = ((System.currentTimeMillis() - trip.seenAtMillis) / 60_000L).toInt()
+        val panel = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(16))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(18).toFloat()
+                setColor(Color.parseColor("#F5101113"))
+                setStroke(dp(1), EDGE)
+            }
+            addView(TextView(context).apply {
+                text = words.pickWhere + "   " + words.readMinutesAgo(minutes)
+                setTextColor(Color.parseColor("#8F8C85"))
+                textSize = 13f
+                setPadding(0, 0, 0, dp(10))
+            })
+        }
+        stops.forEach { (label, address, guessed) ->
+            panel.addView(stopRow(words, label, address, guessed) {
+                closePicker()
+                Navigation.driveTo(context, address)
+            }, stacked(8))
+        }
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            type,
+            // Focusable, so a press anywhere else closes it rather than reaching
+            // Uber underneath: this sits over a map the driver is steering by.
+            WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            android.graphics.PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.END
+            x = dp(8)
+            y = dp(TOOLS_TOP_DP)
+            width = dp(300)
+        }
+        panel.setOnTouchListener { _, event ->
+            if (event.action == android.view.MotionEvent.ACTION_OUTSIDE) closePicker()
+            false
+        }
+        runCatching { windowManager.addView(panel, params) }
+            .onSuccess {
+                picker = panel
+                // Never left sitting over the map: a panel the driver walked away
+                // from is one more thing covering the road.
+                main.postDelayed(closePicker, PICKER_TTL_MILLIS)
+            }
+            .onFailure { Log.w(TAG, "overlay: picker addView failed", it) }
+    }
+
+    private fun stopRow(words: Words, label: String, address: String, guessed: Boolean, onPick: () -> Unit): View =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(11), dp(14), dp(11))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12).toFloat()
+                setColor(if (guessed) FILL else Color.parseColor("#FF1B1D20"))
+                setStroke(dp(1), if (guessed) EDGE else Color.parseColor("#FF2C2E33"))
+            }
+            addView(TextView(context).apply {
+                text = if (guessed) label + "   " + words.guessTag else label
+                setTextColor(if (guessed) INK else Color.parseColor("#9A978F"))
+                textSize = 12.5f
+                setTypeface(typeface, Typeface.BOLD)
+            })
+            addView(TextView(context).apply {
+                text = address
+                setTextColor(if (guessed) INK else Color.parseColor("#E6E3DB"))
+                textSize = 15.5f
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(0, dp(2), 0, 0)
+            })
+            setOnClickListener { onPick() }
+        }
+
+    private var picker: View? = null
+
+    private val closePicker = Runnable { closePicker() }
+
+    private fun closePicker() {
+        main.removeCallbacks(closePicker)
+        picker?.let { runCatching { windowManager.removeView(it) } }
+        picker = null
     }
 
     /** The gap between the stacked tool buttons. */
@@ -517,6 +632,9 @@ class OverlayController(private val context: Context) {
 
         /** Dimmed while the map is being asked to stop. */
         const val PRESSED_ALPHA = 0.45f
+
+        /** Long enough to read two addresses at a light, short enough not to sit on the map. */
+        const val PICKER_TTL_MILLIS = 12_000L
 
         /**
          * The off state: dark where on is gold, and light grey where on is ink.

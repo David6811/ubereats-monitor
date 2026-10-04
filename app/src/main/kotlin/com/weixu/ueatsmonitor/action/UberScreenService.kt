@@ -459,9 +459,9 @@ class UberScreenService : AccessibilityService() {
         // version instead - the same words, wrapped and mangled.
         PickupScreen.read(treeLines)?.let { pickup ->
             JobStore.markTaken(this, pickup)
-            // Opening this screen is how Uber's own navigation is started, so
-            // this is where the driver is going until a delivery screen says
-            // otherwise. The floating button hands it to Google Maps.
+            // Opening this screen is how Uber's own navigation is started. It
+            // is a guess at where the driver is going, not an answer - the
+            // button offers both ends and says how old this reading is.
             CurrentStop.headingToShop(pickup.address)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
         }
