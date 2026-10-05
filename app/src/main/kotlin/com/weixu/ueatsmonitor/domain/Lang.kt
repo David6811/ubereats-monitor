@@ -118,11 +118,8 @@ interface Words {
     val mapsNotNavigating: String
     val sendToMaps: String
     val noStopYet: String
-    val pickWhere: String
     val toShopLabel: String
     val toCustomerLabel: String
-    val guessTag: String
-    fun readMinutesAgo(minutes: Int): String
     fun drivingToShop(where: String): String
     fun drivingToCustomer(where: String): String
 
@@ -341,12 +338,8 @@ object Zh : Words {
     override val mapsNotNavigating = "地图没在导航"
     override val sendToMaps = "发到谷歌地图"
     override val noStopYet = "还不知道去哪 —— 在 Uber 里打开这一站再按"
-    override val pickWhere = "导航去哪？"
     override val toShopLabel = "取餐"
     override val toCustomerLabel = "送餐"
-    override val guessTag = "刚看到的"
-    override fun readMinutesAgo(minutes: Int) =
-        if (minutes < 1) "刚读到" else "$minutes 分钟前读到"
     override fun drivingToShop(where: String) = "去取餐：$where"
     override fun drivingToCustomer(where: String) = "去送餐：$where"
 
@@ -555,12 +548,8 @@ object En : Words {
     override val mapsNotNavigating = "Maps is not navigating"
     override val sendToMaps = "Send to Google Maps"
     override val noStopYet = "No stop yet - open it in Uber, then press this"
-    override val pickWhere = "Navigate where?"
     override val toShopLabel = "Pick up"
     override val toCustomerLabel = "Drop off"
-    override val guessTag = "last seen"
-    override fun readMinutesAgo(minutes: Int) =
-        if (minutes < 1) "just read" else "read $minutes min ago"
     override fun drivingToShop(where: String) = "To the shop: $where"
     override fun drivingToCustomer(where: String) = "To the customer: $where"
 
