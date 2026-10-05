@@ -76,6 +76,29 @@ interface Words {
     val noGoBoxes: String
     val noGoBoxesHint: String
     val noGoBoxesNone: String
+
+    /** Changing the rules from the phone, which used to need the laptop. */
+    val newSet: String
+    val renameSet: String
+    val copySet: String
+    val deleteSet: String
+    val setCentreHere: String
+    val editSuburbs: String
+    val searchSuburb: String
+    val doneEditing: String
+    val shopsRefused: String
+    val shopsRefusedHint: String
+    val addShop: String
+    val farThreshold: String
+    val drawBoxHere: String
+    val drawBoxHereHint: String
+    val boxSize: String
+    val savedToCloud: String
+    val savedOnPhoneOnly: String
+    val cloudMovedOn: String
+    val needAName: String
+    val noFixForCentre: String
+    fun centreOfSet(where: String): String
     fun noGoBoxesOff(off: Int): String
     val thisTripOnly: String
     fun areasCount(n: Int): String
@@ -313,7 +336,28 @@ object Zh : Words {
     override val restoreAll = "恢复全部"
     override val noGoBoxes = "不接单框"
     override val noGoBoxesHint = "点一下暂时关掉，电脑推新规则就全部恢复"
-    override val noGoBoxesNone = "还没画过框。在电脑的「选区」页上画。"
+    override val noGoBoxesNone = "还没画过框。"
+    override val newSet = "新建方案"
+    override val renameSet = "改名"
+    override val copySet = "复制"
+    override val deleteSet = "删除"
+    override val setCentreHere = "把中心设在我现在的位置"
+    override val editSuburbs = "改选区"
+    override val searchSuburb = "找区名"
+    override val doneEditing = "改完了"
+    override val shopsRefused = "不接的店"
+    override val shopsRefusedHint = "取餐店名字里含有这些字就不接。只打最有辨识度的那一段。"
+    override val addShop = "店名，回车拉黑"
+    override val farThreshold = "远区门槛 \$"
+    override val drawBoxHere = "在我现在的位置画框"
+    override val drawBoxHereHint = "框住你站的地方，这一片的取餐和送餐都不接"
+    override val boxSize = "边长"
+    override val savedToCloud = "存好了，电脑上也能看到"
+    override val savedOnPhoneOnly = "存在手机上了，联网后会自动上传"
+    override val cloudMovedOn = "电脑那边刚改过，先退出重进拿到新的再改"
+    override val needAName = "先起个名字"
+    override val noFixForCentre = "还没有定位，到车里开着定位再试"
+    override fun centreOfSet(where: String) = "中心：$where"
     override fun noGoBoxesOff(off: Int) = if (off == 0) "全在用" else "关了 $off 个"
     override val thisTripOnly = "只管这一趟。换选区或电脑推新规则，就全恢复。"
     override fun areasCount(n: Int) = "$n 个区"
@@ -530,7 +574,28 @@ object En : Words {
     override val restoreAll = "Restore all"
     override val noGoBoxes = "No-go boxes"
     override val noGoBoxesHint = "Tap to switch one off for now; new rules from the laptop restore them all"
-    override val noGoBoxesNone = "No boxes drawn yet. Draw them on the laptop's Areas page."
+    override val noGoBoxesNone = "No boxes drawn yet."
+    override val newSet = "New set"
+    override val renameSet = "Rename"
+    override val copySet = "Copy"
+    override val deleteSet = "Delete"
+    override val setCentreHere = "Set the centre where I am now"
+    override val editSuburbs = "Edit areas"
+    override val searchSuburb = "Find an area"
+    override val doneEditing = "Done"
+    override val shopsRefused = "Shops refused"
+    override val shopsRefusedHint = "A pickup whose name contains any of these is refused. Just the distinctive part."
+    override val addShop = "Shop name, Enter to refuse"
+    override val farThreshold = "Far threshold \$"
+    override val drawBoxHere = "Draw a box where I am"
+    override val drawBoxHereHint = "Around where you are standing: no pickup and no delivery in it"
+    override val boxSize = "Side"
+    override val savedToCloud = "Saved; the laptop has it too"
+    override val savedOnPhoneOnly = "Saved on the phone; it will go up when there is a signal"
+    override val cloudMovedOn = "The laptop saved just now - reopen the app to get it, then change it"
+    override val needAName = "Give it a name first"
+    override val noFixForCentre = "No position yet; try again in the car with location on"
+    override fun centreOfSet(where: String) = "Centre: $where"
     override fun noGoBoxesOff(off: Int) = if (off == 0) "all in use" else "$off switched off"
     override val thisTripOnly = "This trip only. Switching sets, or new rules from the laptop, brings them all back."
     override fun areasCount(n: Int) = if (n == 1) "1 area" else "$n areas"

@@ -35,9 +35,13 @@ import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
 
 /**
- * Picking which set of suburbs is live - the one rule that changes mid-shift.
+ * The sets of suburbs: which one is live, and everything that shapes one.
  *
- * The sets are drawn on the laptop, on the map. Here they are a list you tap.
+ * All of this used to need the laptop. A driver who has to open a laptop to
+ * use this does not use it, so the whole editor is here - the sets, their
+ * suburbs, their centres, the shops refused by name, the far threshold and
+ * the no-go boxes - done the way a phone is good at rather than the way a
+ * mouse and a big map are.
  */
 @Composable
 fun ProfileScreen() {
@@ -48,6 +52,13 @@ fun ProfileScreen() {
 
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    // Bumped by every save, which is what makes each panel read the rules again.
+    var saves by remember { mutableStateOf(0) }
+    val write = rememberRuleWriter {
+        saves++
+        profiles = Profiles.list(context)
+        fromPhone = Profiles.chosenHere(context)
+    }
 
     Column(
         modifier = Modifier
@@ -90,61 +101,16 @@ fun ProfileScreen() {
             }
         }
 
-        if (profiles.isNotEmpty()) {
-            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
-                SectionLabel(words.switchSet)
-                Column {
-                    profiles.forEachIndexed { index, profile ->
-                        if (index > 0) Hairline()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    Profiles.choose(context, profile.name)
-                                    profiles = Profiles.list(context)
-                                    fromPhone = Profiles.chosenHere(context)
-                                    // Switching sets drops them, and this is what that looks like.
-                                    excluded = ExclusionStore.inForce(context)
-                                }
-                                .padding(vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .border(2.dp, if (profile.active) Dash.Gold else Dash.Line, CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (profile.active) {
-                                    Box(Modifier.size(11.dp).clip(CircleShape).background(Dash.Gold))
-                                }
-                            }
-                            Text(
-                                text = profile.name,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (profile.active) Dash.Ink else Dash.Muted,
-                            )
-                            Text(
-                                text = words.areasCount(profile.suburbs.size),
-                                style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
-                                color = Dash.Muted,
-                            )
-                        }
-                    }
-                }
-            }
+        SetsPanel(write, saves) { name ->
+            Profiles.choose(context, name)
+            profiles = Profiles.list(context)
+            fromPhone = Profiles.chosenHere(context)
+            // Switching sets drops the trip's own exclusions, and this is what that looks like.
+            excluded = ExclusionStore.inForce(context)
         }
 
-        Panel {
-            SectionLabel(words.fewerAreasThisTrip)
-            Text(
-                text = words.turnThemOffOnTrip,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Dash.Muted,
-            )
-        }
+        ShopsPanel(write, saves)
+        BoxesPanel(write, saves)
+        FarThresholdPanel(write, saves)
     }
 }

@@ -948,7 +948,7 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
 }
 
 @Composable
-private fun NumberField(label: String, value: String, onChange: (String) -> Unit) {
+internal fun NumberField(label: String, value: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
