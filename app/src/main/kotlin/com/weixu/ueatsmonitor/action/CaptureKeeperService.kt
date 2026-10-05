@@ -117,12 +117,18 @@ class CaptureKeeperService : Service() {
             // The layout carries the phone's own language; these put the one the
             // driver chose in the app over the top of it.
             val words = driverWords()
-            setTextViewText(R.id.keeperTitle, words.keeperTitle)
             // The same row of buttons that floats over the map, here in the
             // collapsed notification: one swipe reaches them, and nothing has
             // to be expanded, which at the wheel is a second of eyes off the road.
             setInt(R.id.keeperVoice, "setImageResource",
                 if (VoiceService.isRunning()) R.drawable.ic_tool_mic else R.drawable.ic_tool_mic_off)
+            // The icons are drawn white. The shade is white in daylight and
+            // black at night, and an untinted icon disappeared into it.
+            val night = resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            val ink = if (night) android.graphics.Color.parseColor("#FFE6E3DB") else android.graphics.Color.parseColor("#FF2B2D31")
+            listOf(R.id.keeperNav, R.id.keeperMap, R.id.keeperVoice, R.id.keeperUber, R.id.keeperOpen)
+                .forEach { setInt(it, "setColorFilter", ink) }
             setOnClickPendingIntent(R.id.keeperNav, broadcast(NotificationButtons.STOP_NAVIGATION, 11))
             setOnClickPendingIntent(R.id.keeperMap, broadcast(NotificationButtons.SEND_TO_MAPS, 12))
             setOnClickPendingIntent(R.id.keeperVoice, broadcast(NotificationButtons.TOGGLE_VOICE, 13))

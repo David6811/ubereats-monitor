@@ -1,83 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The keeper notification's own body. A plain notification hides its actions
-  until the shade entry is expanded, and this one is meant to be reachable at a
-  glance while driving, so everything lives in the collapsed view: one line of
-  words, then one row of the same buttons that float over the map.
+  The keeper notification's own body: one row of buttons and nothing else.
 
-  Icons, not labels, because six labels do not fit a phone's width and these
-  six are already learnt from the floating row.
+  No words. Android's own header above this already names the app, and the
+  notice being there at all is what says the watching is alive - which is the
+  only thing the words used to add. The width they took is worth more as
+  thumb: a plain notification hides its actions until the entry is expanded,
+  and a second swipe at the wheel is a second with eyes off the road.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="2dp"
-    android:paddingBottom="2dp">
+    android:layout_height="48dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/keeperTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:textAppearance="@android:style/TextAppearance.Material.Notification.Title"
-        android:text="@string/keeper_title" />
+    <ImageView
+        android:id="@+id/keeperNav"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="@string/keeper_nav"
+        android:src="@drawable/ic_tool_nav_off" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
+    <ImageView
+        android:id="@+id/keeperMap"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="@string/keeper_map"
+        android:src="@drawable/ic_tool_send_map" />
 
-        <ImageView
-            android:id="@+id/keeperNav"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:contentDescription="@string/keeper_nav"
-            android:src="@drawable/ic_tool_nav_off" />
+    <ImageView
+        android:id="@+id/keeperVoice"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="@string/keeper_voice"
+        android:src="@drawable/ic_tool_mic" />
 
-        <ImageView
-            android:id="@+id/keeperMap"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:contentDescription="@string/keeper_map"
-            android:src="@drawable/ic_tool_send_map" />
+    <ImageView
+        android:id="@+id/keeperUber"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="@string/keeper_uber"
+        android:src="@drawable/ic_tool_uber" />
 
-        <ImageView
-            android:id="@+id/keeperVoice"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:contentDescription="@string/keeper_voice"
-            android:src="@drawable/ic_tool_mic" />
-
-        <ImageView
-            android:id="@+id/keeperUber"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:contentDescription="@string/keeper_uber"
-            android:src="@drawable/ic_tool_uber" />
-
-        <ImageView
-            android:id="@+id/keeperOpen"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:contentDescription="@string/keeper_open"
-            android:src="@drawable/ic_tool_home" />
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/keeperOpen"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="@string/keeper_open"
+        android:src="@drawable/ic_tool_home" />
 </LinearLayout>
