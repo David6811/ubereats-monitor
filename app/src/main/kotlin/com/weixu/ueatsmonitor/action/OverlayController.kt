@@ -19,9 +19,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import com.weixu.ueatsmonitor.App
 import com.weixu.ueatsmonitor.R
 import com.weixu.ueatsmonitor.domain.VoiceTarget
@@ -159,18 +156,6 @@ class OverlayController(private val context: Context) {
                     main.postDelayed({ paint() }, 1_500L)
                 }
             }
-            // Last, and set further down than the gap between the other two: it
-            // is the one press that cannot be undone from here.
-            val hide = toolButton(R.drawable.ic_tool_hide, words.hideTools).apply {
-                setOnClickListener {
-                    showTools(false)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        App.instance.settingsStore.setToolsEnabled(false)
-                    }
-                    // No word about it. This button is pressed to get the screen
-                    // back, and a message over the map is the opposite of that.
-                }
-            }
             val button = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.END
@@ -179,7 +164,6 @@ class OverlayController(private val context: Context) {
                 addView(navigation)
                 addView(sendToMaps, stacked(TOOLS_GAP_DP))
                 addView(voice, stacked(TOOLS_GAP_DP))
-                addView(hide, stacked(TOOLS_LAST_GAP_DP))
             }
             val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -661,9 +645,6 @@ class OverlayController(private val context: Context) {
 
         /** Wide enough that a thumb aiming at one does not land on its neighbour. */
         const val TOOLS_GAP_DP = 18
-
-        /** Wider still before "hide", because pressing it by mistake needs the settings page to undo. */
-        const val TOOLS_LAST_GAP_DP = 30
 
         /** Dimmed while the map is being asked to stop. */
         const val PRESSED_ALPHA = 0.45f

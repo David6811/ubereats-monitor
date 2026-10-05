@@ -54,7 +54,6 @@ class SettingsStore(private val context: Context) {
         val nearCentreMaxKm: Double,
         val nearCentreMaxMinutes: Int,
         /** The floating 关导航 / 语音 buttons over other apps during a shift. */
-        val toolsEnabled: Boolean,
         /** The language every word the driver reads is written in. */
         val lang: Lang,
     )
@@ -84,7 +83,6 @@ class SettingsStore(private val context: Context) {
             nearCentreEnabled = prefs[NEAR_CENTRE] ?: false,
             nearCentreMaxKm = prefs[NEAR_CENTRE_MAX_KM] ?: DEFAULT_NEAR_CENTRE_MAX_KM,
             nearCentreMaxMinutes = prefs[NEAR_CENTRE_MAX_MINUTES] ?: DEFAULT_NEAR_CENTRE_MAX_MINUTES,
-            toolsEnabled = prefs[TOOLS] ?: true,
             lang = if ((prefs[LANG] ?: defaultLang()) == "en") Lang.ENGLISH else Lang.CHINESE,
         )
     }
@@ -125,7 +123,6 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setNearCentreEnabled(enabled: Boolean) = putBoolean(NEAR_CENTRE, enabled)
 
-    suspend fun setToolsEnabled(enabled: Boolean) = putBoolean(TOOLS, enabled)
 
     suspend fun setLang(lang: Lang) {
         context.dataStore.edit { prefs -> prefs[LANG] = if (lang == Lang.ENGLISH) "en" else "zh" }
@@ -178,7 +175,6 @@ class SettingsStore(private val context: Context) {
         private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
         private val NEAR_CENTRE = booleanPreferencesKey("near_centre")
-        private val TOOLS = booleanPreferencesKey("tools")
         private val LANG = androidx.datastore.preferences.core.stringPreferencesKey("lang")
         private val NEAR_CENTRE_MAX_KM = doublePreferencesKey("near_centre_max_km")
         private val NEAR_CENTRE_MAX_MINUTES = intPreferencesKey("near_centre_max_minutes")

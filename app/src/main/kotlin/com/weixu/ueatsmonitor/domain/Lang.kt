@@ -116,7 +116,6 @@ interface Words {
     val stopping: String
     val navigationClosed: String
     val mapsNotNavigating: String
-    val hideTools: String
     val sendToMaps: String
     val noStopYet: String
     val pickWhere: String
@@ -197,8 +196,6 @@ interface Words {
     val cancel: String
     val gotIt: String
     val areaSound: String
-    val floatingButtons: String
-    val floatingButtonsHint: String
     val voiceCommands: String
     val voiceCommandsHint: String
     val whatCanISay: String
@@ -342,7 +339,6 @@ object Zh : Words {
     override val stopping = "关…"
     override val navigationClosed = "已关导航"
     override val mapsNotNavigating = "地图没在导航"
-    override val hideTools = "关按钮"
     override val sendToMaps = "发到谷歌地图"
     override val noStopYet = "还不知道去哪 —— 在 Uber 里打开这一站再按"
     override val pickWhere = "导航去哪？"
@@ -418,8 +414,6 @@ object Zh : Words {
     override val cancel = "取消"
     override val gotIt = "知道了"
     override val areaSound = "区域提示音"
-    override val floatingButtons = "悬浮按钮"
-    override val floatingButtonsHint = "跑单时屏幕右边：关导航、发到谷歌地图、语音、收起"
     override val voiceCommands = "语音命令"
     override val voiceCommandsHint = "一直在听：说「打开地图」「送餐」「应用」「回中心」"
     override val whatCanISay = "能说什么？"
@@ -559,7 +553,6 @@ object En : Words {
     override val stopping = "Stop…"
     override val navigationClosed = "Navigation closed"
     override val mapsNotNavigating = "Maps is not navigating"
-    override val hideTools = "Hide"
     override val sendToMaps = "Send to Google Maps"
     override val noStopYet = "No stop yet - open it in Uber, then press this"
     override val pickWhere = "Navigate where?"
@@ -635,8 +628,6 @@ object En : Words {
     override val cancel = "Cancel"
     override val gotIt = "Got it"
     override val areaSound = "Area chime"
-    override val floatingButtons = "Floating buttons"
-    override val floatingButtonsHint = "Down the right edge while on shift: stop nav, send to Maps, voice, hide"
     override val voiceCommands = "Voice commands"
     override val voiceCommandsHint = "Always listening: say 打开地图, 送餐, 应用, 回中心"
     override val whatCanISay = "What can I say?"

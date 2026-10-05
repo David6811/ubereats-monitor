@@ -465,10 +465,6 @@ private fun MonitorScreen(store: SettingsStore) {
                     Hairline()
                     VoiceToggle(current.voiceEnabled)
                     Hairline()
-                    SwitchRow(words.floatingButtons, words.floatingButtonsHint, current.toolsEnabled) {
-                        scope.launch { store.setToolsEnabled(it) }
-                    }
-                    Hairline()
                     LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
                 }
             }
