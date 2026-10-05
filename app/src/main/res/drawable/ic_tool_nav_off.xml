@@ -1,14 +1,14 @@
 <!--
-  Stop navigating: the map's own arrow, drawn small enough that the bar across
-  it reads as a bar and not as part of the arrow.
+  Stop navigating: a plain cross, which is what Google Maps itself puts on the
+  button that ends a route.
+
+  An arrow with a line through it is the honest drawing of the idea, and at the
+  size a notification row gives an icon the two strokes ran together into a
+  squiggle. A cross survives being small.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <group android:scaleX="0.62" android:scaleY="0.62" android:pivotX="12" android:pivotY="12">
-        <path android:fillColor="@android:color/white"
-            android:pathData="M12,2L4.5,20.29l0.71,0.71L12,18l6.79,3 0.71,-0.71z"/>
-    </group>
     <path android:fillColor="@android:color/white"
-        android:pathData="M4.2,1.8L1.8,4.2l18,18 2.4,-2.4z"/>
+        android:pathData="M19.6,6.4L17.6,4.4 12,10 6.4,4.4 4.4,6.4 10,12 4.4,17.6l2,2L12,14l5.6,5.6 2,-2L14,12z"/>
 </vector>

@@ -7,60 +7,46 @@
   only thing the words used to add. The width they took is worth more as
   thumb: a plain notification hides its actions until the entry is expanded,
   and a second swipe at the wheel is a second with eyes off the road.
+
+  Three buttons, not five. Tapping the notice itself already opens the app,
+  and stopping the navigation already brings Uber back, so those two took a
+  third of the row to do what something else was doing anyway.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="48dp"
+    android:layout_height="56dp"
     android:orientation="horizontal"
     android:gravity="center_vertical">
 
     <ImageView
         android:id="@+id/keeperNav"
         android:layout_width="0dp"
-        android:layout_height="48dp"
+        android:layout_height="56dp"
         android:layout_weight="1"
-        android:scaleType="centerInside"
-        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
         android:contentDescription="@string/keeper_nav"
         android:src="@drawable/ic_tool_nav_off" />
 
     <ImageView
         android:id="@+id/keeperMap"
         android:layout_width="0dp"
-        android:layout_height="48dp"
+        android:layout_height="56dp"
         android:layout_weight="1"
-        android:scaleType="centerInside"
-        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
         android:contentDescription="@string/keeper_map"
         android:src="@drawable/ic_tool_send_map" />
 
     <ImageView
         android:id="@+id/keeperVoice"
         android:layout_width="0dp"
-        android:layout_height="48dp"
+        android:layout_height="56dp"
         android:layout_weight="1"
-        android:scaleType="centerInside"
-        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
         android:contentDescription="@string/keeper_voice"
         android:src="@drawable/ic_tool_mic" />
 
-    <ImageView
-        android:id="@+id/keeperUber"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_weight="1"
-        android:scaleType="centerInside"
-        android:padding="10dp"
-        android:contentDescription="@string/keeper_uber"
-        android:src="@drawable/ic_tool_uber" />
 
-    <ImageView
-        android:id="@+id/keeperOpen"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_weight="1"
-        android:scaleType="centerInside"
-        android:padding="10dp"
-        android:contentDescription="@string/keeper_open"
-        android:src="@drawable/ic_tool_home" />
 </LinearLayout>
