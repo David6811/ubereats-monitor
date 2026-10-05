@@ -13,6 +13,10 @@ import kotlinx.serialization.json.jsonPrimitive
  * Calculation. Every change the phone can make to the rules, as a function
  * from the whole rules object to the next one.
  *
+ * A set lives under "profiles". "places" beside it is the laptop's list of
+ * saved addresses for its centre picker - reading the sets from that one
+ * found none at all on a real phone - and nothing here touches it.
+ *
  * The rules are the laptop editor's own JSON and have to stay exactly that:
  * the same file is read by the laptop, by the judge, and by whichever of the
  * two saved last. So each of these touches one key and copies the rest
@@ -62,7 +66,7 @@ object RuleEdits {
     data class Centre(val label: String, val latitude: Double, val longitude: Double)
 
     fun sets(rules: JsonObject): List<Set> =
-        rules["places"]?.jsonArray?.mapNotNull { entry ->
+        rules["profiles"]?.jsonArray?.mapNotNull { entry ->
             val one = entry.jsonObject
             val name = one["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
             Set(
@@ -87,38 +91,38 @@ object RuleEdits {
             put("suburbs", strings(suburbs))
             if (centre != null) put("centre", centreJson(centre))
         }
-        val places = rules["places"]?.jsonArray.orEmpty()
-        return replace(rules, "places", JsonArray(places + made))
+        val places = rules["profiles"]?.jsonArray.orEmpty()
+        return replace(rules, "profiles", JsonArray(places + made))
     }
 
     fun renameSet(rules: JsonObject, from: String, to: String): JsonObject {
         val wanted = to.trim()
         if (wanted.isEmpty() || wanted == from) return rules
         if (sets(rules).any { it.name.equals(wanted, ignoreCase = true) }) return rules
-        val places = rules["places"]?.jsonArray?.map { entry ->
+        val places = rules["profiles"]?.jsonArray?.map { entry ->
             val one = entry.jsonObject
             if (one["name"]?.jsonPrimitive?.content != from) entry
             else replace(one, "name", JsonPrimitive(wanted))
         }.orEmpty()
-        val renamed = replace(rules, "places", JsonArray(places))
+        val renamed = replace(rules, "profiles", JsonArray(places))
         return if (activeSet(rules) == from) replace(renamed, "active", JsonPrimitive(wanted)) else renamed
     }
 
     fun copySet(rules: JsonObject, name: String, copyName: String): JsonObject {
-        val source = rules["places"]?.jsonArray?.firstOrNull {
+        val source = rules["profiles"]?.jsonArray?.firstOrNull {
             it.jsonObject["name"]?.jsonPrimitive?.content == name
         }?.jsonObject ?: return rules
         val wanted = copyName.trim()
         if (wanted.isEmpty() || sets(rules).any { it.name.equals(wanted, ignoreCase = true) }) return rules
-        val places = rules["places"]?.jsonArray.orEmpty()
-        return replace(rules, "places", JsonArray(places + replace(source, "name", JsonPrimitive(wanted))))
+        val places = rules["profiles"]?.jsonArray.orEmpty()
+        return replace(rules, "profiles", JsonArray(places + replace(source, "name", JsonPrimitive(wanted))))
     }
 
     fun removeSet(rules: JsonObject, name: String): JsonObject {
-        val places = rules["places"]?.jsonArray?.filterNot {
+        val places = rules["profiles"]?.jsonArray?.filterNot {
             it.jsonObject["name"]?.jsonPrimitive?.content == name
         }.orEmpty()
-        val without = replace(rules, "places", JsonArray(places))
+        val without = replace(rules, "profiles", JsonArray(places))
         // The live set cannot be one that is gone.
         return if (activeSet(rules) != name) without
         else {
@@ -128,22 +132,22 @@ object RuleEdits {
     }
 
     fun setCentre(rules: JsonObject, name: String, centre: Centre): JsonObject {
-        val places = rules["places"]?.jsonArray?.map { entry ->
+        val places = rules["profiles"]?.jsonArray?.map { entry ->
             val one = entry.jsonObject
             if (one["name"]?.jsonPrimitive?.content != name) entry
             else replace(one, "centre", centreJson(centre))
         }.orEmpty()
-        return replace(rules, "places", JsonArray(places))
+        return replace(rules, "profiles", JsonArray(places))
     }
 
     /** The suburbs of one set, as the map on the phone leaves them. */
     fun setSuburbs(rules: JsonObject, name: String, suburbs: List<String>): JsonObject {
-        val places = rules["places"]?.jsonArray?.map { entry ->
+        val places = rules["profiles"]?.jsonArray?.map { entry ->
             val one = entry.jsonObject
             if (one["name"]?.jsonPrimitive?.content != name) entry
             else replace(one, "suburbs", strings(suburbs.distinct().sorted()))
         }.orEmpty()
-        return replace(rules, "places", JsonArray(places))
+        return replace(rules, "profiles", JsonArray(places))
     }
 
     // -- the no-go boxes -----------------------------------------------------

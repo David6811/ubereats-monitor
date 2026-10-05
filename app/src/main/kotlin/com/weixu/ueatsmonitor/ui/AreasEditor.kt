@@ -95,38 +95,21 @@ fun ShopsPanel(write: RuleWriter, reload: Int) {
     }
 }
 
-/** The payout above which the far set is used instead. */
-@Composable
-fun FarThresholdPanel(write: RuleWriter, reload: Int) {
-    val words = words()
-    val now = remember(reload) { RuleEdits.farOverDollars(write.rules()) }
-    var typed by remember(now) { mutableStateOf(now.toString()) }
-
-    Panel {
-        SectionLabel(words.farThreshold)
-        NumberField(words.farThreshold, typed) { next ->
-            typed = next
-            next.toIntOrNull()?.takeIf { it > 0 }?.let { dollars ->
-                write { RuleEdits.setFarOverDollars(it, dollars) }
-            }
-        }
-    }
-}
-
 /**
- * The sets: which one is live, and everything the laptop could do to one.
+ * The sets: which one is live, and the one thing about a set a phone does
+ * better than a laptop - its centre.
  *
- * The centre is taken from the phone's own position rather than typed. A
- * driver setting a centre is standing in it, and a map's own fix beats an
- * address he half remembers.
+ * Making a set, naming it, copying it, choosing its suburbs: all of that is
+ * planning, done at a table with a map in front of you, and all of it was
+ * unwieldy enough here that it was not used. It stays on the laptop. The
+ * centre does not: a driver setting one is standing in it, and a fix beats an
+ * address half remembered.
  */
 @Composable
 fun SetsPanel(write: RuleWriter, reload: Int, onSwitch: (String) -> Unit) {
     val words = words()
     val context = androidx.compose.ui.platform.LocalContext.current
     val sets = remember(reload) { RuleEdits.sets(write.rules()) }
-    var naming by remember { mutableStateOf<Naming?>(null) }
-    var editing by remember { mutableStateOf<String?>(null) }
 
     Panel(padding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
         SectionLabel(words.switchSet)
@@ -153,162 +136,27 @@ fun SetsPanel(write: RuleWriter, reload: Int, onSwitch: (String) -> Unit) {
                         color = Dash.Muted,
                     )
                 }
-                FlowRowActions(
-                    words.editSuburbs to { editing = set.name },
-                    words.renameSet to { naming = Naming.Rename(set.name) },
-                    words.copySet to { naming = Naming.Copy(set.name) },
-                    words.setCentreHere to {
-                        val fix = CurrentPosition(context).lastKnown()
-                        if (fix == null) {
-                            android.widget.Toast.makeText(context, words.noFixForCentre, android.widget.Toast.LENGTH_LONG).show()
-                        } else {
-                            write {
-                                RuleEdits.setCentre(
-                                    it,
-                                    set.name,
-                                    RuleEdits.Centre(words.setCentreHere, fix.at.latitude, fix.at.longitude),
-                                )
+                Text(
+                    text = words.setCentreHere,
+                    modifier = Modifier
+                        .clickable {
+                            val fix = CurrentPosition(context).lastKnown()
+                            if (fix == null) {
+                                android.widget.Toast.makeText(context, words.noFixForCentre, android.widget.Toast.LENGTH_LONG).show()
+                            } else {
+                                // No label. The row falls back to the coordinates,
+                                // which tell two phone-set centres apart; the
+                                // button's own words told them apart from nothing.
+                                write { RuleEdits.setCentre(it, set.name, RuleEdits.Centre("", fix.at.latitude, fix.at.longitude)) }
                             }
                         }
-                    },
-                    words.deleteSet to { naming = Naming.Delete(set.name) },
+                        .padding(vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Dash.Gold,
                 )
             }
         }
-        Hairline()
-        GhostButton(words.newSet, Modifier.fillMaxWidth(), color = Dash.Gold) { naming = Naming.New }
     }
-
-    naming?.let { what ->
-        NameDialog(what, words, onDismiss = { naming = null }) { typed ->
-            naming = null
-            when (what) {
-                Naming.New -> write { RuleEdits.addSet(it, typed, null, emptyList()) }
-                is Naming.Rename -> write { RuleEdits.renameSet(it, what.name, typed) }
-                is Naming.Copy -> write { RuleEdits.copySet(it, what.name, typed) }
-                is Naming.Delete -> write { RuleEdits.removeSet(it, what.name) }
-            }
-        }
-    }
-
-    editing?.let { name ->
-        SuburbPicker(
-            name = name,
-            chosen = sets.firstOrNull { it.name == name }?.suburbs.orEmpty(),
-            onDone = { editing = null },
-        ) { suburbs -> write { RuleEdits.setSuburbs(it, name, suburbs) } }
-    }
-}
-
-private sealed interface Naming {
-    data object New : Naming
-    data class Rename(val name: String) : Naming
-    data class Copy(val name: String) : Naming
-    data class Delete(val name: String) : Naming
-}
-
-@Composable
-private fun NameDialog(what: Naming, words: Words, onDismiss: () -> Unit, onDone: (String) -> Unit) {
-    var typed by remember {
-        mutableStateOf(
-            when (what) {
-                Naming.New -> ""
-                is Naming.Rename -> what.name
-                is Naming.Copy -> what.name + " copy"
-                is Naming.Delete -> what.name
-            }
-        )
-    }
-    val deleting = what is Naming.Delete
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                when (what) {
-                    Naming.New -> words.newSet
-                    is Naming.Rename -> words.renameSet
-                    is Naming.Copy -> words.copySet
-                    is Naming.Delete -> words.deleteSet + "  " + what.name
-                }
-            )
-        },
-        text = {
-            if (!deleting) {
-                OutlinedTextField(
-                    value = typed,
-                    onValueChange = { typed = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { if (deleting || typed.isNotBlank()) onDone(typed.trim()) }) {
-                Text(if (deleting) words.deleteSet else words.save)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(words.cancel) } },
-        containerColor = Dash.Panel,
-    )
-}
-
-/**
- * Which suburbs a set holds, found by typing rather than hunted on a map: on a
- * screen this size a suburb is a few millimetres, and the name is known.
- */
-@Composable
-private fun SuburbPicker(
-    name: String,
-    chosen: List<String>,
-    onDone: () -> Unit,
-    onChange: (List<String>) -> Unit,
-) {
-    val words = words()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val all = remember { Gazetteer.suburbs(context).map { it.name }.distinct().sorted() }
-    var picked by remember { mutableStateOf(chosen.toSet()) }
-    var typed by remember { mutableStateOf("") }
-    // Chosen first, so what the set holds is never buried under what it does not.
-    val shown = remember(typed, picked, all) {
-        val wanted = typed.trim().lowercase()
-        all.filter { wanted.isEmpty() || it.lowercase().contains(wanted) }
-            .sortedBy { if (it in picked) 0 else 1 }
-    }
-
-    AlertDialog(
-        onDismissRequest = { onChange(picked.toList()); onDone() },
-        title = { Text(name + "  ·  " + words.areasCount(picked.size)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = typed,
-                    onValueChange = { typed = it },
-                    label = { Text(words.searchSuburb) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                LazyColumn(Modifier.heightIn(max = 420.dp)) {
-                    items(shown, key = { it }) { suburb ->
-                        val on = suburb in picked
-                        Text(
-                            text = suburb,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { picked = if (on) picked - suburb else picked + suburb }
-                                .padding(vertical = 12.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (on) Dash.Gold else Dash.Muted,
-                            textDecoration = if (on) null else TextDecoration.LineThrough,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onChange(picked.toList()); onDone() }) { Text(words.doneEditing) }
-        },
-        containerColor = Dash.Panel,
-    )
 }
 
 /**
@@ -407,17 +255,3 @@ private fun FlowRowBoxes(boxes: List<NoGoBox>, onRemove: (String) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun FlowRowActions(vararg actions: Pair<String, () -> Unit>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        actions.forEach { (label, onClick) ->
-            Text(
-                text = label,
-                modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = Dash.Gold,
-            )
-        }
-    }
-}

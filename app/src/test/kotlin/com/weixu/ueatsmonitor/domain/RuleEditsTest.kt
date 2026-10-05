@@ -22,11 +22,13 @@ class RuleEditsTest {
           "stores": { "deny": ["Walrus BBQ"], "cbdDeny": [], "alwaysOk": [] },
           "far": { "overDollars": 30, "suburbs": ["Braeside"] },
           "noGo": [ { "label": "Tower block", "south": -38.0, "west": 145.1, "north": -37.9, "east": 145.2 } ],
-          "places": [
+          "profiles": [
             { "name": "ParkMore", "suburbs": ["Keysborough", "Noble Park"],
               "centre": { "label": "Parkmore", "lat": -37.99, "lon": 145.16 } },
             { "name": "Evenings", "suburbs": ["Dandenong"] }
           ],
+          "places": [ { "label": "Wells Rd, Aspendale Gardens", "lat": -38.02506, "lon": 145.12873 } ],
+          "version": 3,
           "somethingTheLaptopKnows": 7
         }
         """.trimIndent()
@@ -172,5 +174,21 @@ class RuleEditsTest {
             (rules["far"] as JsonObject)["suburbs"],
             (next["far"] as JsonObject)["suburbs"],
         )
+    }
+
+    @Test
+    fun `given the laptop's saved addresses, when a set is added, then they are left alone`() {
+        // arrange  "places" is the laptop's centre picker, not the sets; reading
+        //          the sets from it found none at all on a real phone
+        val before = rules["places"]
+
+        // act
+        val next = RuleEdits.addSet(rules, "Late nights", null, listOf("Clayton"))
+
+        // affirm  the set did land under "profiles"
+        assertEquals(listOf("ParkMore", "Evenings", "Late nights"), RuleEdits.sets(next).map { it.name })
+
+        // assert
+        assertEquals(before, next["places"])
     }
 }

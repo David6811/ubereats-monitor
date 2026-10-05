@@ -111,6 +111,5 @@ fun ProfileScreen() {
 
         ShopsPanel(write, saves)
         BoxesPanel(write, saves)
-        FarThresholdPanel(write, saves)
     }
 }
