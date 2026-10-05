@@ -19,6 +19,24 @@ object SuburbIndex {
         .toList()
 
     /** Every place named in [text], longest name first, each reported once. */
+    /**
+     * The suburb a dropoff is in, which is the one after its last comma.
+     *
+     * Uber writes a destination as "Cross Street & Cross Street, Suburb", and
+     * half the streets in Melbourne are named after a suburb: Dandenong Road
+     * runs through Noble Park, Blackburn Rd through Clayton, Newport Drive
+     * through Mulgrave. Reading every suburb named anywhere in the line and
+     * refusing the offer if any of them was off the list threw away 23 jobs on
+     * this board alone - every one of them going somewhere the driver goes.
+     *
+     * Falls back to the whole line when the tail names none, since a line with
+     * no comma in it is still a destination.
+     */
+    fun ofDropoff(dropoff: String, suburbs: List<Suburb>): Suburb? {
+        val tail = dropoff.substringAfterLast(',')
+        return findAll(tail, suburbs).firstOrNull() ?: findAll(dropoff, suburbs).firstOrNull()
+    }
+
     fun findAll(text: String, suburbs: List<Suburb>): List<Suburb> {
         val haystack = text.lowercase()
         val hits = suburbs

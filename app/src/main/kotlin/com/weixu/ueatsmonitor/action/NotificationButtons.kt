@@ -27,7 +27,7 @@ class NotificationButtons : BroadcastReceiver() {
             STOP_NAVIGATION -> MapsNavigation.stop(context) { pressed ->
                 val said = if (pressed) words.navigationClosed else words.mapsNotNavigating
                 Toast.makeText(context, said, Toast.LENGTH_SHORT).show()
-                AppSwitch.bringForward(context, VoiceTarget.UBER)
+                sendMapsAway(context)
             }
 
             SEND_TO_MAPS -> sendToMaps(context)
@@ -36,6 +36,22 @@ class NotificationButtons : BroadcastReceiver() {
 
             else -> Log.w(TAG, "notification button: unknown action " + intent.action)
         }
+    }
+
+    /**
+     * Get Google Maps off the screen.
+     *
+     * Stopping a navigation needs Maps in front, because its cross is pressed
+     * by finding it on screen - so the button that ends the drive was leaving
+     * the map filling the phone. Uber is what the driver wants in front of him
+     * next; the home screen will do when Uber cannot be reached, which is
+     * still better than the map he just closed. A moment first, or the switch
+     * lands while Maps is still settling and Maps wins.
+     */
+    private fun sendMapsAway(context: Context) {
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!AppSwitch.bringForward(context, VoiceTarget.UBER)) UberScreenService.goHome()
+        }, SETTLE_MILLIS)
     }
 
     /**
@@ -71,6 +87,9 @@ class NotificationButtons : BroadcastReceiver() {
         const val STOP_NAVIGATION = "com.weixu.ueatsmonitor.STOP_NAVIGATION"
         const val SEND_TO_MAPS = "com.weixu.ueatsmonitor.SEND_TO_MAPS"
         const val TOGGLE_VOICE = "com.weixu.ueatsmonitor.TOGGLE_VOICE"
+
+        /** Long enough for Maps to finish closing its route before it is sent away. */
+        private const val SETTLE_MILLIS = 700L
 
         private const val TAG = "UEatsMonitor"
     }

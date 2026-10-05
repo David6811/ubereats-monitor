@@ -106,13 +106,12 @@ object RuleJudge {
         val allowed = if (far) rules.farSuburbs else rules.allowedSuburbs
         if (allowed.isEmpty()) return Ruling.Unknown
 
-        val found = SuburbIndex.findAll(card.dropoff, gazetteer)
-        if (found.isEmpty()) return Ruling.Unknown
-
-        val outside = found.firstOrNull { suburb ->
-            allowed.none { it.equals(suburb.name, ignoreCase = true) }
+        // The one suburb the food is going to, not every suburb named on the
+        // line. A street named after another suburb used to refuse the job.
+        val there = SuburbIndex.ofDropoff(card.dropoff, gazetteer) ?: return Ruling.Unknown
+        if (allowed.none { it.equals(there.name, ignoreCase = true) }) {
+            return Ruling.Leave(Ruling.Reason.SuburbNotAllowed(there.name))
         }
-        if (outside != null) return Ruling.Leave(Ruling.Reason.SuburbNotAllowed(outside.name))
 
         // Only on the far set. An unreadable distance or time says nothing about
         // the hour, so it does not refuse.
@@ -131,7 +130,7 @@ object RuleJudge {
         rules.nearCentre?.let { limits -> nearCentreReason(card, stops, limits) }
             ?.let { return Ruling.Leave(it) }
 
-        return Ruling.Take(found.first().name, far = far)
+        return Ruling.Take(there.name, far = far)
     }
 
     /**

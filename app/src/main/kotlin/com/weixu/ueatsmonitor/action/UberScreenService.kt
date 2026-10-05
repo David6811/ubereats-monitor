@@ -803,6 +803,16 @@ class UberScreenService : AccessibilityService() {
          * Maps navigation, so the driver need not reach for it. Nothing in
          * Uber's windows is ever touched. True when the cross was found and pressed.
          */
+        /**
+         * Puts whatever is on screen behind the home screen.
+         *
+         * The last resort for getting Google Maps out of the way: stopping a
+         * navigation needs Maps in front to press its own cross, and without
+         * this it is left there filling the screen.
+         */
+        fun goHome(): Boolean =
+            live?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME) ?: false
+
         fun stopMapsNavigation(): Boolean {
             val service = live ?: return false
             val maps = runCatching {
