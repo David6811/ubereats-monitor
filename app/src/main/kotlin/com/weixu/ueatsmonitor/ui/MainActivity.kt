@@ -736,7 +736,7 @@ private fun VoiceChip(enabled: Boolean) {
 private fun voiceHelp(): List<Pair<String, String>> {
     val words = words()
     return listOf(
-        "「地图」" to words.sayMap,
+        "「打开地图」" to words.sayMap,
         "「送餐」" to words.sayUber,
         "「应用」" to words.sayApp,
         "「回中心」" to words.sayCentre,
