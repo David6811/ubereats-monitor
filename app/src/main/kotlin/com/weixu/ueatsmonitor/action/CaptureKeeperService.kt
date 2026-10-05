@@ -119,7 +119,11 @@ class CaptureKeeperService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, driverWords().keeperChannel, NotificationManager.IMPORTANCE_MIN)
+                // LOW, not MIN. At MIN this sat in the shade's "Silent" pile beside
+                // the voice notice, and the phone packed the two of them into a
+                // group showing a count - which is where the buttons went the
+                // moment the voice was switched on.
+                NotificationChannel(CHANNEL, driverWords().keeperChannel, NotificationManager.IMPORTANCE_LOW)
             )
         }
         startForeground(NOTIFICATION_ID, notification())
@@ -188,6 +192,9 @@ class CaptureKeeperService : Service() {
 
         /** Nothing to do: grey, and dimmer, so the difference is not the hue alone. */
         private val DULL = android.graphics.Color.parseColor("#FF8A8D93")
+
+        /** Both ongoing notices belong to it; the keeper's is its summary. */
+        const val GROUP = "com.weixu.ueatsmonitor.ongoing"
 
         private const val CHANNEL = "keeper"
         private const val NOTIFICATION_ID = 43
