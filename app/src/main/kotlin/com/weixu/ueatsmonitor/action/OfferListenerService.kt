@@ -32,6 +32,9 @@ class OfferListenerService : NotificationListenerService() {
         // never fires for it, so what is already on the shade is read here.
         runCatching {
             activeNotifications.orEmpty()
+                .filter { it.packageName == MAPS }
+                .forEach { MapsNotice.saw(it.notification) }
+            activeNotifications.orEmpty()
                 .filter { OfferParser.isUberPackage(it.packageName) }
                 .forEach { sbn ->
                     val raw = readNotification(sbn)
@@ -42,11 +45,19 @@ class OfferListenerService : NotificationListenerService() {
         }.onFailure { Log.w(TAG, "listener: could not read what is already posted", it) }
     }
 
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        if (sbn.packageName == MAPS) MapsNotice.gone()
+    }
+
     override fun onListenerDisconnected() {
         ListenerStatus.connected.value = false
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        // Google Maps' own "exit navigation", kept for the button that ends a
+        // drive. It works with the map shrunk into the corner, where pressing
+        // its cross cannot.
+        if (sbn.packageName == MAPS) MapsNotice.saw(sbn.notification)
         val raw = readNotification(sbn)
         Log.i(TAG, "posted " + sbn.packageName + " :: " + raw.body)
 
@@ -120,6 +131,7 @@ class OfferListenerService : NotificationListenerService() {
 
     private companion object {
         const val TAG = "UEatsMonitor"
+        const val MAPS = "com.google.android.apps.maps"
     }
 
     private fun vibrator(): Vibrator? =
@@ -129,4 +141,5 @@ class OfferListenerService : NotificationListenerService() {
             @Suppress("DEPRECATION")
             getSystemService(Vibrator::class.java)
         }
+
 }

@@ -34,38 +34,12 @@ class RuleJudgeTest {
     }
 
     @Test
-    fun `given a denied pickup, when judged, then the store is the reason`() {
-        // arrange
-        val card = card(pickup = "Walrus BBQ", dropoff = "Some Street, Noble Park")
-        val rules = RULES.copy(deniedStores = listOf("Walrus BBQ"))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    @Test
-    fun `given a denied pickup and a bad suburb, when judged, then the store is reported first`() {
-        // arrange
-        val card = card(pickup = "Walrus BBQ", dropoff = "Bangholme Road, Dandenong South")
-        val rules = RULES.copy(deniedStores = listOf("Walrus BBQ"))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals("Walrus BBQ 在黑名单里", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    @Test
     fun `given no rules at all, when judged, then the app says so rather than deciding`() {
         // arrange
         val card = card(pickup = "Anything", dropoff = "Anywhere, Noble Park")
 
         // act
-        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptySet(), Cents.ofDollars(30.0), emptyList(), emptyList(), emptyList(), TripCost(0.2, 1.5), 10.0, null, null), GAZETTEER, Stops.UNPLACED)
+        val ruling = RuleJudge.judge(card, Rules(emptySet(), emptyList(), TripCost(0.2, 1.5), null), GAZETTEER, Stops.UNPLACED)
 
         // assert
         assertEquals(Ruling.NoRules, ruling)
@@ -97,87 +71,6 @@ class RuleJudgeTest {
 
         // assert
         assertTrue(ruling is Ruling.Take)
-    }
-
-    @Test
-    fun `given a chain that always has parking, when it is on the deny list, then it is still taken`() {
-        // arrange
-        val card = card(pickup = "McDonald's® (Dandenong)", dropoff = "Some Street, Noble Park")
-        val rules = RULES.copy(
-            deniedStores = listOf("McDonald's"),
-            alwaysOkStores = listOf("McDonald"),
-        )
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertTrue(ruling is Ruling.Take)
-    }
-
-    @Test
-    fun `given a whitelisted chain with a destination outside the area, when judged, then the suburb still rules`() {
-        // arrange
-        val card = card(pickup = "KFC (Dandenong)", dropoff = "Bangholme Road, Dandenong South")
-        val rules = RULES.copy(deniedStores = listOf("KFC"), alwaysOkStores = listOf("KFC"))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals("Dandenong South 不在名单里", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    private fun card(pickup: String, dropoff: String, payout: Cents = Cents(907)) = OfferCard(
-        isMatch = false,
-        payout = payout,
-        duration = Minutes(16),
-        distance = Miles(2.86),
-        pickup = pickup,
-        dropoff = dropoff,
-        stops = listOf(pickup, dropoff),
-    )
-
-    @Test
-    fun `given a payout over the threshold, when judged, then the far set decides`() {
-        // arrange  Dandenong South is not in the ordinary set
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(31.0))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
-    }
-
-    @Test
-    fun `given a payout at the threshold, when judged, then the ordinary set still decides`() {
-        // arrange  over, not at: thirty dollars exactly is an ordinary offer
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(30.0))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Dandenong South")), ruling)
-    }
-
-    @Test
-    fun `given a big payout to somewhere in neither set, when judged, then it is still refused`() {
-        // arrange
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Somewhere in Keysborough", payout = Cents.ofDollars(45.0))
-
-        // affirm  Keysborough is in the ordinary set, which no longer applies
-        assertEquals(true, RULES.allowedSuburbs.contains("Keysborough"))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Keysborough")), ruling)
     }
 
     @Test
@@ -259,49 +152,6 @@ class RuleJudgeTest {
 
         // assert
         assertEquals(Ruling.Take("Noble Park"), ruling)
-    }
-
-    @Test
-    fun `given a far-set offer under ten dollars an hour after petrol, when judged, then it is left`() {
-        // arrange  the 15 Sep 09:51 card: $40.14, 75 min, 58.9 km (36.6 mi)
-        //          petrol 58.9 x 2 x 0.2 = 23.56; 40.14 - 23.56 = 16.58; 75 x 1.5 = 112.5 min = 1.875 h; 16.58 / 1.875 = 8.84
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(40.14))
-            .copy(duration = Minutes(75), distance = Miles(36.6))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals("远区单每小时 ${'$'}8.84，低于 ${'$'}10", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    @Test
-    fun `given a far-set offer over ten dollars an hour after petrol, when judged, then it is taken`() {
-        // arrange  the 15 Sep 11:24 card: $35.46, 70 min, 35.9 km (22.3 mi) works out to $12.06
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(35.46))
-            .copy(duration = Minutes(70), distance = Miles(22.3))
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
-    }
-
-    @Test
-    fun `given a far-set offer whose distance was unreadable, when judged, then the hour does not refuse it`() {
-        // arrange
-        val rules = RULES.copy(farSuburbs = setOf("Dandenong South"))
-        val card = card(pickup = "Some Shop", dropoff = "Bennet Street, Dandenong South", payout = Cents.ofDollars(40.14))
-            .copy(duration = Minutes(75), distance = null)
-
-        // act
-        val ruling = RuleJudge.judge(card, rules, GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Take("Dandenong South", far = true), ruling)
     }
 
     @Test
@@ -429,57 +279,15 @@ class RuleJudgeTest {
         assertEquals(Ruling.Take("Keysborough"), ruling)
     }
 
-    @Test
-    fun `given the near-centre switch on and a drop within the limit, when judged, then it is taken`() {
-        // arrange  Westbrook Drive is about 3.3 km from the centre, under 4
-        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
-        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = null)
-
-        // act
-        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS), GAZETTEER, stops)
-
-        // assert
-        assertEquals(Ruling.Take("Keysborough"), ruling)
-    }
-
-    @Test
-    fun `given the near-centre switch on and a drop beyond the limit, when judged, then it is left and the distance named`() {
-        // arrange  the Keysborough gazetteer point is about 4.0 km out; a 3 km limit refuses it
-        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
-        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = null)
-
-        // act
-        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS.copy(maxKm = 3.0)), GAZETTEER, stops)
-
-        // assert
-        assertEquals("送完离中心 4.0 公里，超过 3 公里", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    @Test
-    fun `given the near-centre switch on and a job over the time limit, when judged, then it is left however near`() {
-        // arrange
-        val card = card(pickup = "La Cabra Mordialloc", dropoff = "Kawarra Drive & Westbrook Drive, Keysborough")
-            .copy(duration = Minutes(37))
-        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(WESTBROOK_DRIVE, "Kawarra Drive", "Westbrook Drive"), carAt = null)
-
-        // act
-        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS), GAZETTEER, stops)
-
-        // assert
-        assertEquals("要 37 分钟，超过 30 分钟", RulingText.reason(ruling, Lang.CHINESE))
-    }
-
-    @Test
-    fun `given the near-centre switch on and a drop the tables could not place, when judged, then it is not refused`() {
-        // arrange
-        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
-
-        // act
-        val ruling = RuleJudge.judge(card, RULES.copy(nearCentre = NEAR_CENTRE_LIMITS.copy(maxKm = 1.0)), GAZETTEER, Stops.UNPLACED)
-
-        // assert
-        assertEquals(Ruling.Take("Keysborough"), ruling)
-    }
+    private fun card(pickup: String, dropoff: String, payout: Cents = Cents(907)) = OfferCard(
+        isMatch = false,
+        payout = payout,
+        duration = Minutes(16),
+        distance = Miles(2.86),
+        pickup = pickup,
+        dropoff = dropoff,
+        stops = listOf(pickup, dropoff),
+    )
 
     private companion object {
         /** Wells Rd, Aspendale Gardens - the centre drawn for the driver's own set. */
@@ -494,21 +302,14 @@ class RuleJudgeTest {
         val WESTBROOK_DRIVE = GeoPoint(-38.0146, 145.1640)
 
         val HOMEWARD = HomewardLimits(CENTRE, nearKm = 4.0, maxMinutes = 20)
-        val NEAR_CENTRE_LIMITS = NearCentreLimits(CENTRE, maxKm = 4.0, maxMinutes = 30)
 
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 
         val RULES = Rules(
             allowedSuburbs = setOf("Noble Park", "Keysborough", "Dandenong"),
-            farSuburbs = emptySet(),
-            farOverCents = Cents.ofDollars(30.0),
-            deniedStores = emptyList(),
-            alwaysOkStores = emptyList(),
             noGoBoxes = emptyList(),
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
-            farMinPerHour = 10.0,
             homeward = null,
-            nearCentre = null,
         )
         val GAZETTEER = listOf(
             Suburb("Noble Park", GeoPoint(-37.9695, 145.1767)),

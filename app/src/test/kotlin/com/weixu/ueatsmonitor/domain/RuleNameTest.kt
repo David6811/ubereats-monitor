@@ -19,18 +19,6 @@ class RuleNameTest {
     }
 
     @Test
-    fun `given a denied store, when named, then it is the store deny list`() {
-        // arrange
-        val why = RulingText.reason(Ruling.Leave(Ruling.Reason.StoreDenied("Walrus BBQ")), Lang.CHINESE)
-
-        // act
-        val rule = RuleName.of(why)
-
-        // assert
-        assertEquals("店铺黑名单", rule)
-    }
-
-    @Test
     fun `given a drop inside a no-go box, when named, then it is the no-go box rule`() {
         // arrange
         val box = NoGoBox("Dandemong不接区", south = -37.99501, west = 145.20226, north = -37.97905, east = 145.22432)
@@ -90,30 +78,6 @@ class RuleNameTest {
 
         // assert
         assertEquals("近中心模式（送得太远）", rule)
-    }
-
-    @Test
-    fun `given a far job paying too little an hour, when named, then it is the far floor`() {
-        // arrange
-        val why = RulingText.reason(Ruling.Leave(Ruling.Reason.FarTooCheap(perHour = 8.5, floor = 10.0)), Lang.CHINESE)
-
-        // act
-        val rule = RuleName.of(why)
-
-        // assert
-        assertEquals("远区每小时最低", rule)
-    }
-
-    @Test
-    fun `given a take on the far set, when named, then it is the far set, not the ordinary one`() {
-        // arrange
-        val why = RulingText.reason(Ruling.Take("Braeside", far = true), Lang.CHINESE)
-
-        // act
-        val rule = RuleName.of(why)
-
-        // assert
-        assertEquals("远区", rule)
     }
 
     @Test

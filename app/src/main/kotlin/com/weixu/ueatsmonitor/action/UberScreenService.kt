@@ -639,7 +639,6 @@ class UberScreenService : AccessibilityService() {
                 append("ruling_why=").append(RulingText.reason(ruling, Lang.CHINESE)).append('\n')
             }
             append("rules_suburbs=").append(rules.allowedSuburbs.size).append('\n')
-            append("rules_denied_stores=").append(rules.deniedStores.size).append('\n')
             append("money=").append(CaptureText.hasMoney(text)).append('\n')
             append("offer_shape=").append(offerShape).append('\n')
             append("suburbs=").append(found.joinToString(",") { it.name }).append('\n')
@@ -804,6 +803,24 @@ class UberScreenService : AccessibilityService() {
          * Uber's windows is ever touched. True when the cross was found and pressed.
          */
         /**
+         * Closes the notification shade.
+         *
+         * A button in a notification's own layout does not collapse the shade
+         * the way one of Android's actions does, and while the shade is open
+         * it is the only window this service can see - so the button that ends
+         * a navigation looked for Maps and found nothing at all.
+         */
+        fun closeShade(): Boolean {
+            val service = live ?: return false
+            val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE
+            } else {
+                android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+            }
+            return service.performGlobalAction(action)
+        }
+
+        /**
          * Puts whatever is on screen behind the home screen.
          *
          * The last resort for getting Google Maps out of the way: stopping a
@@ -815,10 +832,15 @@ class UberScreenService : AccessibilityService() {
 
         fun stopMapsNavigation(): Boolean {
             val service = live ?: return false
-            val maps = runCatching {
-                service.windows.orEmpty().mapNotNull { it.root }
-                    .filter { it.packageName?.toString() == MAPS_PACKAGE }
-            }.getOrDefault(emptyList())
+            val all = runCatching { service.windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
+            val maps = all.filter { it.packageName?.toString() == MAPS_PACKAGE }
+            // Every window on screen when the map could not be found. "0
+            // window(s)" alone never said whether Maps was absent, behind the
+            // shade, or shrunk into the corner as a picture in picture.
+            if (maps.isEmpty()) {
+                Log.i(TAG, "maps: none among " + all.size + " window(s): " +
+                    all.joinToString(", ") { it.packageName?.toString() ?: "?" })
+            }
             val cross = maps.firstNotNullOfOrNull { root ->
                 CLOSE_NAVIGATION.firstNotNullOfOrNull { words ->
                     root.findAccessibilityNodeInfosByText(words).orEmpty().firstOrNull { node ->

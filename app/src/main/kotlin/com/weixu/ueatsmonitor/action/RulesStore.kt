@@ -3,7 +3,6 @@ package com.weixu.ueatsmonitor.action
 import android.content.Context
 import android.util.Log
 import com.weixu.ueatsmonitor.domain.HomewardLimits
-import com.weixu.ueatsmonitor.domain.NearCentreLimits
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.NoGoBox
@@ -45,16 +44,10 @@ object RulesStore {
     private var readWithBoxesOff: Set<String> = emptySet()
 
     @Volatile
-    private var readWithFar: Boolean = true
-
-    @Volatile
-    private var readWithCost: Pair<TripCost, Double>? = null
+    private var readWithCost: TripCost? = null
 
     @Volatile
     private var readWithHomeward: HomewardLimits? = null
-
-    @Volatile
-    private var readWithNearCentre: NearCentreLimits? = null
 
     /**
      * Every box the laptop drew, switched off or not. [current] hands out the
@@ -73,7 +66,6 @@ object RulesStore {
         val known = cached
         val excludedNow = ExclusionStore.inForce(context)
         val boxesOffNow = NoGoOffStore.inForce(context)
-        val farNow = LiveSettings.current?.farEnabled != false
         val costNow = costOf(LiveSettings.current)
         // The set's own centre, but only while the switch is on: off, the rule
         // simply is not there.
@@ -82,15 +74,10 @@ object RulesStore {
                 HomewardLimits(centre, settings.homewardNearKm, settings.homewardMaxMinutes)
             }
         }
-        val nearCentreNow = LiveSettings.current?.takeIf { it.nearCentreEnabled }?.let { settings ->
-            Profiles.centre(context)?.let { centre ->
-                NearCentreLimits(centre, settings.nearCentreMaxKm, settings.nearCentreMaxMinutes)
-            }
-        }
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
             excludedNow == readWithExcluded && boxesOffNow == readWithBoxesOff &&
-            farNow == readWithFar && costNow == readWithCost &&
-            homewardNow == readWithHomeward && nearCentreNow == readWithNearCentre
+            costNow == readWithCost &&
+            homewardNow == readWithHomeward
         ) {
             return known
         }
@@ -99,21 +86,13 @@ object RulesStore {
         val parsed = parse(file).let { rules ->
             val chosen = Profiles.suburbsInForce(context)
             val allow = chosen ?: rules.allowedSuburbs
-            // Ticked off on the phone means not going there - including on the
-            // money that would otherwise reach further.
-            // Switched off, the far set is simply not there, which is what an
-            // empty one already means to the judge.
-            val far = if (LiveSettings.current?.farEnabled == false) emptySet()
-            else Exclusions.apply(rules.farSuburbs, excluded)
+            // Ticked off on the phone means not going there.
             rules.copy(
                 allowedSuburbs = Exclusions.apply(allow, excluded),
-                farSuburbs = far,
                 // A box switched off on the phone is not there for this shift.
                 noGoBoxes = NoGoOff.apply(rules.noGoBoxes, boxesOffNow),
-                tripCost = costNow.first,
-                farMinPerHour = costNow.second,
+                tripCost = costNow,
                 homeward = homewardNow,
-                nearCentre = nearCentreNow,
             )
         }
         cached = parsed
@@ -121,41 +100,27 @@ object RulesStore {
         readForProfile = profile
         readWithExcluded = excluded
         readWithBoxesOff = boxesOffNow
-        readWithFar = farNow
         readWithCost = costNow
         readWithHomeward = homewardNow
-        readWithNearCentre = nearCentreNow
         Log.i(
             "UEatsMonitor",
             "rules: set " + profile + ", " + parsed.allowedSuburbs.size + " suburbs, " +
-                parsed.deniedStores.size + " denied stores, " +
-                parsed.alwaysOkStores.size + " always ok, " +
-                parsed.farSuburbs.size + " far over " + parsed.farOverCents + ", " +
                 parsed.noGoBoxes.size + " no-go boxes",
         )
         return parsed
     }
 
     /** The phone's petrol reckoning, or the driver's defaults before settings have loaded. */
-    private fun costOf(settings: SettingsStore.Settings?): Pair<TripCost, Double> = Pair(
-        TripCost(
-            fuelPerKm = settings?.fuelPerKm ?: SettingsStore.DEFAULT_FUEL_PER_KM,
-            timeFactor = settings?.timeFactor ?: SettingsStore.DEFAULT_TIME_FACTOR,
-        ),
-        settings?.farMinPerHour ?: SettingsStore.DEFAULT_FAR_MIN_PER_HOUR,
+    private fun costOf(settings: SettingsStore.Settings?): TripCost = TripCost(
+        fuelPerKm = settings?.fuelPerKm ?: SettingsStore.DEFAULT_FUEL_PER_KM,
+        timeFactor = settings?.timeFactor ?: SettingsStore.DEFAULT_TIME_FACTOR,
     )
 
     private fun empty(): Rules = Rules(
         allowedSuburbs = emptySet(),
-        farSuburbs = emptySet(),
-        farOverCents = Cents.ofDollars(DEFAULT_FAR_DOLLARS),
-        deniedStores = emptyList(),
-        alwaysOkStores = emptyList(),
         noGoBoxes = emptyList(),
-        tripCost = costOf(null).first,
-        farMinPerHour = costOf(null).second,
+        tripCost = costOf(null),
         homeward = null,
-        nearCentre = null,
     )
 
     private fun parse(file: File): Rules {
@@ -166,25 +131,6 @@ object RulesStore {
                 ?.map { it.jsonPrimitive.content }
                 ?.toSet()
                 .orEmpty()
-            // Two lists, one meaning: names typed by hand, and the shopping-strip
-            // rule expanded on the laptop. Kept apart there so either can be
-            // changed without disturbing the other.
-            val stores = root["stores"]?.jsonObject
-            val deny = listOf("deny", "cbdDeny").flatMap { key ->
-                stores?.get(key)?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
-            }.distinct()
-            val alwaysOk = stores?.get("alwaysOk")?.jsonArray
-                ?.map { it.jsonPrimitive.content }
-                .orEmpty()
-            // The set a big payout unlocks, and the payout that unlocks it. Absent
-            // means the driver never drew one and the rule simply does not fire.
-            val far = root["far"]?.jsonObject
-            val farSuburbs = far?.get("suburbs")?.jsonArray
-                ?.map { it.jsonPrimitive.content }
-                ?.toSet()
-                .orEmpty()
-            val overDollars = far?.get("overDollars")?.jsonPrimitive?.content?.toDoubleOrNull()
-                ?: DEFAULT_FAR_DOLLARS
 
             // Rectangles drawn on the map. One with a missing edge is skipped
             // rather than read as zero, which would stretch it to the equator.
@@ -203,16 +149,10 @@ object RulesStore {
 
             Rules(
                 allowedSuburbs = allow,
-                farSuburbs = farSuburbs,
-                farOverCents = Cents.ofDollars(overDollars),
-                deniedStores = deny,
-                alwaysOkStores = alwaysOk,
                 noGoBoxes = noGo,
                 // Filled from the phone's settings by current(), not the file.
-                tripCost = costOf(null).first,
-                farMinPerHour = costOf(null).second,
+                tripCost = costOf(null),
                 homeward = null,
-        nearCentre = null,
             )
         }.getOrElse { empty() }
     }

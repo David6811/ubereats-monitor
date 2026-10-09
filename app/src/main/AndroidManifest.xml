@@ -41,15 +41,18 @@
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".action.NotificationButtons"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.weixu.ueatsmonitor.STOP_NAVIGATION" />
-                <action android:name="com.weixu.ueatsmonitor.SEND_TO_MAPS" />
-                <action android:name="com.weixu.ueatsmonitor.TOGGLE_VOICE" />
-            </intent-filter>
-        </receiver>
+        <!--
+          Draws nothing and finishes at once. It exists because starting an
+          activity collapses the notification shade and a broadcast does not,
+          and the buttons behind it need the screen the shade was covering.
+        -->
+        <activity
+            android:name=".action.ButtonActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
 
         <service
             android:name=".action.OfferListenerService"

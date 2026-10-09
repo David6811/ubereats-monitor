@@ -168,11 +168,17 @@ class CaptureKeeperService : Service() {
         return notification
     }
 
+    /**
+     * An activity, not a broadcast: starting one collapses the shade, and the
+     * work behind these buttons needs to see the screen the shade was over.
+     */
     private fun broadcast(action: String, requestCode: Int): PendingIntent =
-        PendingIntent.getBroadcast(
+        PendingIntent.getActivity(
             this,
             requestCode,
-            Intent(action).setPackage(packageName),
+            Intent(this, ButtonActivity::class.java)
+                .setAction(action)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
