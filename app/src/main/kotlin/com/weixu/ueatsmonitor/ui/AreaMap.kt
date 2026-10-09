@@ -38,9 +38,13 @@ import org.maplibre.android.style.sources.GeoJsonSource
 @SuppressLint("ClickableViewAccessibility")
 @Composable
 fun AreaMap(
+    /** Which set this is. The camera reframes when it changes, and only then. */
+    setName: String,
     chosen: Set<String>,
     shapes: List<SuburbShape>,
     modifier: Modifier = Modifier,
+    /** The suburb under a tap, by name. Null leaves the map read only. */
+    onTap: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -57,8 +61,21 @@ fun AreaMap(
             getMapAsync { map ->
                 map.uiSettings.isRotateGesturesEnabled = false
                 map.uiSettings.isTiltGesturesEnabled = false
+                map.addOnMapClickListener { at ->
+                    val tap = holder.onTap ?: return@addOnMapClickListener false
+                    val point = map.projection.toScreenLocation(at)
+                    val name = map.queryRenderedFeatures(point, HIT).firstOrNull()
+                        ?.getStringProperty(SuburbGeoJson.NAME)
+                        ?: return@addOnMapClickListener false
+                    tap(name)
+                    true
+                }
                 map.setStyle(Style.Builder().fromUri(STYLE)) { style ->
                     style.addSource(GeoJsonSource(SOURCE, SuburbGeoJson.featureCollection(shapes, holder.chosen)))
+                    // Every suburb, all but invisible: a tap inside an unchosen
+                    // suburb has to land on something, and its outline alone is
+                    // a hairline.
+                    style.addLayer(FillLayer(HIT, SOURCE).withProperties(PropertyFactory.fillOpacity(0.01f)))
                     style.addLayer(
                         LineLayer(OTHERS, SOURCE)
                             .withProperties(PropertyFactory.lineColor(LINE), PropertyFactory.lineWidth(0.6f))
@@ -107,10 +124,15 @@ fun AreaMap(
         modifier = modifier,
         factory = { mapView },
         update = {
-            // A different set picked below: recolour and reframe, keep the map.
+            holder.onTap = onTap
             if (holder.chosen != chosen) {
                 holder.chosen = chosen
                 holder.style?.getSourceAs<GeoJsonSource>(SOURCE)?.setGeoJson(SuburbGeoJson.featureCollection(shapes, chosen))
+            }
+            // A suburb tapped in or out is the same set: jumping the camera
+            // under the finger that just tapped would lose the driver's place.
+            if (holder.setName != setName) {
+                holder.setName = setName
                 holder.map?.let { frame(it, shapes, chosen) }
             }
         },
@@ -120,8 +142,10 @@ fun AreaMap(
 /** What the map callbacks and the next recomposition share. */
 private class MapHolder {
     var chosen: Set<String> = emptySet()
+    var setName: String? = null
     var map: MapLibreMap? = null
     var style: Style? = null
+    var onTap: ((String) -> Unit)? = null
 }
 
 /** Fits the camera to the chosen suburbs, or to all of them when none is chosen. */
@@ -140,5 +164,6 @@ private const val SOURCE = "suburbs"
 private const val FILL = "suburbs-chosen-fill"
 private const val EDGE = "suburbs-chosen-edge"
 private const val OTHERS = "suburbs-others"
+private const val HIT = "suburbs-hit"
 private const val GOLD = "#E8B64C"
 private const val LINE = "#5A5850"

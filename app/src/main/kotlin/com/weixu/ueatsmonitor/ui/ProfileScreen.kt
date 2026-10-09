@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,8 +33,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.Profiles
+import com.weixu.ueatsmonitor.action.RulesEditor
+import com.weixu.ueatsmonitor.action.RulesSync
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
+import com.weixu.ueatsmonitor.domain.RuleEdits
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -49,6 +56,30 @@ fun ProfileScreen() {
 
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    // Off by default: a map that changes the rules at a brush of the thumb is
+    // not one to leave under a driver's hand.
+    var editing by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    // One tap at a time. Two in flight would both read the same rules, and the
+    // second write would quietly undo the first.
+    val saving = remember { Mutex() }
+
+    fun toggle(set: String, suburb: String) {
+        scope.launch {
+            saving.withLock {
+                note = when (RulesEditor.edit(context) { RuleEdits.toggleSuburb(it, set, suburb) }) {
+                    RulesEditor.Saved.Pushed -> null
+                    is RulesEditor.Saved.OnPhoneOnly -> words.savedOnPhoneOnly
+                    RulesEditor.Saved.CloudMovedOn -> {
+                        RulesSync.pull(context)
+                        words.cloudMovedOn
+                    }
+                }
+                profiles = Profiles.list(context)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -85,13 +116,29 @@ fun ProfileScreen() {
                     }
                 }
                 AreaMap(
+                    setName = live.name,
                     chosen = Exclusions.apply(live.suburbs.toSet(), excluded),
                     shapes = shapes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
                         .height(380.dp),
+                    onTap = if (editing) { suburb -> toggle(live.name, suburb) } else null,
                 )
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (editing) {
+                        Text(words.tapSuburbToToggle, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
+                    }
+                    note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
+                    if (editing) {
+                        GoldButton(words.doneEditing, Modifier.fillMaxWidth()) { editing = false; note = null }
+                    } else {
+                        GhostButton(words.editOnMap, Modifier.fillMaxWidth()) { editing = true }
+                    }
+                }
             }
         }
 
