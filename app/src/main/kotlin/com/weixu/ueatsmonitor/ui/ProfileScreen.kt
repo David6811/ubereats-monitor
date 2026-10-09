@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -83,9 +84,13 @@ fun ProfileScreen() {
                         )
                     }
                 }
-                SuburbMap(
+                AreaMap(
                     chosen = Exclusions.apply(live.suburbs.toSet(), excluded),
                     shapes = shapes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .height(380.dp),
                 )
             }
         }
