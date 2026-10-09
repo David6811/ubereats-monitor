@@ -231,6 +231,13 @@ class UberScreenService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val fromUber = OfferParser.isUberPackage(event.packageName?.toString().orEmpty())
+        // What the driver pressed, written down to be read after a shift. The
+        // press on Accept would say a job was taken at the moment it was taken,
+        // which no screen can; whether Uber's button sends one is the question.
+        if (fromUber && event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            val pressed = (event.text.joinToString(" ") + " " + (event.contentDescription ?: "")).trim()
+            TripProbe.note(this, "click ", pressed.ifEmpty { "(no words) " + event.className })
+        }
         val appeared = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
         if (!fromUber && !appeared) return
@@ -267,9 +274,6 @@ class UberScreenService : AccessibilityService() {
         val screenLit = runCatching {
             getSystemService(android.os.PowerManager::class.java)?.isInteractive == true
         }.getOrDefault(false)
-        // The floating tools are for the shift: up while Uber has been seen
-        // lately, gone otherwise, so they do not sit on every app all day.
-        overlay.showTools(onShift && screenLit && LiveSettings.current?.toolsEnabled != false)
         // A window the system lists but will not let us read is where a card could
         // be hiding - that is what blind shooting was for. When every window on
         // screen can be read and none of them is Uber's, there is nothing to find,
@@ -452,17 +456,17 @@ class UberScreenService : AccessibilityService() {
         // version instead - the same words, wrapped and mangled.
         PickupScreen.read(treeLines)?.let { pickup ->
             JobStore.markTaken(this, pickup)
-            // Opening this screen is how Uber's own navigation is started, so
-            // this is where the driver is going until a delivery screen says
-            // otherwise. The floating button hands it to Google Maps.
-            CurrentStop.headingToShop(pickup.address)
+            // Opening this screen is how Uber's own navigation is started. It
+            // is a guess at where the driver is going, not an answer - the
+            // button offers both ends and says how old this reading is.
+            CurrentStop.pickupScreen(pickup.store, pickup.address)
             Log.i(TAG, "pickup: " + pickup.store + " | " + pickup.address)
         }
         DropoffScreen.read(treeLines)?.let { dropoff ->
             JobStore.markDelivered(this, dropoff)
             // The street address only. A unit number is for the door, not for the
             // drive, and Maps reads "3/144 Collins Street" as a house number.
-            CurrentStop.headingToCustomer(dropoff.address)
+            CurrentStop.dropoffScreen(dropoff.address)
             Log.i(TAG, "dropoff: " + dropoff.address + " | unit=" + dropoff.unit)
         }
         // Whatever notes are on the board, in Chinese. Does nothing once they are
@@ -635,7 +639,6 @@ class UberScreenService : AccessibilityService() {
                 append("ruling_why=").append(RulingText.reason(ruling, Lang.CHINESE)).append('\n')
             }
             append("rules_suburbs=").append(rules.allowedSuburbs.size).append('\n')
-            append("rules_denied_stores=").append(rules.deniedStores.size).append('\n')
             append("money=").append(CaptureText.hasMoney(text)).append('\n')
             append("offer_shape=").append(offerShape).append('\n')
             append("suburbs=").append(found.joinToString(",") { it.name }).append('\n')
@@ -692,6 +695,19 @@ class UberScreenService : AccessibilityService() {
     }
 
     /** Every Uber window currently up - an offer card can sit in its own. */
+    /**
+     * What Uber is showing this second, read on demand rather than remembered.
+     *
+     * Everything else here is a memory of a screen that has gone, and a memory
+     * can be of the wrong job. The screen in front of the driver cannot be: if
+     * it is the delivery screen, the address on it is the address he is driving
+     * to. Called from the floating button, on the main thread, and cheap -
+     * walking the tree is what every frame already does.
+     */
+    private fun screenNow(): List<String> = runCatching {
+        uberRoots().flatMap { ScreenReader.readAll(it) }
+    }.getOrDefault(emptyList())
+
     private fun uberRoots(): List<AccessibilityNodeInfo> {
         val fromWindows = runCatching {
             windows.orEmpty().mapNotNull { it.root }
@@ -747,6 +763,9 @@ class UberScreenService : AccessibilityService() {
         @Volatile
         private var live: UberScreenService? = null
 
+        /** The lines Uber has on screen right now, or none when it is not in front. */
+        fun uberScreenNow(): List<String> = live?.screenNow().orEmpty()
+
         /** Called once a second by [CaptureKeeperService], off the main thread. */
         fun pokeFromKeeper() {
             val service = live ?: return
@@ -783,12 +802,45 @@ class UberScreenService : AccessibilityService() {
          * Maps navigation, so the driver need not reach for it. Nothing in
          * Uber's windows is ever touched. True when the cross was found and pressed.
          */
+        /**
+         * Closes the notification shade.
+         *
+         * A button in a notification's own layout does not collapse the shade
+         * the way one of Android's actions does, and while the shade is open
+         * it is the only window this service can see - so the button that ends
+         * a navigation looked for Maps and found nothing at all.
+         */
+        fun closeShade(): Boolean {
+            val service = live ?: return false
+            val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE
+            } else {
+                android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+            }
+            return service.performGlobalAction(action)
+        }
+
+        /**
+         * Puts whatever is on screen behind the home screen.
+         *
+         * The last resort for getting Google Maps out of the way: stopping a
+         * navigation needs Maps in front to press its own cross, and without
+         * this it is left there filling the screen.
+         */
+        fun goHome(): Boolean =
+            live?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME) ?: false
+
         fun stopMapsNavigation(): Boolean {
             val service = live ?: return false
-            val maps = runCatching {
-                service.windows.orEmpty().mapNotNull { it.root }
-                    .filter { it.packageName?.toString() == MAPS_PACKAGE }
-            }.getOrDefault(emptyList())
+            val all = runCatching { service.windows.orEmpty().mapNotNull { it.root } }.getOrDefault(emptyList())
+            val maps = all.filter { it.packageName?.toString() == MAPS_PACKAGE }
+            // Every window on screen when the map could not be found. "0
+            // window(s)" alone never said whether Maps was absent, behind the
+            // shade, or shrunk into the corner as a picture in picture.
+            if (maps.isEmpty()) {
+                Log.i(TAG, "maps: none among " + all.size + " window(s): " +
+                    all.joinToString(", ") { it.packageName?.toString() ?: "?" })
+            }
             val cross = maps.firstNotNullOfOrNull { root ->
                 CLOSE_NAVIGATION.firstNotNullOfOrNull { words ->
                     root.findAccessibilityNodeInfosByText(words).orEmpty().firstOrNull { node ->

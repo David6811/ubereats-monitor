@@ -735,4 +735,70 @@ class JobBoardTest {
         // assert
         assertEquals(1, next.size)
     }
+
+    @Test
+    fun `given an offer on the board, when Uber says it is going to that shop, then the job is taken`() {
+        // arrange  4 Oct 11:41: "Going to Captain Makos Fish and Chips", no pickup screen read
+        val job = Job(
+            1_000, pizza.copy(pickup = "Captain Makos Fish and Chips"),
+            taken = false, address = null, note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+
+        // act
+        val next = JobBoard.takenAtShop(listOf(job), "Captain Makos Fish and Chips", now = 2_000)
+
+        // assert
+        assertEquals(true, next[0].taken)
+    }
+
+    @Test
+    fun `given the notice names a shop, when the job is marked, then the pickup address is left for the screen`() {
+        // arrange  the notice gives a name and nothing else
+        val job = Job(
+            1_000, pizza.copy(pickup = "Noble Kebaba"), taken = false, address = null, note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+
+        // act
+        val next = JobBoard.takenAtShop(listOf(job), "Noble Kebaba", now = 2_000)
+
+        // assert
+        assertEquals(null, next[0].address)
+    }
+
+    @Test
+    fun `given two branches of one chain on the board, when the notice names the chain, then nothing is claimed`() {
+        // arrange  the notice has no address, so which branch cannot be told
+        val one = Job(
+            1_000, pizza.copy(pickup = "KFC (Noble Park)"), taken = false, address = null, note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+        val two = one.copy(atMillis = 1_500, offer = pizza.copy(pickup = "KFC (Dandenong)"))
+
+        // act  "KFC" alone is inside both
+        val next = JobBoard.takenAtShop(listOf(two, one), "KFC", now = 2_000)
+
+        // assert  sending the driver to the wrong branch costs more than not knowing
+        assertEquals(listOf(two, one), next)
+    }
+
+    @Test
+    fun `given a job already taken, when the notice names its shop again, then nothing changes`() {
+        // arrange  the notice repeats for as long as the drive lasts
+        val job = Job(
+            1_000, pizza.copy(pickup = "Noble Kebaba"), taken = true, address = "2 Douglas St, Noble Park", note = null,
+            dropAddress = null, dropUnit = null, dropNote = null,
+            noteCn = null, dropNoteCn = null, extraDrops = emptyList(), ordersAtPickup = 1,
+        )
+
+        // act
+        val next = JobBoard.takenAtShop(listOf(job), "Noble Kebaba", now = 2_000)
+
+        // assert
+        assertEquals(listOf(job), next)
+    }
 }

@@ -434,29 +434,9 @@ private fun MonitorScreen(store: SettingsStore) {
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
                 SectionLabel(words.settingsWatching)
                 Column {
-                    // Named with its own numbers, because the threshold and the
-                    // size of the far set are the laptop's, not this app's.
-                    Profiles.far(context)?.let { far ->
-                        SwitchRow(
-                            label = words.farOver(far.overDollars.toString()),
-                            hint = words.farAreas(far.suburbs),
-                            checked = current.farEnabled,
-                        ) { scope.launch { store.setFarEnabled(it) } }
-                        Hairline()
-                    }
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     if (current.homewardEnabled) {
                         HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
-                    }
-                    Hairline()
-                    NearCentreToggle(current.nearCentreEnabled) { scope.launch { store.setNearCentreEnabled(it) } }
-                    if (current.nearCentreEnabled) {
-                        LimitsRow(
-                            kmLabel = words.withinKmLabel,
-                            minutesLabel = words.withinMinutesLabel,
-                            km = current.nearCentreMaxKm,
-                            minutes = current.nearCentreMaxMinutes,
-                        ) { km, max -> scope.launch { store.saveNearCentreLimits(km, max) } }
                     }
                     Hairline()
                     SwitchRow(words.areaSound, null, current.areaSoundEnabled) {
@@ -465,18 +445,14 @@ private fun MonitorScreen(store: SettingsStore) {
                     Hairline()
                     VoiceToggle(current.voiceEnabled)
                     Hairline()
-                    SwitchRow(words.floatingButtons, words.floatingButtonsHint, current.toolsEnabled) {
-                        scope.launch { store.setToolsEnabled(it) }
-                    }
-                    Hairline()
                     LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
                 }
             }
         }
 
         item {
-            TripCostCard(current) { fuel, factor, floor ->
-                scope.launch { store.saveTripCost(fuel, factor, floor) }
+            TripCostCard(current) { fuel, factor ->
+                scope.launch { store.saveTripCost(fuel, factor) }
             }
         }
 
@@ -534,24 +510,6 @@ private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes
  * the car's position, since it judges the drop alone - so that is the one
  * thing it can be missing.
  */
-@Composable
-private fun NearCentreToggle(enabled: Boolean, save: (Boolean) -> Unit) {
-    val words = words()
-    val context = LocalContext.current
-    val centre = remember { Profiles.centre(context) }
-    SwitchRow(
-        label = words.nearCentreMode,
-        hint = if (centre == null) words.noCentreSet else words.nearCentreHint,
-        checked = enabled,
-    ) { on ->
-        when {
-            !on -> save(false)
-            centre == null -> say(context, words.noCentreSetLong)
-            else -> save(true)
-        }
-    }
-}
-
 /** Chinese or English, for every word the app says. Both names are written in their own language. */
 @Composable
 private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
@@ -736,7 +694,7 @@ private fun VoiceChip(enabled: Boolean) {
 private fun voiceHelp(): List<Pair<String, String>> {
     val words = words()
     return listOf(
-        "「地图」" to words.sayMap,
+        "「打开地图」" to words.sayMap,
         "「送餐」" to words.sayUber,
         "「应用」" to words.sayApp,
         "「回中心」" to words.sayCentre,
@@ -913,16 +871,14 @@ private fun ThresholdCard(thresholds: Thresholds, onSave: (Thresholds) -> Unit) 
  * to; only an offer let through by the far set is refused for falling short.
  */
 @Composable
-private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Double, Double) -> Unit) {
+private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Double) -> Unit) {
     val words = words()
     var fuel by remember { mutableStateOf("") }
     var factor by remember { mutableStateOf("") }
-    var floor by remember { mutableStateOf("") }
 
-    LaunchedEffect(settings.fuelPerKm, settings.timeFactor, settings.farMinPerHour) {
+    LaunchedEffect(settings.fuelPerKm, settings.timeFactor) {
         fuel = settings.fuelPerKm.toString()
         factor = settings.timeFactor.toString()
-        floor = settings.farMinPerHour.toString()
     }
 
     Panel {
@@ -933,15 +889,11 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
             color = Dash.Muted,
         )
         DashField(words.fuelPerKm, fuel) { fuel = it }
-        ButtonRow {
-            DashField(words.timeFactor, factor, Modifier.weight(1f)) { factor = it }
-            DashField(words.farFloorPerHour, floor, Modifier.weight(1f)) { floor = it }
-        }
+        DashField(words.timeFactor, factor) { factor = it }
         GoldButton(words.save, Modifier.fillMaxWidth()) {
             onSave(
                 fuel.toDoubleOrNull() ?: settings.fuelPerKm,
                 factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
-                floor.toDoubleOrNull() ?: settings.farMinPerHour,
             )
         }
     }

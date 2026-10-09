@@ -14,4 +14,7 @@
     <string name="keeper_text">This notice gone means the watching has stopped</string>
     <string name="keeper_open">Open Offer Mate</string>
     <string name="keeper_uber">Back to Uber</string>
+    <string name="keeper_nav">Stop navigation</string>
+    <string name="keeper_map">Send to Google Maps</string>
+    <string name="keeper_voice">Voice</string>
 </resources>

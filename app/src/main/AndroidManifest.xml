@@ -41,6 +41,19 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Draws nothing and finishes at once. It exists because starting an
+          activity collapses the notification shade and a broadcast does not,
+          and the buttons behind it need the screen the shade was covering.
+        -->
+        <activity
+            android:name=".action.ButtonActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <service
             android:name=".action.OfferListenerService"
             android:exported="false"

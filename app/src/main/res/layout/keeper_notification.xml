@@ -1,48 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The keeper notification's own body. A plain notification hides its actions
-  until the shade entry is expanded, and this one is meant to be reachable at a
-  glance while driving, so the buttons live in the collapsed view instead.
+  The keeper notification's own body: one row of buttons and nothing else.
+
+  No words. Android's own header above this already names the app, and the
+  notice being there at all is what says the watching is alive - which is the
+  only thing the words used to add. The width they took is worth more as
+  thumb: a plain notification hides its actions until the entry is expanded,
+  and a second swipe at the wheel is a second with eyes off the road.
+
+  Three buttons, not five. Tapping the notice itself already opens the app,
+  and stopping the navigation already brings Uber back, so those two took a
+  third of the row to do what something else was doing anyway.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="2dp"
-    android:paddingBottom="4dp">
+    android:layout_height="56dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/keeperTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="@android:style/TextAppearance.Material.Notification.Title"
-        android:text="@string/keeper_title" />
+    <ImageView
+        android:id="@+id/keeperNav"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
+        android:contentDescription="@string/keeper_nav"
+        android:src="@drawable/ic_tool_nav_off" />
 
-    <TextView
-        android:id="@+id/keeperText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="@android:style/TextAppearance.Material.Notification"
-        android:text="@string/keeper_text" />
+    <ImageView
+        android:id="@+id/keeperMap"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
+        android:contentDescription="@string/keeper_map"
+        android:src="@drawable/ic_tool_send_map" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="6dp">
+    <ImageView
+        android:id="@+id/keeperVoice"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
+        android:contentDescription="@string/keeper_voice"
+        android:src="@drawable/ic_tool_mic" />
 
-        <Button
-            android:id="@+id/keeperOpen"
-            style="@android:style/Widget.Material.Button.Borderless.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/keeper_open" />
 
-        <Button
-            android:id="@+id/keeperUber"
-            style="@android:style/Widget.Material.Button.Borderless.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/keeper_uber" />
-    </LinearLayout>
 </LinearLayout>

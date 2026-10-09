@@ -53,7 +53,16 @@ object JobsSync {
                     val job = entry.jsonObject
                     Row(userId, job["at"]!!.jsonPrimitive.long, job)
                 }
-                if (rows.isNotEmpty()) Cloud.client.from(TABLE).upsert(rows)
+                if (rows.isEmpty()) {
+                    // An empty board is not the same as a board the driver
+                    // cleared. A reinstall, a cleared app, a new phone: all
+                    // arrive here with nothing, and this used to answer by
+                    // deleting every job in the cloud - which is the only copy
+                    // once the phone's own file is gone.
+                    Log.i(TAG, "jobs sync: nothing on the phone, the cloud is left alone")
+                    return@runCatching
+                }
+                Cloud.client.from(TABLE).upsert(rows)
                 // Cleared on the phone means gone here too.
                 val keep = rows.map { it.at }.toSet()
                 val there = Cloud.client.from(TABLE).select(columns = io.github.jan.supabase.postgrest.query.Columns.list("at")) {

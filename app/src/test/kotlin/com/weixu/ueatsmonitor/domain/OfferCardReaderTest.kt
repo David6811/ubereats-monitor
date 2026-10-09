@@ -519,15 +519,9 @@ class OfferCardReaderTest {
         val card = OfferCardReader.read(MATCH_CARD)!!
         val rules = Rules(
             allowedSuburbs = setOf("Noble Park"),
-            farSuburbs = emptySet(),
-            farOverCents = Cents.ofDollars(30.0),
-            deniedStores = emptyList(),
-            alwaysOkStores = emptyList(),
             noGoBoxes = emptyList(),
             tripCost = TripCost(fuelPerKm = 0.2, timeFactor = 1.5),
-            farMinPerHour = 10.0,
             homeward = null,
-            nearCentre = null,
         )
         val gazetteer = listOf(
             Suburb("Clayton South", GeoPoint(-37.9415, 145.1245)),

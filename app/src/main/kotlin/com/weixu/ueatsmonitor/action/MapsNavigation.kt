@@ -22,6 +22,14 @@ object MapsNavigation {
 
     /** Calls [done] once, on the main thread, with whether the cross was pressed. */
     fun stop(context: Context, done: (Boolean) -> Unit) {
+        // Google Maps' own button first. Pressing the cross on the map needs
+        // the map on screen, and while it is a picture in picture there is no
+        // window to press at all - the reader sees the shade and Uber and
+        // nothing else. Its notification does not care what is on screen.
+        if (MapsNotice.stopNavigating()) {
+            main.post { done(true) }
+            return
+        }
         if (UberScreenService.stopMapsNavigation()) {
             main.post { done(true) }
             return

@@ -45,9 +45,26 @@ class CaptureKeeperService : Service() {
             if (ticks % NOTE_EVERY == 0L) {
                 ServiceJournal.note(this@CaptureKeeperService, "采集心跳 " + ticks + " 次")
             }
+            repaintIfChanged()
             clock.postDelayed(this, TICK_MILLIS)
         }
     }
+
+    /** What the row is painted from. Re-posted only when one of them turns. */
+    private var painted: Pair<Boolean, Boolean>? = null
+
+    private fun repaintIfChanged() {
+        val now = VoiceService.isRunning() to stopKnown()
+        if (now == painted) return
+        painted = now
+        runCatching {
+            getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification())
+        }.onFailure { Log.w(TAG, "keeper: could not repaint the notice", it) }
+    }
+
+    /** Whether the map button would have somewhere to send the driver. */
+    private fun stopKnown(): Boolean =
+        !CurrentStop.trip.empty || UberScreenService.uberScreenNow().isNotEmpty()
 
     private fun holdWake() {
         val lock = wakeLock ?: return
@@ -102,9 +119,18 @@ class CaptureKeeperService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, driverWords().keeperChannel, NotificationManager.IMPORTANCE_MIN)
+                // LOW, not MIN. At MIN this sat in the shade's "Silent" pile beside
+                // the voice notice, and the phone packed the two of them into a
+                // group showing a count - which is where the buttons went the
+                // moment the voice was switched on.
+                NotificationChannel(CHANNEL, driverWords().keeperChannel, NotificationManager.IMPORTANCE_LOW)
             )
         }
+        startForeground(NOTIFICATION_ID, notification())
+    }
+
+    /** The notice as it should look right now. Built again whenever a button turns. */
+    private fun notification(): Notification {
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -114,22 +140,22 @@ class CaptureKeeperService : Service() {
         // A custom body, not addAction: an action is hidden until the shade entry
         // is expanded, and these two have to be one tap away while driving.
         val body = RemoteViews(packageName, R.layout.keeper_notification).apply {
-            // The layout carries the phone's own language; these put the one the
-            // driver chose in the app over the top of it.
-            val words = driverWords()
-            setTextViewText(R.id.keeperTitle, words.keeperTitle)
-            setTextViewText(R.id.keeperText, words.keeperText)
-            setTextViewText(R.id.keeperOpen, words.keeperOpen)
-            setTextViewText(R.id.keeperUber, words.keeperUber)
-            setOnClickPendingIntent(R.id.keeperOpen, activity(Intent(this@CaptureKeeperService, MainActivity::class.java), 1))
-            // Android 11 hides other packages unless the manifest names them;
-            // without that this comes back null and the button does nothing.
-            val uber = packageManager.getLaunchIntentForPackage(OfferParser.UBER_DRIVER_PACKAGE)
-            if (uber == null) {
-                setViewVisibility(R.id.keeperUber, View.GONE)
-            } else {
-                setOnClickPendingIntent(R.id.keeperUber, activity(uber, 2))
-            }
+            // The same row of buttons that floats over the map, here in the
+            // collapsed notification: one swipe reaches them, and nothing has
+            // to be expanded, which at the wheel is a second of eyes off the road.
+            val listening = VoiceService.isRunning()
+            setInt(R.id.keeperVoice, "setImageResource",
+                if (listening) R.drawable.ic_tool_mic else R.drawable.ic_tool_mic_off)
+            // Gold when the button has something to do, grey when it has not.
+            // Gold, not green: a colour this driver cannot tell from red would
+            // be no signal at all, and the microphone keeps its struck-through
+            // shape so the state is never the colour alone.
+            setInt(R.id.keeperNav, "setColorFilter", LIVE)
+            setInt(R.id.keeperMap, "setColorFilter", if (stopKnown()) LIVE else DULL)
+            setInt(R.id.keeperVoice, "setColorFilter", if (listening) LIVE else DULL)
+            setOnClickPendingIntent(R.id.keeperNav, broadcast(NotificationButtons.STOP_NAVIGATION, 11))
+            setOnClickPendingIntent(R.id.keeperMap, broadcast(NotificationButtons.SEND_TO_MAPS, 12))
+            setOnClickPendingIntent(R.id.keeperVoice, broadcast(NotificationButtons.TOGGLE_VOICE, 13))
         }
         val notification: Notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.presence_online)
@@ -139,8 +165,22 @@ class CaptureKeeperService : Service() {
             .setCustomContentView(body)
             .setCustomBigContentView(body)
             .build()
-        startForeground(NOTIFICATION_ID, notification)
+        return notification
     }
+
+    /**
+     * An activity, not a broadcast: starting one collapses the shade, and the
+     * work behind these buttons needs to see the screen the shade was over.
+     */
+    private fun broadcast(action: String, requestCode: Int): PendingIntent =
+        PendingIntent.getActivity(
+            this,
+            requestCode,
+            Intent(this, ButtonActivity::class.java)
+                .setAction(action)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private fun activity(target: Intent, requestCode: Int): PendingIntent =
         PendingIntent.getActivity(
@@ -153,6 +193,15 @@ class CaptureKeeperService : Service() {
 
     companion object {
         private const val TAG = "UEatsMonitor"
+        /** The app's gold. Yellow against grey reads for a red-green eye; green would not. */
+        private val LIVE = android.graphics.Color.parseColor("#FFE8B64C")
+
+        /** Nothing to do: grey, and dimmer, so the difference is not the hue alone. */
+        private val DULL = android.graphics.Color.parseColor("#FF8A8D93")
+
+        /** Both ongoing notices belong to it; the keeper's is its summary. */
+        const val GROUP = "com.weixu.ueatsmonitor.ongoing"
+
         private const val CHANNEL = "keeper"
         private const val NOTIFICATION_ID = 43
         private const val TICK_MILLIS = 1_000L

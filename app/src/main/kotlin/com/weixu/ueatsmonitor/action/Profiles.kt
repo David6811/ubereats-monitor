@@ -70,16 +70,6 @@ object Profiles {
     }
 
     /** Data. The far set as the phone needs to show it. */
-    data class Far(val overDollars: Int, val suburbs: Int)
-
-    /** What the laptop drew for a big payout, for the page to name. */
-    fun far(context: Context): Far? {
-        val far = root(context)?.get("far")?.jsonObject ?: return null
-        val suburbs = far["suburbs"]?.jsonArray?.size ?: 0
-        if (suburbs == 0) return null
-        val over = far["overDollars"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 30.0
-        return Far(over.toInt(), suburbs)
-    }
 
     /**
      * Where the set in force is worked from, as marked on the laptop's map.

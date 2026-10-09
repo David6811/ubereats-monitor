@@ -331,8 +331,6 @@ body[data-page="areas"] footer{display:none}
 
 <nav id="menu">
   <button data-page="areas" data-t="t5">选区</button>
-  <button data-page="stores" data-t="t6">不接的店</button>
-  <button data-page="params" data-t="t7">规则参数</button>
   <button data-page="jobs" data-t="t8">单子</button>
   <button data-page="account" data-t="t9">账号</button>
 </nav>
@@ -360,28 +358,7 @@ body[data-page="areas"] footer{display:none}
     <input type="hidden" id="anchorLat"><input type="hidden" id="anchorLon"><input type="hidden" id="anchorLabel">
   </section>
 
-  <section data-page="stores">
-    <h2 data-t="t6">不接的店<span class="count" id="storeCount"></span></h2>
-    <p class="hint" data-t="t18">取餐店名字里含有这些字就不接。照派单卡上写的打，回车加进去； 只打最有辨识度的那一段，比如「Walrus BBQ」，不用抄整行。地点上的不接，用选区页的不接单框画。</p>
-    <div class="row">
-      <input type="search" id="storeSearch" data-tp="t19" placeholder="店名，回车拉黑" style="flex:1;max-width:460px">
-    </div>
-    <div class="chips" id="storeDenied"></div>
-  </section>
 
-  <section data-page="params">
-    <h2 data-t="t7">规则参数</h2>
-    <p class="hint" data-t="t20">改完记得点右上角「保存」。</p>
-    <div class="kv">
-      <span class="eyebrow" data-t="t21">远区门槛 $</span>
-      <input type="number" id="farOver" min="0" step="1" style="max-width:140px">
-    </div>
-    <p class="hint" style="margin-top:10px" data-t="t22">派单金额超过这个数，就改用「远区」那一套选区来判。</p>
-    <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="eyebrow" data-t="t23">在手机上改的</div>
-      <p class="hint" style="margin:6px 0 0" data-t="t24">回中心模式、近中心模式的公里数和分钟数，油钱、时间倍数、远区每小时最低 —— 这些在手机 App 的「设置」页改，跑单时顺手就能调。</p>
-    </div>
-  </section>
 
   <section data-page="jobs">
     <h2 data-t="t8">单子<span class="count" id="jobsCount"></span></h2>
@@ -546,7 +523,7 @@ body[data-page="areas"] footer{display:none}
   }
   function EMPTY_RULES(){
     return { version: 1, profiles: [], active: "", suburbs: { allow: [], deny: [] },
-      stores: { deny: [], cbdDeny: [], alwaysOk: [] }, far: { overDollars: 30, suburbs: [] }, noGo: [], places: [] };
+      noGo: [], places: [] };
   }
   $("loginGo").addEventListener("click", function(){
     var email = $("loginEmail").value.trim(), password = $("loginPassword").value;
@@ -581,7 +558,6 @@ body[data-page="areas"] footer{display:none}
       $("accountEmail").textContent = state.user || "";
       $("accountStamp").textContent = state.stamp ? new Date(state.stamp).toLocaleString("zh-CN") : T("j67");
     }
-    if (name === "params") $("farOver").value = (far().overDollars || 30);
     if (name === "jobs") loadJobs();
   }
 
@@ -645,16 +621,10 @@ body[data-page="areas"] footer{display:none}
   document.querySelectorAll("#menu button[data-page]").forEach(function(b){
     b.addEventListener("click", function(){ showPage(b.dataset.page); });
   });
-  $("farOver").addEventListener("change", function(){
-    var v = parseFloat(this.value);
-    if (!isNaN(v) && v >= 0) { far().overDollars = v; say(T("j63") + v + T("j64")); }
-  });
-
   function fill(){
     // Leaflet measures its box when it is made: the map's section must be on
     // screen then, whichever page is opened afterwards.
     document.querySelector("main > section.mapsection").dataset.shown = "1";
-    drawDenied();
     counts();
     drawMapTools();
     bindMapTools();
@@ -668,7 +638,6 @@ body[data-page="areas"] footer{display:none}
 
   function counts(){
     $("allowCount").textContent = F("f3", state.rules.suburbs.allow.length);
-    $("storeCount").textContent = F("f4", state.rules.stores.deny.length);
   }
 
   /* ---- the map: suburbs, anchor and radius on one canvas ---- */
@@ -1004,26 +973,10 @@ body[data-page="areas"] footer{display:none}
    * Named sets of suburbs. The phone only ever reads suburbs.allow, so switching
    * a set copies it there - nothing on the phone has to know these exist.
    */
-  /** The one set that is always there: where a payout over the threshold reaches. */
-  var FAR = "\u0000far";
-
-  /** What the far set is called on screen; FAR itself is only a token. */
-  function farLabel(){ return F("f13", far().overDollars || 30); }
-
-  function far(){
-    if (!state.rules.far) state.rules.far = { overDollars: 30, suburbs: [] };
-    if (!state.rules.far.suburbs) state.rules.far.suburbs = [];
-    return state.rules.far;
-  }
-
   /** Draws whichever set is being edited onto the map. */
   function applyToMap(){
-    if (state.editing === FAR) {
-      state.rules.suburbs.allow = far().suburbs.slice();
-    } else {
-      var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
-      if (here) state.rules.suburbs.allow = here.suburbs.slice();
-    }
+    var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
+    if (here) state.rules.suburbs.allow = here.suburbs.slice();
     repaint();
     drawCentre();
     sayCentre();
@@ -1032,22 +985,8 @@ body[data-page="areas"] footer{display:none}
 
   /** Puts what is drawn on the map back into whichever set is being edited. */
   function stash(){
-    if (state.editing === FAR) {
-      far().suburbs = state.rules.suburbs.allow.slice();
-      return;
-    }
     var here = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
     if (here) here.suburbs = state.rules.suburbs.allow.slice();
-  }
-
-  function editFar(){
-    stash();
-    state.editing = FAR;
-    state.rules.suburbs.allow = far().suburbs.slice();
-    repaint();
-    drawProfiles();
-    fitToChosen();
-    say(F("f9", farLabel(), far().suburbs.length), "ok");
   }
 
   function profiles(){
@@ -1095,7 +1034,7 @@ body[data-page="areas"] footer{display:none}
     }
 
     profiles().forEach(function(profile){
-      var live = profile.name === state.rules.active && state.editing !== FAR;
+      var live = profile.name === state.rules.active;
       var card = document.createElement("div");
       card.className = "set";
       card.dataset.on = live ? "1" : "0";
@@ -1157,20 +1096,6 @@ body[data-page="areas"] footer{display:none}
     });
     bar.appendChild(add);
 
-    // The far set is not a shift but an exception to one: any offer over the
-    // threshold, whichever set is live. So it sits apart, at the bottom.
-    var farCard = document.createElement("div");
-    farCard.className = "set far";
-    farCard.dataset.on = state.editing === FAR ? "1" : "0";
-    var farName = document.createElement("div");
-    farName.className = "name";
-    farName.textContent = farLabel();
-    var farMeta = document.createElement("div");
-    farMeta.className = "meta";
-    farMeta.textContent = F("f10", far().suburbs.length) + " · " + (state.editing === FAR ? T("j66") : T("j65"));
-    farCard.append(farName, farMeta);
-    farCard.addEventListener("click", function(){ if (state.editing === FAR) switchTo(state.rules.active); else editFar(); });
-    bar.appendChild(farCard);
   }
 
   /**
@@ -1270,7 +1195,6 @@ body[data-page="areas"] footer{display:none}
   function switchTo(name){
     stash();
     state.editing = null;
-    state.rules.stores.cbdDeny = cbdNames();
     var next = profiles().filter(function(p){ return p.name === name; })[0];
     if (!next) return;
     state.rules.active = name;
@@ -1284,11 +1208,7 @@ body[data-page="areas"] footer{display:none}
   }
 
   /** The old core expansion is gone, and so is what it saved: the list holds only what the driver typed. */
-  function cbdNames(){ return []; }
   function foldOldCoreDenies(rules){
-    if (!rules.stores) rules.stores = { deny: [], cbdDeny: [], alwaysOk: [] };
-    if (!rules.stores.deny) rules.stores.deny = [];
-    rules.stores.cbdDeny = [];
   }
 
   /**
@@ -1478,43 +1398,6 @@ body[data-page="areas"] footer{display:none}
   });
   }
 
-  /* ---- stores ---- */
-  $("storeSearch").addEventListener("keydown", function(e){
-    if (e.key !== "Enter") return;
-    var typed = this.value.trim();
-    if (!typed) return;
-    deny(typed);
-    this.value = "";
-    say(F("f18", typed), "ok");
-  });
-
-  function deny(name){
-    if (state.rules.stores.deny.indexOf(name) < 0) state.rules.stores.deny.push(name);
-    drawDenied(); counts();
-  }
-
-  function alwaysOk(){
-    if (!state.rules.stores.alwaysOk) state.rules.stores.alwaysOk = [];
-    return state.rules.stores.alwaysOk;
-  }
-
-  function drawDenied(){
-    var box = $("storeDenied");
-    box.textContent = "";
-    state.rules.stores.deny.forEach(function(name){
-      var chip = document.createElement("span");
-      chip.className = "chip deny";
-      chip.dataset.on = "1";
-      chip.textContent = name + "  ×";
-      chip.title = T("j55");
-      chip.addEventListener("click", function(){
-        state.rules.stores.deny = state.rules.stores.deny.filter(function(n){ return n !== name; });
-        drawDenied(); counts();
-      });
-      box.appendChild(chip);
-    });
-  }
-
   /* ---- anchor ---- */
   $("anchorKm").addEventListener("input", function(){
     $("kmLabel").textContent = this.value;
@@ -1650,7 +1533,6 @@ body[data-page="areas"] footer{display:none}
   $("save").addEventListener("click", function(){
     delete state.rules.anchor;
     stash();
-    state.rules.stores.cbdDeny = cbdNames();
     // What the phone judges by is the live set, whatever the map happens to be
     // showing: editing the far set must not become the ordinary allow list.
     var live = profiles().filter(function(p){ return p.name === state.rules.active; })[0];
@@ -1679,11 +1561,8 @@ body[data-page="areas"] footer{display:none}
       // the data disagreeing is what made a save look like it had reverted.
       applyToMap();
       var rows = [
-        [T("j69"), state.rules.active + (state.editing === FAR ? T("f20") : "")],
+        [T("j69"), state.rules.active],
         [T("j72"), F("f21", sending.suburbs.allow.length)],
-        [farLabel(), F("f21", far().suburbs.length)],
-        [T("j70"), F("f22", (sending.stores.cbdDeny || []).length)],
-        [T("j71"), F("f22", sending.stores.deny.length)],
         [T("t17"), F("f21", (sending.noGo || []).length)],
       ];
       say(T("j13"), "ok");

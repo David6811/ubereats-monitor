@@ -31,12 +31,6 @@ data class HomewardLimits(
  * middle, on jobs of at most [maxMinutes]. Unlike [HomewardLimits] it does not
  * care where the car is now - only where the drop lands.
  */
-data class NearCentreLimits(
-    val centre: GeoPoint,
-    val maxKm: Double,
-    val maxMinutes: Int,
-)
-
 /**
  * Calculation. Whether taking this job would leave the driver nearer the centre
  * of his set than he is now.

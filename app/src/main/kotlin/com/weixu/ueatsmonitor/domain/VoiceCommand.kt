@@ -93,9 +93,14 @@ object VoiceCommands {
      */
     val GRAMMAR: List<String> = listOf(
         "你好",
-        "切地图", "切送餐", "切应用", "切助手",
-        "打开地图", "打开送餐", "打开应用", "回到应用", "回到地图",
-        "地图", "送餐", "助手", "应用",
+        // Only "打开地图" reaches Maps. "地图" on its own, and the shorter
+        // ways of asking for it, fired while the driver was talking about a
+        // map rather than asking for one - and the recogniser acts on a part
+        // of a sentence, so "地图不准" was enough.
+        "打开地图",
+        "切送餐", "切应用", "切助手",
+        "打开送餐", "打开应用", "回到应用",
+        "送餐", "助手", "应用",
         "回中心", "回工作点",
         "关导航", "关闭导航", "停止导航", "结束导航",
         "关语音", "关闭语音", "停止语音",
