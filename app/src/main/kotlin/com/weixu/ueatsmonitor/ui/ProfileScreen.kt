@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,8 +32,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.Profiles
+import com.weixu.ueatsmonitor.action.RulesSync
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
+import kotlinx.coroutines.launch
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -48,6 +51,22 @@ fun ProfileScreen() {
 
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
+    var editing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    if (editing) {
+        AreaEditor(onClose = {
+            editing = false
+            // The editor saved to the cloud; bring that down now rather than
+            // wait for the watch, so the list below is the new one on return.
+            scope.launch {
+                RulesSync.pull(context)
+                profiles = Profiles.list(context)
+                fromPhone = Profiles.chosenHere(context)
+                excluded = ExclusionStore.inForce(context)
+            }
+        })
+    }
 
     Column(
         modifier = Modifier
@@ -136,6 +155,16 @@ fun ProfileScreen() {
                     }
                 }
             }
+        }
+
+        Panel {
+            SectionLabel(words.editAreasHere)
+            Text(
+                text = words.editAreasHereHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Dash.Muted,
+            )
+            GoldButton(words.editAreasHere, Modifier.fillMaxWidth()) { editing = true }
         }
 
         Panel {
