@@ -157,11 +157,6 @@ interface Words {
     val keepCentreOnly: String
     val noAreasYet: String
     val pushFromTheWeb: String
-    val editAreasHere: String
-    val editAreasHereHint: String
-    val closeEditor: String
-    val editorOpening: String
-    val editorSignedOut: String
     val switchSet: String
     val liveFromPhone: String
     val liveFromLaptop: String
@@ -369,11 +364,6 @@ object Zh : Words {
     override val keepCentreOnly = "只留中心"
     override val noAreasYet = "还没有选区"
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
-    override val editAreasHere = "在手机上编辑选区"
-    override val editAreasHereHint = "打开和电脑上一样的地图编辑器，保存后这里自动更新。"
-    override val closeEditor = "关闭"
-    override val editorOpening = "正在打开编辑器…"
-    override val editorSignedOut = "没有登录，打不开编辑器。"
     override val switchSet = "换一套"
     override val liveFromPhone = "现在用 · 手机上选的"
     override val liveFromLaptop = "现在用 · 电脑推过来的"
@@ -575,11 +565,6 @@ object En : Words {
     override val keepCentreOnly = "Centre only"
     override val noAreasYet = "No areas yet"
     override val pushFromTheWeb = "Press Save once in the web editor."
-    override val editAreasHere = "Edit areas on the phone"
-    override val editAreasHereHint = "Opens the same map editor as the laptop; this page updates after you save."
-    override val closeEditor = "Close"
-    override val editorOpening = "Opening the editor…"
-    override val editorSignedOut = "Not signed in, so the editor can't open."
     override val switchSet = "Switch set"
     override val liveFromPhone = "In use · picked on the phone"
     override val liveFromLaptop = "In use · sent from the web"

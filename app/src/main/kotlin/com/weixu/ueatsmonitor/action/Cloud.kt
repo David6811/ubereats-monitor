@@ -8,7 +8,6 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
-import com.weixu.ueatsmonitor.domain.HandedSession
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -64,18 +63,4 @@ object Cloud {
 
     /** The signed-in driver's id, which is also the key of their rules row. */
     fun userId(): String? = client.auth.currentUserOrNull()?.id
-
-    /**
-     * A fresh sign-in to hand to the web editor, or null when signed out.
-     *
-     * Refreshed first, so the page gets a full hour: it never refreshes on its
-     * own, because doing so would rotate the token out from under this app. A
-     * failed refresh still hands over the current one - the page then simply
-     * asks for a password if it has run out.
-     */
-    suspend fun handOver(): HandedSession? {
-        runCatching { client.auth.refreshCurrentSession() }
-        val session = client.auth.currentSessionOrNull() ?: return null
-        return HandedSession(access = session.accessToken, refresh = session.refreshToken)
-    }
 }

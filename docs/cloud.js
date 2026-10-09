@@ -15,44 +15,22 @@
   var KEY = "sb_publishable_ctg4zQ0W9kCNTH8IPg7fGg_8o25NAjr";
   var TABLE = "rules";
 
-  // Opened from the phone app, the page is handed the app's own sign-in in the
-  // address fragment, which never leaves the device. It is used as it is: no
-  // refresh and nothing stored. A refresh here would rotate the token out from
-  // under the app and sign the app out; the app hands over a fresh one each
-  // time it opens the editor.
-  var handed = (function(){
-    var match = /[#&]app-session=([^&]+)/.exec(location.hash);
-    if (!match) return null;
-    try { return JSON.parse(atob(decodeURIComponent(match[1]))); } catch (error) { return null; }
-  })();
-  if (handed) history.replaceState(null, "", location.pathname + location.search);
-
-  var client = handed
-    ? window.supabase.createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
-    : window.supabase.createClient(URL, KEY);
-
-  /** Settles once a handed-over sign-in is in place; every call waits on it. */
-  var ready = handed
-    ? client.auth.setSession({ access_token: handed.access, refresh_token: handed.refresh })
-        .then(function(){}, function(){})
-    : Promise.resolve();
+  var client = window.supabase.createClient(URL, KEY);
 
   function fetchJson(path){
     return fetch(path).then(function(r){ return r.json(); });
   }
 
   function user(){
-    return ready.then(function(){ return client.auth.getUser(); })
-      .then(function(res){ return res.data.user || null; });
+    return client.auth.getUser().then(function(res){ return res.data.user || null; });
   }
 
   /** The driver's row, or null when there is none yet. */
   function row(){
-    return ready.then(function(){ return client.from(TABLE).select("rules, updated_at").maybeSingle(); })
-      .then(function(res){
-        if (res.error) throw res.error;
-        return res.data;
-      });
+    return client.from(TABLE).select("rules, updated_at").maybeSingle().then(function(res){
+      if (res.error) throw res.error;
+      return res.data;
+    });
   }
 
   window.API = {
@@ -60,9 +38,7 @@
       return client.auth.signInWithPassword({ email: email, password: password })
         .then(function(res){ if (res.error) throw res.error; return res.data.user; });
     },
-    // Inside the app the sign-in is the app's: signing out must end this page
-    // only. The default signs the account out everywhere, the app included.
-    signOut: function(){ return client.auth.signOut(handed ? { scope: "local" } : undefined); },
+    signOut: function(){ return client.auth.signOut(); },
     user: user,
 
     /** Everything the page needs to draw: the tables, the rules, who is signed in. */
@@ -133,7 +109,7 @@
 
     /** Every offer the phone saw, newest first, as the phone wrote it. */
     jobs: function(){
-      return ready.then(function(){ return client.from("jobs").select("at, job, updated_at").order("at", { ascending: false }).limit(500); })
+      return client.from("jobs").select("at, job, updated_at").order("at", { ascending: false }).limit(500)
         .then(function(res){
           if (res.error) return { jobs: [], detail: res.error.message };
           return { jobs: res.data.map(function(r){ return r.job; }) };
