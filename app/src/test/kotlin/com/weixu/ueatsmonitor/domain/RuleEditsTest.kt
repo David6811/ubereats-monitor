@@ -193,53 +193,65 @@ class RuleEditsTest {
     }
 
     @Test
-    fun `given a suburb outside a set, when it is tapped, then it joins that set`() {
+    fun `given a suburb outside the draft, when it is tapped, then it joins the draft`() {
         // arrange
-        val tapped = "Dandenong"
+        val draft = setOf("Keysborough", "Noble Park")
 
         // act
-        val after = RuleEdits.toggleSuburb(rules, set = "ParkMore", suburb = tapped)
+        val after = RuleEdits.toggled(draft, "Dandenong")
 
         // assert
-        assertEquals(listOf("Dandenong", "Keysborough", "Noble Park"), RuleEdits.sets(after).first { it.name == "ParkMore" }.suburbs)
+        assertEquals(setOf("Keysborough", "Noble Park", "Dandenong"), after)
     }
 
     @Test
-    fun `given a suburb inside a set, when it is tapped, then it leaves that set`() {
+    fun `given a suburb inside the draft, when it is tapped, then it leaves the draft`() {
         // arrange
-        val tapped = "Keysborough"
+        val draft = setOf("Keysborough", "Noble Park")
 
         // act
-        val after = RuleEdits.toggleSuburb(rules, set = "ParkMore", suburb = tapped)
+        val after = RuleEdits.toggled(draft, "Keysborough")
 
         // assert
-        assertEquals(listOf("Noble Park"), RuleEdits.sets(after).first { it.name == "ParkMore" }.suburbs)
+        assertEquals(setOf("Noble Park"), after)
     }
 
     @Test
-    fun `given the laptop's open set, when a suburb is tapped, then its working copy follows`() {
+    fun `given a draft for the laptop's open set, when it is saved, then the set and its working copy both take it`() {
         // arrange
-        val tapped = "Dandenong"
+        val draft = listOf("Noble Park", "Dandenong")
 
         // act
-        val after = RuleEdits.toggleSuburb(rules, set = "ParkMore", suburb = tapped)
+        val after = RuleEdits.replaceSuburbs(rules, set = "ParkMore", suburbs = draft)
 
         // assert
         assertEquals(
-            json.parseToJsonElement("""{ "allow": ["Dandenong", "Keysborough", "Noble Park"] }"""),
+            json.parseToJsonElement("""{ "allow": ["Dandenong", "Noble Park"] }"""),
             after["suburbs"],
         )
     }
 
     @Test
-    fun `given a set the laptop does not have open, when a suburb is tapped, then the working copy is left alone`() {
+    fun `given a draft for another set, when it is saved, then the working copy is left alone`() {
         // arrange
-        val tapped = "Keysborough"
+        val draft = listOf("Keysborough")
 
         // act
-        val after = RuleEdits.toggleSuburb(rules, set = "Evenings", suburb = tapped)
+        val after = RuleEdits.replaceSuburbs(rules, set = "Evenings", suburbs = draft)
 
         // assert
         assertEquals(rules["suburbs"], after["suburbs"])
+    }
+
+    @Test
+    fun `given a set that does not exist, when a draft is saved, then nothing changes`() {
+        // arrange
+        val draft = listOf("Keysborough")
+
+        // act
+        val after = RuleEdits.replaceSuburbs(rules, set = "Nowhere", suburbs = draft)
+
+        // assert
+        assertEquals(rules, after)
     }
 }

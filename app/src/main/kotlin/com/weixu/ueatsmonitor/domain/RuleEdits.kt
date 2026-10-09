@@ -150,18 +150,21 @@ object RuleEdits {
         return replace(rules, "profiles", JsonArray(places))
     }
 
+    /** One suburb tapped on the map while editing: out if it was in, in if it was not. */
+    fun toggled(suburbs: kotlin.collections.Set<String>, suburb: String): kotlin.collections.Set<String> =
+        if (suburb in suburbs) suburbs - suburb else suburbs + suburb
+
     /**
-     * One suburb tapped on the map: out of the set if it was in, in if it was
-     * not. When the set is the one the laptop has open, its working copy under
-     * "suburbs.allow" follows, so the laptop shows the same thing either way.
+     * The suburbs of one set as the phone saves them. When the set is the one
+     * the laptop has open, its working copy under "suburbs.allow" follows, so
+     * the laptop shows the same thing either way.
      */
-    fun toggleSuburb(rules: JsonObject, set: String, suburb: String): JsonObject {
-        val current = sets(rules).firstOrNull { it.name == set } ?: return rules
-        val next = if (suburb in current.suburbs) current.suburbs - suburb else current.suburbs + suburb
-        val edited = setSuburbs(rules, set, next)
+    fun replaceSuburbs(rules: JsonObject, set: String, suburbs: List<String>): JsonObject {
+        if (sets(rules).none { it.name == set }) return rules
+        val edited = setSuburbs(rules, set, suburbs)
         if (activeSet(rules) != set) return edited
         val allow = rules["suburbs"]?.jsonObject ?: JsonObject(emptyMap())
-        return replace(edited, "suburbs", replace(allow, "allow", strings(next.distinct().sorted())))
+        return replace(edited, "suburbs", replace(allow, "allow", strings(suburbs.distinct().sorted())))
     }
 
     // -- the no-go boxes -----------------------------------------------------

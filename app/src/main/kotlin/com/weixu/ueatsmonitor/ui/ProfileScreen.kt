@@ -39,8 +39,6 @@ import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.RuleEdits
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -56,28 +54,26 @@ fun ProfileScreen() {
 
     val shapes = remember { SuburbShapes.all(context) }
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
-    // Off by default: a map that changes the rules at a brush of the thumb is
-    // not one to leave under a driver's hand.
-    var editing by remember { mutableStateOf(false) }
+    // Null until "edit" is pressed: a map that changes the rules at a brush of
+    // the thumb is not one to leave under a driver's hand. While editing, taps
+    // change only this draft; nothing is written until Save.
+    var draft by remember { mutableStateOf<Set<String>?>(null) }
+    var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    // One tap at a time. Two in flight would both read the same rules, and the
-    // second write would quietly undo the first.
-    val saving = remember { Mutex() }
 
-    fun toggle(set: String, suburb: String) {
+    fun save(set: String, suburbs: Set<String>) {
+        saving = true
         scope.launch {
-            saving.withLock {
-                note = when (RulesEditor.edit(context) { RuleEdits.toggleSuburb(it, set, suburb) }) {
-                    RulesEditor.Saved.Pushed -> null
-                    is RulesEditor.Saved.OnPhoneOnly -> words.savedOnPhoneOnly
-                    RulesEditor.Saved.CloudMovedOn -> {
-                        RulesSync.pull(context)
-                        words.cloudMovedOn
-                    }
-                }
-                profiles = Profiles.list(context)
+            when (RulesEditor.edit(context) { RuleEdits.replaceSuburbs(it, set, suburbs.toList()) }) {
+                RulesEditor.Saved.Pushed -> { draft = null; note = null }
+                is RulesEditor.Saved.OnPhoneOnly -> { draft = null; note = words.savedOnPhoneOnly }
+                // The draft is kept: pressing Save again writes it over what
+                // the laptop just saved, now that this phone has seen it.
+                RulesEditor.Saved.CloudMovedOn -> { RulesSync.pull(context); note = words.cloudMovedOn }
             }
+            profiles = Profiles.list(context)
+            saving = false
         }
     }
 
@@ -108,7 +104,7 @@ fun ProfileScreen() {
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(live.name, style = MaterialTheme.typography.headlineLarge, color = Dash.Gold)
                         Text(
-                            text = words.areasCount(Exclusions.apply(live.suburbs.toSet(), excluded).size),
+                            text = words.areasCount(draft?.size ?: Exclusions.apply(live.suburbs.toSet(), excluded).size),
                             modifier = Modifier.padding(bottom = 6.dp),
                             style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
                             color = Dash.Muted,
@@ -117,26 +113,35 @@ fun ProfileScreen() {
                 }
                 AreaMap(
                     setName = live.name,
-                    chosen = Exclusions.apply(live.suburbs.toSet(), excluded),
+                    chosen = draft ?: Exclusions.apply(live.suburbs.toSet(), excluded),
                     shapes = shapes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
                         .height(380.dp),
-                    onTap = if (editing) { suburb -> toggle(live.name, suburb) } else null,
+                    onTap = draft?.let { now -> { suburb: String -> draft = RuleEdits.toggled(now, suburb) } },
                 )
                 Column(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (editing) {
-                        Text(words.tapSuburbToToggle, style = MaterialTheme.typography.bodyMedium, color = Dash.Muted)
-                    }
                     note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
-                    if (editing) {
-                        GoldButton(words.doneEditing, Modifier.fillMaxWidth()) { editing = false; note = null }
-                    } else {
-                        GhostButton(words.editOnMap, Modifier.fillMaxWidth()) { editing = true }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (draft != null) words.tapSuburbToToggle else "",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Dash.Muted,
+                        )
+                        val editingNow = draft
+                        if (editingNow == null) {
+                            SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
+                        } else {
+                            SmallButton(words.cancel, gold = false, enabled = !saving) { draft = null; note = null }
+                            SmallButton(words.save, gold = true, enabled = !saving && editingNow != live.suburbs.toSet()) {
+                                save(live.name, editingNow)
+                            }
+                        }
                     }
                 }
             }
@@ -153,6 +158,8 @@ fun ProfileScreen() {
                                 .fillMaxWidth()
                                 .clickable {
                                     Profiles.choose(context, profile.name)
+                                    draft = null
+                                    note = null
                                     profiles = Profiles.list(context)
                                     fromPhone = Profiles.chosenHere(context)
                                     // Switching sets drops them, and this is what that looks like.
@@ -198,5 +205,32 @@ fun ProfileScreen() {
                 color = Dash.Muted,
             )
         }
+    }
+}
+
+/** A button that fits beside a line of text: for a panel's own small actions. */
+@Composable
+private fun SmallButton(text: String, gold: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+    val shape = Dash.ControlShape
+    val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+    if (gold) {
+        androidx.compose.material3.Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.height(40.dp),
+            shape = shape,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Dash.Gold, contentColor = Dash.Ground),
+            contentPadding = padding,
+        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+    } else {
+        androidx.compose.material3.OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.height(40.dp),
+            shape = shape,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Dash.Line),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Dash.Ink),
+            contentPadding = padding,
+        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
     }
 }

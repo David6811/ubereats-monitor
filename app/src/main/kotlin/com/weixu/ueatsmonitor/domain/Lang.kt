@@ -158,7 +158,6 @@ interface Words {
     val noAreasYet: String
     val pushFromTheWeb: String
     val editOnMap: String
-    val doneEditing: String
     val tapSuburbToToggle: String
     val savedOnPhoneOnly: String
     val cloudMovedOn: String
@@ -369,11 +368,10 @@ object Zh : Words {
     override val keepCentreOnly = "只留中心"
     override val noAreasYet = "还没有选区"
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
-    override val editOnMap = "在地图上改区"
-    override val doneEditing = "改完了"
-    override val tapSuburbToToggle = "点一个区：没选的加进来，选了的去掉。每点一下都会保存。"
+    override val editOnMap = "改区"
+    override val tapSuburbToToggle = "点区加入或去掉，点「保存」才生效"
     override val savedOnPhoneOnly = "只存在了手机上，云端没传上去，下次同步会补上。"
-    override val cloudMovedOn = "电脑上刚改过规则，这一下没存。已经拉到最新，再点一次。"
+    override val cloudMovedOn = "电脑上刚改过规则，这次没存。已拉到最新，再点一次「保存」就用你现在的选择。"
     override val switchSet = "换一套"
     override val liveFromPhone = "现在用 · 手机上选的"
     override val liveFromLaptop = "现在用 · 电脑推过来的"
@@ -575,11 +573,10 @@ object En : Words {
     override val keepCentreOnly = "Centre only"
     override val noAreasYet = "No areas yet"
     override val pushFromTheWeb = "Press Save once in the web editor."
-    override val editOnMap = "Change areas on the map"
-    override val doneEditing = "Done"
-    override val tapSuburbToToggle = "Tap a suburb to add it, or tap a chosen one to take it out. Every tap saves."
+    override val editOnMap = "Edit"
+    override val tapSuburbToToggle = "Tap suburbs in or out; nothing changes until Save"
     override val savedOnPhoneOnly = "Saved on the phone only; the cloud gets it on the next sync."
-    override val cloudMovedOn = "The laptop changed the rules just now, so this tap was not saved. Now up to date - tap again."
+    override val cloudMovedOn = "The laptop changed the rules just now, so nothing was saved. Now up to date - press Save again to keep your choice."
     override val switchSet = "Switch set"
     override val liveFromPhone = "In use · picked on the phone"
     override val liveFromLaptop = "In use · sent from the web"
