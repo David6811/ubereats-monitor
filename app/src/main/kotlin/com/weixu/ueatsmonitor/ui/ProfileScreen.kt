@@ -31,12 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.weixu.ueatsmonitor.action.CentreLabel
+import com.weixu.ueatsmonitor.action.CurrentPosition
 import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.RulesEditor
 import com.weixu.ueatsmonitor.action.RulesSync
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
+import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.RuleEdits
 import kotlinx.coroutines.launch
 
@@ -58,21 +61,34 @@ fun ProfileScreen() {
     // the thumb is not one to leave under a driver's hand. While editing, taps
     // change only this draft; nothing is written until Save.
     var draft by remember { mutableStateOf<Set<String>?>(null) }
+    // A centre marked while editing - by a long press or "my position" - and
+    // not yet saved. Null keeps the set's own.
+    var draftCentre by remember { mutableStateOf<RuleEdits.Centre?>(null) }
+    var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    fun stopEditing() { draft = null; draftCentre = null }
+
+    fun markCentre(at: GeoPoint) {
+        scope.launch {
+            draftCentre = RuleEdits.Centre(CentreLabel.of(context, at), at.latitude, at.longitude)
+        }
+    }
+
     fun save(set: String, suburbs: Set<String>) {
         saving = true
         scope.launch {
-            when (RulesEditor.edit(context) { RuleEdits.replaceSuburbs(it, set, suburbs.toList()) }) {
-                RulesEditor.Saved.Pushed -> { draft = null; note = null }
-                is RulesEditor.Saved.OnPhoneOnly -> { draft = null; note = words.savedOnPhoneOnly }
+            when (RulesEditor.edit(context) { RuleEdits.saveSet(it, set, suburbs.toList(), draftCentre) }) {
+                RulesEditor.Saved.Pushed -> { stopEditing(); note = null }
+                is RulesEditor.Saved.OnPhoneOnly -> { stopEditing(); note = words.savedOnPhoneOnly }
                 // The draft is kept: pressing Save again writes it over what
                 // the laptop just saved, now that this phone has seen it.
                 RulesEditor.Saved.CloudMovedOn -> { RulesSync.pull(context); note = words.cloudMovedOn }
             }
             profiles = Profiles.list(context)
+            liveCentre = Profiles.centre(context)
             saving = false
         }
     }
@@ -119,13 +135,16 @@ fun ProfileScreen() {
                         .fillMaxWidth()
                         .padding(top = 12.dp)
                         .height(380.dp),
+                    centre = draftCentre?.let { GeoPoint(it.latitude, it.longitude) } ?: liveCentre,
                     onTap = draft?.let { now -> { suburb: String -> draft = RuleEdits.toggled(now, suburb) } },
+                    onLongPress = if (draft != null) { at -> markCentre(at) } else null,
                 )
                 Column(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
+                    draftCentre?.let { Text(words.centreNotSaved(it.label), style = MaterialTheme.typography.bodyMedium, color = Dash.Gold) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = if (draft != null) words.tapSuburbToToggle else "",
@@ -137,10 +156,16 @@ fun ProfileScreen() {
                         if (editingNow == null) {
                             SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
                         } else {
-                            SmallButton(words.cancel, gold = false, enabled = !saving) { draft = null; note = null }
-                            SmallButton(words.save, gold = true, enabled = !saving && editingNow != live.suburbs.toSet()) {
-                                save(live.name, editingNow)
+                            SmallButton(words.myPosition, gold = false, enabled = !saving) {
+                                val fix = CurrentPosition(context).lastKnown()
+                                if (fix == null) note = words.noPosition else markCentre(fix.at)
                             }
+                            SmallButton(words.cancel, gold = false, enabled = !saving) { stopEditing(); note = null }
+                            SmallButton(
+                                words.save,
+                                gold = true,
+                                enabled = !saving && (editingNow != live.suburbs.toSet() || draftCentre != null),
+                            ) { save(live.name, editingNow) }
                         }
                     }
                 }
@@ -158,8 +183,9 @@ fun ProfileScreen() {
                                 .fillMaxWidth()
                                 .clickable {
                                     Profiles.choose(context, profile.name)
-                                    draft = null
+                                    stopEditing()
                                     note = null
+                                    liveCentre = Profiles.centre(context)
                                     profiles = Profiles.list(context)
                                     fromPhone = Profiles.chosenHere(context)
                                     // Switching sets drops them, and this is what that looks like.
