@@ -51,12 +51,14 @@ import com.weixu.ueatsmonitor.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.isImeVisible
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
  *
  * The sets are drawn on the laptop, on the map. Here they are a list you tap.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     val words = words()
@@ -79,6 +81,10 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     var found by remember { mutableStateOf<List<Place>>(emptyList()) }
     var lookingUp by remember { mutableStateOf(false) }
     var lookAt by remember { mutableStateOf<GeoPoint?>(null) }
+    // The centre is set once in a while; suburbs are tapped all the time. So
+    // the box that sets it waits behind a target rather than standing on the
+    // map's share of the screen.
+    var settingCentre by remember { mutableStateOf(false) }
     var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
@@ -88,7 +94,7 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     var menuFor by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    fun stopEditing() { draft = null; draftCentre = null; typed = ""; found = emptyList() }
+    fun stopEditing() { draft = null; draftCentre = null; typed = ""; found = emptyList(); settingCentre = false }
 
     // The bundled suburbs and shops answer on every keystroke; the phone's
     // geocoder is a network call, so it waits for the typing to stop, and its
@@ -161,7 +167,13 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     // a page that scrolls, which is less than half the glass and puts the drag
     // that pans the map in a fight with the drag that scrolls the page.
     if (editingNow != null && live != null) {
-        BackHandler { stopEditing(); note = null }
+        // The keyboard gets the back press first. It did not, and a driver
+        // half way through typing a centre lost the whole draft to one tap.
+        val keyboardUp = androidx.compose.foundation.layout.WindowInsets.isImeVisible
+        val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+        BackHandler {
+            if (keyboardUp) keyboard?.hide() else { stopEditing(); note = null }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -169,17 +181,28 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SectionLabel(words.editOnMap)
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(live.name, style = MaterialTheme.typography.headlineSmall, color = Dash.Gold)
                 Text(
                     text = words.areasCount(editingNow.size),
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = 4.dp),
                     style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
                     color = Dash.Muted,
                 )
+                Icon(
+                    painter = painterResource(R.drawable.ic_centre),
+                    contentDescription = words.setCentreHere,
+                    tint = if (settingCentre) Dash.Gold else Dash.Muted,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { settingCentre = !settingCentre }
+                        .padding(8.dp),
+                )
             }
-            PlaceSearchBox(
+            if (settingCentre) PlaceSearchBox(
                 typed = typed,
                 found = found,
                 lookingUp = lookingUp,
@@ -195,6 +218,7 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 typed = ""
                 found = emptyList()
                 note = null
+                settingCentre = false
             }
             AreaMap(
                 setName = live.name,
@@ -211,8 +235,18 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
             )
             note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
             draftCentre?.let { Text(words.centreNotSaved(it.label), style = MaterialTheme.typography.bodyMedium, color = Dash.Gold) }
-            Text(words.tapSuburbToToggle, style = MaterialTheme.typography.bodySmall, color = Dash.Muted)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Beside the buttons, not on a line of its own. Half of what it
+                // used to say is now written on the box above the map.
+                Text(
+                    text = words.tapSuburbToToggle,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Dash.Muted,
+                )
                 SmallButton(words.myPosition, gold = false, enabled = !saving) {
                     val fix = CurrentPosition(context).lastKnown()
                     if (fix == null) note = words.noPosition else markCentre(fix.at)
