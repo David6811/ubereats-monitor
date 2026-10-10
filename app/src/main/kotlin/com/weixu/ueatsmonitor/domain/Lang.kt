@@ -181,10 +181,6 @@ interface Words {
     val nameTaken: String
     val lastSetStays: String
     fun reallyDelete(name: String): String
-    val liveFromPhone: String
-    val liveFromLaptop: String
-    val fewerAreasThisTrip: String
-    val turnThemOffOnTrip: String
     fun areaCount(n: Int): String
 
     // Signing in.
@@ -409,10 +405,6 @@ object Zh : Words {
     override val nameTaken = "这个名字已经有了"
     override val lastSetStays = "只剩这一套了，删不了"
     override fun reallyDelete(name: String) = "删掉「$name」？"
-    override val liveFromPhone = "现在用 · 手机上选的"
-    override val liveFromLaptop = "现在用 · 电脑推过来的"
-    override val fewerAreasThisTrip = "这一趟想少去几个区"
-    override val turnThemOffOnTrip = "去「这趟」那一页点掉，只管这一趟，不会改这里的选区。"
     override fun areaCount(n: Int) = "$n 个区"
 
     override val signIn = "登录"
@@ -631,10 +623,6 @@ object En : Words {
     override val nameTaken = "That name is taken"
     override val lastSetStays = "This is the only set left; it cannot go"
     override fun reallyDelete(name: String) = "Delete \"$name\"?"
-    override val liveFromPhone = "In use · picked on the phone"
-    override val liveFromLaptop = "In use · sent from the web"
-    override val fewerAreasThisTrip = "Fewer areas just for this trip"
-    override val turnThemOffOnTrip = "Turn them off on the Trip page; it lasts this trip only and leaves the set alone."
     override fun areaCount(n: Int) = if (n == 1) "1 area" else "$n areas"
 
     override val signIn = "Sign in"

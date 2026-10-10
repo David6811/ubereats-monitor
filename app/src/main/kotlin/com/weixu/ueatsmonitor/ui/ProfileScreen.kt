@@ -84,6 +84,8 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     var note by remember { mutableStateOf<String?>(null) }
     // Which set is being named, and why. Null while no dialog is up.
     var naming by remember { mutableStateOf<Naming?>(null) }
+    // Which row has its three actions open. One at a time, by name.
+    var menuFor by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     fun stopEditing() { draft = null; draftCentre = null; typed = ""; found = emptyList() }
@@ -247,27 +249,34 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
         // Whichever set is live, drawn as shapes so it is obvious which one it is.
         profiles.firstOrNull { it.active }?.let { live ->
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Two places can pick, so say plainly which one did.
-                    SectionLabel(if (fromPhone) words.liveFromPhone else words.liveFromLaptop)
-                    // The button sits beside the name it acts on, not under the
-                    // map: it is about this set, and the foot of the panel is
-                    // where the eye goes last.
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = live.name,
-                            modifier = Modifier.weight(1f, fill = false),
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = Dash.Gold,
-                        )
-                        Text(
-                            text = words.areasCount(Exclusions.apply(live.suburbs.toSet(), excluded).size),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
-                            color = Dash.Muted,
-                        )
-                        SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
-                    }
+                // One line: what is live, how big it is, which of the two places
+                // picked it, and the way in. It was four lines, three of which
+                // were a heading the map underneath already made obvious.
+                Row(
+                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = live.name,
+                        modifier = Modifier.weight(1f, fill = false),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Dash.Gold,
+                    )
+                    // Which of the two places picked it is not said here any
+                    // more. It was a whole line, then three words, and it
+                    // answered a question nobody was asking at a glance.
+                    Text(
+                        text = words.areasCount(Exclusions.apply(live.suburbs.toSet(), excluded).size),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                        color = Dash.Muted,
+                    )
+                    // Both ways of getting a set, side by side: change this one
+                    // or start another. Making one was at the foot of a list
+                    // eight rows long.
+                    SmallButton(words.newSet, gold = false, enabled = !saving) { naming = Naming.New }
+                    SmallButton(words.editOnMap, gold = true) { draft = live.suburbs.toSet(); note = null }
                 }
                 // Read only, and short. It answers "which patch am I running
                 // tonight"; drawing one happens on its own page.
@@ -296,7 +305,11 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
             Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
                 SectionLabel(words.switchSet)
                 Column {
-                    profiles.forEachIndexed { index, profile ->
+                    // The one being worked goes first. The order the sets
+                    // were written in means nothing to the driver, and the
+                    // live one is the row he looks for. Kotlin's sort is
+                    // stable, so the rest keep the order they came in.
+                    profiles.sortedByDescending { it.active }.forEachIndexed { index, profile ->
                         if (index > 0) Hairline()
                         Row(
                             modifier = Modifier
@@ -337,29 +350,44 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                                 style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
                                 color = Dash.Muted,
                             )
+                            // Behind a dot each, not spelled out under every
+                            // row. Spelled out they doubled the height of the
+                            // list and said the same three words eight times;
+                            // what the list is for is seeing the sets.
+                            Box {
+                                Text(
+                                    text = "\u22ee",
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .clickable(enabled = !saving) { menuFor = profile.name }
+                                        .padding(horizontal = 10.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Dash.Muted,
+                                )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = menuFor == profile.name,
+                                    onDismissRequest = { menuFor = null },
+                                    containerColor = Dash.Panel,
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(words.renameSet, color = Dash.Ink) },
+                                        onClick = { menuFor = null; naming = Naming.Rename(profile.name) },
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(words.copySet, color = Dash.Ink) },
+                                        onClick = { menuFor = null; naming = Naming.Copy(profile.name) },
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(words.deleteSet, color = Dash.Orange) },
+                                        onClick = {
+                                            menuFor = null
+                                            if (profiles.size <= 1) note = words.lastSetStays
+                                            else naming = Naming.Delete(profile.name)
+                                        },
+                                    )
+                                }
+                            }
                         }
-                        // Under the row, not in it: the row is a big target for
-                        // switching sets mid-shift, and these three are not
-                        // things to hit by accident at the wheel.
-                        Row(
-                            modifier = Modifier.padding(start = 36.dp, bottom = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(22.dp),
-                        ) {
-                            QuietAction(words.renameSet, enabled = !saving) {
-                                naming = Naming.Rename(profile.name)
-                            }
-                            QuietAction(words.copySet, enabled = !saving) {
-                                naming = Naming.Copy(profile.name)
-                            }
-                            QuietAction(words.deleteSet, enabled = !saving) {
-                                if (profiles.size <= 1) note = words.lastSetStays
-                                else naming = Naming.Delete(profile.name)
-                            }
-                        }
-                    }
-                    Hairline()
-                    Row(Modifier.padding(top = 10.dp)) {
-                        SmallButton(words.newSet, gold = true, enabled = !saving) { naming = Naming.New }
                     }
                 }
             }
@@ -381,14 +409,6 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
             }
         }
 
-        Panel {
-            SectionLabel(words.fewerAreasThisTrip)
-            Text(
-                text = words.turnThemOffOnTrip,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Dash.Muted,
-            )
-        }
     }
 }
 
@@ -542,26 +562,6 @@ private fun NameDialog(
             androidx.compose.material3.TextButton(onClick = onDismiss) { Text(words.cancel) }
         },
         containerColor = Dash.Panel,
-    )
-}
-
-/**
- * An action with no box around it, for the three that sit under every set.
- *
- * Boxed, they shouted over the names they belong to - a list of eighteen
- * buttons with a set name somewhere behind them. Small grey words read as what
- * they are: something to do to the line above, once the line has been found.
- */
-@Composable
-private fun QuietAction(text: String, enabled: Boolean, onClick: () -> Unit) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (enabled) Dash.Muted else Dash.Line,
-        modifier = Modifier
-            .clip(Dash.ControlShape)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 6.dp),
     )
 }
 
