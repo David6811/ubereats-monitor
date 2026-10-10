@@ -100,6 +100,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.domain.CentreMode
 
 class MainActivity : ComponentActivity() {
 
@@ -445,6 +446,7 @@ private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
                 Column {
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     if (current.homewardEnabled) {
+                        CentreModeRow(current.centreMode) { scope.launch { store.setCentreMode(it) } }
                         HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
                     }
                     Hairline()
@@ -497,14 +499,51 @@ private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
 }
 
 /**
- * The two numbers the homeward rule bends on: a drop this near the centre is
- * taken even if it leads away, and a job longer than this is left however near.
+ * Which of the two readings of the radius is in force, and one line saying what
+ * that reading is: the same number is a let-off in one and a ceiling in the
+ * other, which is not something a driver should have to work out.
+ */
+@Composable
+private fun CentreModeRow(mode: CentreMode, onChoose: (CentreMode) -> Unit) {
+    val words = words()
+    Column(Modifier.padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(CentreMode.HEAD_BACK to words.headBack, CentreMode.STAY_NEAR to words.stayNear)
+                .forEach { (which, name) ->
+                    val on = which == mode
+                    Text(
+                        text = name,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(Dash.ControlShape)
+                            .background(if (on) Dash.Gold else Dash.Raised)
+                            .clickable { onChoose(which) }
+                            .padding(vertical = 10.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (on) Dash.Ground else Dash.Ink,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+        }
+        Text(
+            text = if (mode == CentreMode.HEAD_BACK) words.headBackHint else words.stayNearHint,
+            style = MaterialTheme.typography.bodySmall,
+            color = Dash.Muted,
+        )
+    }
+}
+
+/**
+ * The two numbers the centre rule bends on. The first one changes its meaning
+ * with the mode - a let-off heading back, a ceiling staying near - so it
+ * changes its label too.
  */
 @Composable
 private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
     val words = words()
     LimitsRow(
-        kmLabel = words.nearKmLabel,
+        kmLabel = if (settings.centreMode == CentreMode.STAY_NEAR) words.farthestKmLabel else words.nearKmLabel,
         minutesLabel = words.maxMinutesLabel,
         km = settings.homewardNearKm,
         minutes = settings.homewardMaxMinutes,

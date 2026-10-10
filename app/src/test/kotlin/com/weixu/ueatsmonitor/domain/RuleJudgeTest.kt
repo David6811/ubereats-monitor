@@ -196,6 +196,48 @@ class RuleJudgeTest {
     }
 
     @Test
+    fun `given stay-near on and a drop outside the radius, when judged, then it is left`() {
+        // arrange  Rowville is 14 km from the centre, the radius is 4
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = STAY_NEAR)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = KEYSBOROUGH)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals("送完离中心 14.1 公里，超过 4 公里", RulingText.reason(ruling, Lang.CHINESE))
+    }
+
+    @Test
+    fun `given stay-near on and a drop inside the radius, when judged, then it is taken`() {
+        // arrange  Keysborough is 4.03 km from the centre, so the radius is 5
+        val rules = RULES.copy(homeward = STAY_NEAR.copy(nearKm = 5.0))
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given stay-near on and no fix for the car, when judged, then the drop is still judged`() {
+        // arrange  heading back gives up without a position; staying near does not need one
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = STAY_NEAR)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(ROWVILLE, "Barbican Court", "Bexsarm Crescent"), carAt = null)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals("送完离中心 14.1 公里，超过 4 公里", RulingText.reason(ruling, Lang.CHINESE))
+    }
+
+    @Test
     fun `given the homeward switch on but no fix for the car, when judged, then it does not refuse`() {
         // arrange
         val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = HOMEWARD)
@@ -301,7 +343,8 @@ class RuleJudgeTest {
         /** Kawarra Drive & Westbrook Drive, Keysborough - about 3.3 km east of the centre. */
         val WESTBROOK_DRIVE = GeoPoint(-38.0146, 145.1640)
 
-        val HOMEWARD = HomewardLimits(CENTRE, nearKm = 4.0, maxMinutes = 20)
+        val HOMEWARD = CentreLimits(CENTRE, nearKm = 4.0, maxMinutes = 20, mode = CentreMode.HEAD_BACK)
+        val STAY_NEAR = HOMEWARD.copy(mode = CentreMode.STAY_NEAR)
 
         val WEST_OF_SPRINGVALE = NoGoBox("Springvale 西", south = -38.00, west = 145.10, north = -37.93, east = 145.14)
 

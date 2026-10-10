@@ -17,7 +17,7 @@ data class Rules(
      * if its drop leaves him further out and is not near the middle anyway.
      * Null when the switch is off or no centre was drawn.
      */
-    val homeward: HomewardLimits?,
+    val homeward: CentreLimits?,
 )
 
 /** Data. Sum type: why an offer is or is not worth taking. */
@@ -78,19 +78,37 @@ object RuleJudge {
     }
 
     /**
-     * Too long first: however near it lands, a job that eats the time left is no
-     * good. Then leading away - unless the drop is near the middle anyway, where
-     * a short job is worth more than the few kilometres it costs. An unreadable
-     * time, or an unknown position, says nothing and refuses nothing.
+     * Too long first, whichever mode is on: however near it lands, a job that
+     * eats the time left is no good.
+     *
+     * Then the radius, read one of two ways. Heading back, it is a let-off -
+     * a drop that leads away is still taken when it lands near the middle,
+     * where a short job is worth more than the few kilometres it costs; and
+     * without the car's position the rule says nothing. Staying near, it is a
+     * ceiling, and the car's position does not come into it.
      */
-    private fun homewardReason(card: OfferCard, stops: Stops, limits: HomewardLimits): Ruling.Reason? {
+    private fun homewardReason(card: OfferCard, stops: Stops, limits: CentreLimits): Ruling.Reason? {
         val minutes = card.duration?.value
         if (minutes != null && minutes > limits.maxMinutes) return Ruling.Reason.TooLong(minutes, limits.maxMinutes)
-        val homeward = HomewardRule.judge(stops.carAt, stops.dropoff?.at, limits.centre)
-        if (homeward is Homeward.Further && homeward.fromDrop.value * KM_PER_MILE >= limits.nearKm) {
-            return Ruling.Reason.LeadingAway(homeward)
+        val dropAt = stops.dropoff?.at
+        return when (limits.mode) {
+            CentreMode.HEAD_BACK -> {
+                val homeward = HomewardRule.judge(stops.carAt, dropAt, limits.centre)
+                if (homeward is Homeward.Further && homeward.fromDrop.value * KM_PER_MILE >= limits.nearKm) {
+                    Ruling.Reason.LeadingAway(homeward)
+                } else {
+                    null
+                }
+            }
+            CentreMode.STAY_NEAR -> {
+                val fromDrop = dropAt?.let { Geo.straightLine(it, limits.centre) } ?: return null
+                if (fromDrop.value * KM_PER_MILE > limits.nearKm) {
+                    Ruling.Reason.TooFarFromCentre(fromDrop, limits.nearKm)
+                } else {
+                    null
+                }
+            }
         }
-        return null
     }
 
     /**
