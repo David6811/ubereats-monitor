@@ -47,6 +47,9 @@ import com.weixu.ueatsmonitor.domain.PlaceSearch
 import com.weixu.ueatsmonitor.domain.Place
 import com.weixu.ueatsmonitor.action.CentreSearch
 import androidx.compose.runtime.LaunchedEffect
+import com.weixu.ueatsmonitor.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -365,11 +368,30 @@ private fun PlaceSearchBox(
 ) {
     val words = words()
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // Gold, and with a magnifier in front of it. In the panel's own grey it
+        // read as a divider: the driver it was built for did not see it.
         androidx.compose.material3.OutlinedTextField(
             value = typed,
             onValueChange = onTyped,
-            placeholder = { Text(words.searchPlace, color = Dash.Muted) },
+            placeholder = { Text(words.searchPlace, color = Dash.Gold.copy(alpha = 0.75f)) },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_search),
+                    contentDescription = null,
+                    tint = Dash.Gold,
+                )
+            },
             singleLine = true,
+            shape = Dash.ControlShape,
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Dash.Gold,
+                unfocusedBorderColor = Dash.Gold,
+                focusedTextColor = Dash.Ink,
+                unfocusedTextColor = Dash.Ink,
+                cursorColor = Dash.Gold,
+                focusedContainerColor = Dash.GoldDeep.copy(alpha = 0.35f),
+                unfocusedContainerColor = Dash.GoldDeep.copy(alpha = 0.35f),
+            ),
             modifier = Modifier.fillMaxWidth(),
         )
         found.forEach { place ->
