@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.MapProjection
 import com.weixu.ueatsmonitor.domain.SuburbGeoJson
 import com.weixu.ueatsmonitor.domain.SuburbShape
@@ -22,6 +23,7 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
@@ -43,8 +45,12 @@ fun AreaMap(
     chosen: Set<String>,
     shapes: List<SuburbShape>,
     modifier: Modifier = Modifier,
+    /** The set's centre, drawn as a gold ring. Null draws none. */
+    centre: GeoPoint? = null,
     /** The suburb under a tap, by name. Null leaves the map read only. */
     onTap: ((String) -> Unit)? = null,
+    /** Where a long press landed. Null ignores long presses. */
+    onLongPress: ((GeoPoint) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -70,6 +76,11 @@ fun AreaMap(
                     tap(name)
                     true
                 }
+                map.addOnMapLongClickListener { at ->
+                    val press = holder.onLongPress ?: return@addOnMapLongClickListener false
+                    press(GeoPoint(at.latitude, at.longitude))
+                    true
+                }
                 map.setStyle(Style.Builder().fromUri(STYLE)) { style ->
                     style.addSource(GeoJsonSource(SOURCE, SuburbGeoJson.featureCollection(shapes, holder.chosen)))
                     // Every suburb, all but invisible: a tap inside an unchosen
@@ -90,6 +101,15 @@ fun AreaMap(
                         LineLayer(EDGE, SOURCE)
                             .withProperties(PropertyFactory.lineColor(GOLD), PropertyFactory.lineWidth(1.6f))
                             .withFilter(Expression.eq(Expression.get(SuburbGeoJson.CHOSEN), Expression.literal(true))),
+                    )
+                    style.addSource(GeoJsonSource(CENTRE, centreJson(holder.centre)))
+                    style.addLayer(
+                        CircleLayer(CENTRE_RING, CENTRE).withProperties(
+                            PropertyFactory.circleRadius(8f),
+                            PropertyFactory.circleColor(GROUND),
+                            PropertyFactory.circleStrokeColor(GOLD),
+                            PropertyFactory.circleStrokeWidth(3f),
+                        ),
                     )
                     holder.map = map
                     holder.style = style
@@ -125,6 +145,11 @@ fun AreaMap(
         factory = { mapView },
         update = {
             holder.onTap = onTap
+            holder.onLongPress = onLongPress
+            if (holder.centre != centre) {
+                holder.centre = centre
+                holder.style?.getSourceAs<GeoJsonSource>(CENTRE)?.setGeoJson(centreJson(centre))
+            }
             if (holder.chosen != chosen) {
                 holder.chosen = chosen
                 holder.style?.getSourceAs<GeoJsonSource>(SOURCE)?.setGeoJson(SuburbGeoJson.featureCollection(shapes, chosen))
@@ -146,7 +171,14 @@ private class MapHolder {
     var map: MapLibreMap? = null
     var style: Style? = null
     var onTap: ((String) -> Unit)? = null
+    var onLongPress: ((GeoPoint) -> Unit)? = null
+    var centre: GeoPoint? = null
 }
+
+/** The centre as GeoJSON: one point, or nothing at all. */
+private fun centreJson(centre: GeoPoint?): String =
+    if (centre == null) """{"type":"FeatureCollection","features":[]}"""
+    else """{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[${centre.longitude},${centre.latitude}]}}"""
 
 /** Fits the camera to the chosen suburbs, or to all of them when none is chosen. */
 private fun frame(map: MapLibreMap, shapes: List<SuburbShape>, chosen: Set<String>) {
@@ -165,5 +197,8 @@ private const val FILL = "suburbs-chosen-fill"
 private const val EDGE = "suburbs-chosen-edge"
 private const val OTHERS = "suburbs-others"
 private const val HIT = "suburbs-hit"
+private const val CENTRE = "centre"
+private const val CENTRE_RING = "centre-ring"
+private const val GROUND = "#0A0A0B"
 private const val GOLD = "#E8B64C"
 private const val LINE = "#5A5850"

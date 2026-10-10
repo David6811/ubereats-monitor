@@ -254,4 +254,31 @@ class RuleEditsTest {
         // assert
         assertEquals(rules, after)
     }
+
+    @Test
+    fun `given a new centre, when the set is saved, then the set carries it`() {
+        // arrange
+        val centre = RuleEdits.Centre(label = "Wells Rd", latitude = -38.02, longitude = 145.12)
+
+        // act
+        val after = RuleEdits.saveSet(rules, set = "Evenings", suburbs = listOf("Dandenong"), centre = centre)
+
+        // assert
+        assertEquals(centre, RuleEdits.sets(after).first { it.name == "Evenings" }.centre)
+    }
+
+    @Test
+    fun `given no new centre, when the set is saved, then its old centre stays`() {
+        // arrange
+        val suburbs = listOf("Keysborough")
+
+        // act
+        val after = RuleEdits.saveSet(rules, set = "ParkMore", suburbs = suburbs, centre = null)
+
+        // assert
+        assertEquals(
+            RuleEdits.Centre(label = "Parkmore", latitude = -37.99, longitude = 145.16),
+            RuleEdits.sets(after).first { it.name == "ParkMore" }.centre,
+        )
+    }
 }

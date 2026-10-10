@@ -158,6 +158,9 @@ interface Words {
     val noAreasYet: String
     val pushFromTheWeb: String
     val editOnMap: String
+    val myPosition: String
+    val noPosition: String
+    fun centreNotSaved(label: String): String
     val tapSuburbToToggle: String
     val savedOnPhoneOnly: String
     val cloudMovedOn: String
@@ -369,7 +372,10 @@ object Zh : Words {
     override val noAreasYet = "还没有选区"
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
     override val editOnMap = "改区"
-    override val tapSuburbToToggle = "点区加入或去掉，点「保存」才生效"
+    override val myPosition = "我的位置"
+    override val noPosition = "拿不到手机的位置，打开定位再试，或者长按地图选一个点。"
+    override fun centreNotSaved(label: String) = "中心：$label（还没保存）"
+    override val tapSuburbToToggle = "点区加减，长按设中心"
     override val savedOnPhoneOnly = "只存在了手机上，云端没传上去，下次同步会补上。"
     override val cloudMovedOn = "电脑上刚改过规则，这次没存。已拉到最新，再点一次「保存」就用你现在的选择。"
     override val switchSet = "换一套"
@@ -574,7 +580,10 @@ object En : Words {
     override val noAreasYet = "No areas yet"
     override val pushFromTheWeb = "Press Save once in the web editor."
     override val editOnMap = "Edit"
-    override val tapSuburbToToggle = "Tap suburbs in or out; nothing changes until Save"
+    override val myPosition = "Here"
+    override val noPosition = "No position from the phone. Turn location on, or long-press the map instead."
+    override fun centreNotSaved(label: String) = "Centre: $label (not saved yet)"
+    override val tapSuburbToToggle = "Tap suburbs in or out; long-press for the centre"
     override val savedOnPhoneOnly = "Saved on the phone only; the cloud gets it on the next sync."
     override val cloudMovedOn = "The laptop changed the rules just now, so nothing was saved. Now up to date - press Save again to keep your choice."
     override val switchSet = "Switch set"
