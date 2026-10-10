@@ -45,8 +45,12 @@ data class CentreLimits(
      * Staying near, it is the furthest a drop may land.
      */
     val nearKm: Double,
-    /** A job the card says takes longer than this is left, however near. */
-    val maxMinutes: Int,
+    /**
+     * A job the card says takes longer than this is left, however near. Null
+     * leaves the length alone: a driver with the whole night ahead of him does
+     * not care how long one job takes, only where it ends.
+     */
+    val maxMinutes: Int?,
     val mode: CentreMode,
 )
 /**

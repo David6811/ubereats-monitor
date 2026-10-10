@@ -101,6 +101,7 @@ import java.util.Date
 import java.util.Locale
 import com.weixu.ueatsmonitor.action.RulesStore
 import com.weixu.ueatsmonitor.domain.CentreMode
+import com.weixu.ueatsmonitor.domain.VoiceCommands
 
 class MainActivity : ComponentActivity() {
 
@@ -446,8 +447,24 @@ private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
                 Column {
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     if (current.homewardEnabled) {
-                        CentreModeRow(current.centreMode) { scope.launch { store.setCentreMode(it) } }
-                        HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
+                        // Set back and boxed in, so four controls belonging to
+                        // the switch above do not read as four more rows of the
+                        // panel they sit in.
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 10.dp, bottom = 12.dp)
+                                .clip(Dash.ControlShape)
+                                .background(Dash.Raised)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            CentreModeRow(current.centreMode) { scope.launch { store.setCentreMode(it) } }
+                            HomewardLimitsRow(
+                                settings = current,
+                                onCapped = { scope.launch { store.setHomewardTimeCapped(it) } },
+                            ) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
+                        }
                     }
                     Hairline()
                     SwitchRow(words.areaSound, null, current.areaSoundEnabled) {
@@ -540,52 +557,40 @@ private fun CentreModeRow(mode: CentreMode, onChoose: (CentreMode) -> Unit) {
  * changes its label too.
  */
 @Composable
-private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
-    val words = words()
-    LimitsRow(
-        kmLabel = if (settings.centreMode == CentreMode.STAY_NEAR) words.farthestKmLabel else words.nearKmLabel,
-        minutesLabel = words.maxMinutesLabel,
-        km = settings.homewardNearKm,
-        minutes = settings.homewardMaxMinutes,
-        onSave = onSave,
-    )
-}
-
-/** A kilometres field and a minutes field with one save button, for the rules that bend on two numbers. */
-@Composable
-private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes: Int, onSave: (Double, Int) -> Unit) {
+private fun HomewardLimitsRow(
+    settings: SettingsStore.Settings,
+    onCapped: (Boolean) -> Unit,
+    onSave: (Double, Int) -> Unit,
+) {
     val words = words()
     var kmText by remember { mutableStateOf("") }
     var minutesText by remember { mutableStateOf("") }
 
-    LaunchedEffect(km, minutes) {
-        kmText = km.toString()
-        minutesText = minutes.toString()
+    LaunchedEffect(settings.homewardNearKm, settings.homewardMaxMinutes) {
+        kmText = settings.homewardNearKm.toString()
+        minutesText = settings.homewardMaxMinutes.toString()
     }
 
-    Column(
-        modifier = Modifier.padding(bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        ButtonRow {
-            DashField(kmLabel, kmText, Modifier.weight(1f)) { kmText = it }
-            DashField(minutesLabel, minutesText, Modifier.weight(1f)) { minutesText = it }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        DashField(
+            label = if (settings.centreMode == CentreMode.STAY_NEAR) words.farthestKmLabel else words.nearKmLabel,
+            value = kmText,
+        ) { kmText = it }
+        // The length is a rule of its own, and not everybody wants one: early in
+        // a shift a long job is a long job, not a reason to refuse.
+        SwitchRow(words.capTheLength, null, settings.homewardTimeCapped, onChange = onCapped)
+        if (settings.homewardTimeCapped) {
+            DashField(words.maxMinutesLabel, minutesText) { minutesText = it }
         }
         GoldButton(words.save, Modifier.fillMaxWidth()) {
             onSave(
-                kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: km,
-                minutesText.toIntOrNull()?.takeIf { it > 0 } ?: minutes,
+                kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: settings.homewardNearKm,
+                minutesText.toIntOrNull()?.takeIf { it > 0 } ?: settings.homewardMaxMinutes,
             )
         }
     }
 }
 
-/**
- * The near-centre switch. It needs only a centre drawn for the live set - not
- * the car's position, since it judges the drop alone - so that is the one
- * thing it can be missing.
- */
-/** Chinese or English, for every word the app says. Both names are written in their own language. */
 @Composable
 private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
     Row(
@@ -613,14 +618,6 @@ private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
     }
 }
 
-/**
- * The homeward switch, which will not go on while it could do nothing.
- *
- * It needs three things: the phone's own position, a centre drawn for the live
- * set, and the permission to read that position. Missing any of them, the rule
- * would judge nothing at all - so the switch says what is missing instead of
- * turning on and staying silent.
- */
 @Composable
 private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
     val words = words()
@@ -773,15 +770,19 @@ private fun VoiceChip(enabled: Boolean) {
 @Composable
 private fun voiceHelp(): List<Pair<String, String>> {
     val words = words()
-    return listOf(
-        "「打开地图」" to words.sayMap,
-        "「送餐」" to words.sayUber,
-        "「应用」" to words.sayApp,
-        "「回中心」" to words.sayCentre,
-        "「关导航」" to words.sayStopNavigation,
-        "「你好，…」" to words.sayAsk,
-        "「关语音」" to words.sayVoiceOff,
+    // The phrases come from the domain, where the recogniser's own list is.
+    // Written out again here they drifted: the page offered words nothing was
+    // listening for.
+    val said = listOf(
+        words.sayMap,
+        words.sayUber,
+        words.sayApp,
+        words.sayCentre,
+        words.sayStopNavigation,
+        words.sayAsk,
+        words.sayVoiceOff,
     )
+    return VoiceCommands.HELP.mapIndexed { index, phrase -> "\u300c$phrase\u300d" to said[index] }
 }
 
 /**

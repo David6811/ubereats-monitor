@@ -47,8 +47,13 @@ class SettingsStore(private val context: Context) {
         val homewardEnabled: Boolean,
         /** On the homeward rule, a drop this close to the centre is taken even if it leads away. */
         val homewardNearKm: Double,
-        /** On the homeward rule, a job longer than this is left. */
+        /** On the homeward rule, a job longer than this is left, when the cap is on. */
         val homewardMaxMinutes: Int,
+        /**
+         * Whether that cap applies at all. Kept apart from the number so that
+         * switching it off and on again gives the driver his number back.
+         */
+        val homewardTimeCapped: Boolean,
         /** Which of the two readings of that radius is in force. */
         val centreMode: CentreMode,
         /** Stay around the middle: only drops within a few km, on short jobs. */
@@ -77,6 +82,7 @@ class SettingsStore(private val context: Context) {
             homewardEnabled = prefs[HOMEWARD] ?: false,
             homewardNearKm = prefs[HOMEWARD_NEAR_KM] ?: DEFAULT_HOMEWARD_NEAR_KM,
             homewardMaxMinutes = prefs[HOMEWARD_MAX_MINUTES] ?: DEFAULT_HOMEWARD_MAX_MINUTES,
+            homewardTimeCapped = prefs[HOMEWARD_TIME_CAPPED] ?: true,
             // Heading back is what the switch used to mean on its own, so a
             // phone that had it on keeps doing what it was doing.
             centreMode = prefs[CENTRE_MODE]?.let { runCatching { CentreMode.valueOf(it) }.getOrNull() }
@@ -117,6 +123,8 @@ class SettingsStore(private val context: Context) {
     }
 
     suspend fun setHomewardEnabled(enabled: Boolean) = putBoolean(HOMEWARD, enabled)
+
+    suspend fun setHomewardTimeCapped(capped: Boolean) = putBoolean(HOMEWARD_TIME_CAPPED, capped)
 
     suspend fun setCentreMode(mode: CentreMode) {
         context.dataStore.edit { prefs -> prefs[CENTRE_MODE] = mode.name }
@@ -165,6 +173,7 @@ class SettingsStore(private val context: Context) {
         private val HOMEWARD = booleanPreferencesKey("homeward")
         private val HOMEWARD_NEAR_KM = doublePreferencesKey("homeward_near_km")
         private val HOMEWARD_MAX_MINUTES = intPreferencesKey("homeward_max_minutes")
+        private val HOMEWARD_TIME_CAPPED = booleanPreferencesKey("homeward_time_capped")
         private val CENTRE_MODE = stringPreferencesKey("centre_mode")
         private val LANG = androidx.datastore.preferences.core.stringPreferencesKey("lang")
         private val FUEL_PER_KM = doublePreferencesKey("fuel_per_km")

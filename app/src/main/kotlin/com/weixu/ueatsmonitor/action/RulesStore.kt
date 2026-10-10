@@ -71,7 +71,12 @@ object RulesStore {
         // simply is not there.
         val homewardNow = LiveSettings.current?.takeIf { it.homewardEnabled }?.let { settings ->
             Profiles.centre(context)?.let { centre ->
-                CentreLimits(centre, settings.homewardNearKm, settings.homewardMaxMinutes, settings.centreMode)
+                CentreLimits(
+                    centre = centre,
+                    nearKm = settings.homewardNearKm,
+                    maxMinutes = settings.homewardMaxMinutes.takeIf { settings.homewardTimeCapped },
+                    mode = settings.centreMode,
+                )
             }
         }
         if (known != null && stamp == readAtMillis && profile == readForProfile &&

@@ -88,8 +88,9 @@ object RuleJudge {
      * ceiling, and the car's position does not come into it.
      */
     private fun homewardReason(card: OfferCard, stops: Stops, limits: CentreLimits): Ruling.Reason? {
+        val cap = limits.maxMinutes
         val minutes = card.duration?.value
-        if (minutes != null && minutes > limits.maxMinutes) return Ruling.Reason.TooLong(minutes, limits.maxMinutes)
+        if (cap != null && minutes != null && minutes > cap) return Ruling.Reason.TooLong(minutes, cap)
         val dropAt = stops.dropoff?.at
         return when (limits.mode) {
             CentreMode.HEAD_BACK -> {

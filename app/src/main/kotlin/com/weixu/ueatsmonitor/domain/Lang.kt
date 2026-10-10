@@ -227,6 +227,7 @@ interface Words {
     val headBackHint: String
     val stayNearHint: String
     val farthestKmLabel: String
+    val capTheLength: String
     val noCentreSet: String
     val noCentreSetLong: String
     val needAlwaysLocation: String
@@ -457,6 +458,7 @@ object Zh : Words {
     override val headBackHint = "送完要比现在离中心更近。不知道车在哪就不管"
     override val stayNearHint = "送到的地方不能超出这个圈。不用知道车在哪"
     override val farthestKmLabel = "离中心最远 公里"
+    override val capTheLength = "还要限制单子时长"
     override val noCentreSet = "这套选区没设中心，先在电脑上设一个"
     override val noCentreSetLong = "这套选区没设中心，在电脑上点「改中心」再保存"
     override val needAlwaysLocation = "定位要设成「始终允许」才有用，点这里去改"
@@ -683,6 +685,7 @@ object En : Words {
     override val headBackHint = "The drop has to leave you nearer the middle than you are now; silent without a fix"
     override val stayNearHint = "The drop has to land inside the circle; no fix needed"
     override val farthestKmLabel = "Farthest from centre km"
+    override val capTheLength = "Cap how long a job may be"
     override val noCentreSet = "This set has no centre; set one on the web first"
     override val noCentreSetLong = "This set has no centre; press 改中心 on the web and save"
     override val needAlwaysLocation = "Location must be \"Allow all the time\"; tap here to change it"

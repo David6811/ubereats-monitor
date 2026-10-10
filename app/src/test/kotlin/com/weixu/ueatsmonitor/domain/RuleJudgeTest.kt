@@ -196,6 +196,34 @@ class RuleJudgeTest {
     }
 
     @Test
+    fun `given no cap on the length and a long job that lands near, when judged, then it is taken`() {
+        // arrange  45 minutes, well over the 20 the cap would have been
+        val rules = RULES.copy(homeward = HOMEWARD.copy(maxMinutes = null))
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough").copy(duration = Minutes(45))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Take("Keysborough"), ruling)
+    }
+
+    @Test
+    fun `given a cap on the length and a job over it, when judged, then it is left`() {
+        // arrange  the same 45 minutes, with the cap back at 20
+        val rules = RULES.copy(homeward = HOMEWARD)
+        val card = card(pickup = "Some Shop", dropoff = "Ashleigh Street, Keysborough").copy(duration = Minutes(45))
+        val stops = Stops(pickup = null, dropoff = Spot.AtCrossing(KEYSBOROUGH, "Ashleigh Street", "Jean Court"), carAt = ROWVILLE)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER, stops)
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.TooLong(45, 20)), ruling)
+    }
+
+    @Test
     fun `given stay-near on and a drop outside the radius, when judged, then it is left`() {
         // arrange  Rowville is 14 km from the centre, the radius is 4
         val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = STAY_NEAR)
