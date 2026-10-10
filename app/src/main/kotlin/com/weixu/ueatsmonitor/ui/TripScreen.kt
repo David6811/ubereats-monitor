@@ -3,20 +3,18 @@ package com.weixu.ueatsmonitor.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,14 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.weixu.ueatsmonitor.R
 import com.weixu.ueatsmonitor.action.ExclusionStore
 import com.weixu.ueatsmonitor.action.RulesStore
 import com.weixu.ueatsmonitor.action.NoGoOffStore
 import com.weixu.ueatsmonitor.action.Profiles
 import com.weixu.ueatsmonitor.action.SuburbShapes
 import com.weixu.ueatsmonitor.domain.Exclusions
+import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.SuburbAt
 
 /**
@@ -44,8 +45,12 @@ import com.weixu.ueatsmonitor.domain.SuburbAt
  * Nothing here is written into the laptop's set. Dropping is for the last hour
  * of a shift, when the driver wants to end up near home - and it is forgotten
  * the moment the set is switched or new rules arrive.
+ *
+ * The map is the page. It used to be 300dp above a list of every suburb as a
+ * named block, which did the same job twice and left each suburb a few
+ * millimetres wide; the names are gone and the map has the screen.
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TripScreen() {
     val words = words()
@@ -56,9 +61,9 @@ fun TripScreen() {
     var excluded: Set<String> by remember { mutableStateOf(ExclusionStore.inForce(context)) }
     val boxes = remember { RulesStore.drawn(context) }
     var boxesOff: Set<String> by remember { mutableStateOf(NoGoOffStore.inForce(context)) }
-    // The last suburb a finger landed on, named above the map: on a map this small
-    // a suburb is a few millimetres, and a miss has to be visible to be undone.
-    var touched: String? by remember { mutableStateOf(null) }
+    // The boxes wait behind a mark, the way the centre does on the edit screen:
+    // they are changed once in a blue moon and there can be a dozen of them.
+    var showingBoxes by remember { mutableStateOf(false) }
 
     if (live == null) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -74,150 +79,66 @@ fun TripScreen() {
         return
     }
 
-    val all = live.suburbs.sorted()
-    // The set's own centre, as drawn on the laptop, and the suburb it stands in -
-    // where he wants to end up when the shift is nearly over.
+    val all = live.suburbs.toSet()
+    val centre = remember(live.name) { Profiles.centre(context) }
+    // The suburb the set's centre stands in - where he wants to end up when the
+    // shift is nearly over.
     val middle = remember(live.name) {
-        Profiles.centre(context)?.let { centre ->
-            SuburbAt.find(centre, shapes)?.takeIf { it in live.suburbs }
-        }
+        centre?.let { SuburbAt.find(it, shapes)?.takeIf { name -> name in all } }
     }
-    val going = Exclusions.apply(all.toSet(), excluded)
+    val going = Exclusions.apply(all, excluded)
+
+    fun reread() {
+        excluded = ExclusionStore.inForce(context)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Panel(padding = PaddingValues(0.dp)) {
-            Column(
-                modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                SectionLabel(words.thisTrip(live.name))
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = going.size.toString(),
-                        style = MaterialTheme.typography.headlineLarge.merge(Dash.Numbers),
-                        color = Dash.Gold,
-                    )
-                    Text(
-                        text = touched?.let { name ->
-                            name + (if (name in going) words.going else words.notGoing)
-                        } ?: if (excluded.isEmpty()) words.areasAllGoing else words.areasSomeOff(excluded.size),
-                        modifier = Modifier.padding(bottom = 6.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Dash.Muted,
-                    )
-                }
-            }
-            // The same outlines as the areas page, so what is left is a shape, not
-            // a list of names to read one by one.
-            SuburbMap(
-                chosen = going,
-                shapes = shapes,
-                dropped = all.toSet() - going,
-                onTap = { suburb ->
-                    // Only this set's suburbs; a finger in the next one along is a miss.
-                    if (suburb in all) {
-                        ExclusionStore.toggle(context, suburb)
-                        excluded = ExclusionStore.inForce(context)
-                        touched = suburb
-                    }
-                },
-                onLongPress = { suburb ->
-                    if (suburb in all) {
-                        ExclusionStore.keepOnly(context, suburb, all)
-                        excluded = ExclusionStore.inForce(context)
-                        touched = suburb
-                    }
-                },
-            )
-        }
-
-        Panel {
-            // The line and the buttons are stacked, not side by side: the English
-            // line is long enough that sharing a row squeezed both into columns
-            // four words wide.
-            SectionLabel(words.tapToToggle)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(
-                text = words.thisTripOnly,
-                style = MaterialTheme.typography.bodySmall,
+                text = going.size.toString(),
+                style = MaterialTheme.typography.headlineSmall.merge(Dash.Numbers),
+                color = Dash.Gold,
+            )
+            // No name for the last suburb touched. The map says which one it
+            // was, in colour, and said it for every other one at the same time;
+            // the line could only ever hold one, and not even that once four or
+            // five were off.
+            Text(
+                text = if (excluded.isEmpty()) words.areasAllGoing else words.areasSomeOff(excluded.size),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
                 color = Dash.Muted,
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                middle?.let { here ->
-                    GhostButton(words.keepCentreOnly, color = Dash.Gold) {
-                        ExclusionStore.keepOnly(context, here, all)
-                        excluded = ExclusionStore.inForce(context)
-                    }
-                }
-                if (going.isNotEmpty()) {
-                    GhostButton(words.clearAll, color = Dash.Muted) {
-                        ExclusionStore.excludeAll(context, all)
-                        excluded = ExclusionStore.inForce(context)
-                    }
-                }
-                if (excluded.isNotEmpty()) {
-                    GhostButton(words.restoreAll, color = Dash.Gold) {
-                        ExclusionStore.clear(context)
-                        excluded = ExclusionStore.inForce(context)
-                    }
-                }
-            }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                all.forEach { suburb ->
-                    val on = suburb in going
-                    Text(
-                        text = suburb,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (on) Dash.GoldDeep else Dash.Ground)
-                            .border(1.dp, if (on) Dash.Gold.copy(alpha = 0.5f) else Dash.Line, RoundedCornerShape(10.dp))
-                            .combinedClickable(
-                                onClick = {
-                                    ExclusionStore.toggle(context, suburb)
-                                    excluded = ExclusionStore.inForce(context)
-                                },
-                                onLongClick = {
-                                    // The last hour of a shift: one suburb, everything else off.
-                                    ExclusionStore.keepOnly(context, suburb, all)
-                                    excluded = ExclusionStore.inForce(context)
-                                },
-                            )
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (on) Dash.Gold else Dash.Muted,
-                        textDecoration = if (on) null else TextDecoration.LineThrough,
-                    )
-                }
+            if (boxes.isNotEmpty()) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_nogo),
+                    contentDescription = words.noGoBoxes,
+                    tint = if (showingBoxes) Dash.Orange else Dash.Muted,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { showingBoxes = !showingBoxes }
+                        .padding(8.dp),
+                )
             }
         }
 
-        // The boxes drawn on the laptop, where until now the only way to stop
-        // one refusing offers was to open the laptop and delete it.
-        Panel {
-            SectionLabel(words.noGoBoxes + "  ·  " + words.noGoBoxesOff(boxesOff.size))
-            Text(
-                text = if (boxes.isEmpty()) words.noGoBoxesNone else words.noGoBoxesHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = Dash.Muted,
-            )
+        if (showingBoxes) {
+            // On means the box is refusing, which is the opposite way round from
+            // a suburb: there, on means going.
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 boxes.forEach { box ->
-                    // On means the box is refusing, which is the opposite way
-                    // round from a suburb: there, on means going.
                     val refusing = boxesOff.none { it.equals(box.label, ignoreCase = true) }
                     Text(
                         text = box.label,
@@ -234,10 +155,65 @@ fun TripScreen() {
                                 boxesOff = NoGoOffStore.inForce(context)
                             }
                             .padding(horizontal = 14.dp, vertical = 11.dp),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = if (refusing) Dash.Orange else Dash.Muted,
                         textDecoration = if (refusing) null else TextDecoration.LineThrough,
                     )
+                }
+            }
+        }
+
+        AreaMap(
+            setName = live.name,
+            chosen = going,
+            dropped = all - going,
+            // The boxes the laptop drew, where until now the phone showed them
+            // only as a row of names.
+            boxes = boxes,
+            boxesOff = boxesOff,
+            shapes = shapes,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(Dash.PanelShape),
+            centre = centre?.let { GeoPoint(it.latitude, it.longitude) },
+            // Only this set's suburbs; a finger in the next one along is a miss.
+            onTap = { suburb ->
+                if (suburb in all) {
+                    ExclusionStore.toggle(context, suburb)
+                    reread()
+                }
+            },
+            // The last hour of a shift: one suburb, everything else off.
+            onLongPressSuburb = { suburb ->
+                if (suburb in all) {
+                    ExclusionStore.keepOnly(context, suburb, all.toList())
+                    reread()
+                }
+            },
+        )
+
+        Text(words.tapToToggle, style = MaterialTheme.typography.bodySmall, color = Dash.Muted)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            middle?.let { here ->
+                GhostButton(words.keepCentreOnly, color = Dash.Gold) {
+                    ExclusionStore.keepOnly(context, here, all.toList())
+                    reread()
+                }
+            }
+            if (going.isNotEmpty()) {
+                GhostButton(words.clearAll, color = Dash.Muted) {
+                    ExclusionStore.excludeAll(context, all.toList())
+                    reread()
+                }
+            }
+            if (excluded.isNotEmpty()) {
+                GhostButton(words.restoreAll, color = Dash.Gold) {
+                    ExclusionStore.clear(context)
+                    reread()
                 }
             }
         }

@@ -72,10 +72,6 @@ interface Words {
 
     /** The no-go boxes, listed on the trip page so one can be switched off at the wheel. */
     val noGoBoxes: String
-    val noGoBoxesHint: String
-    val noGoBoxesNone: String
-    fun noGoBoxesOff(off: Int): String
-    val thisTripOnly: String
     fun areasCount(n: Int): String
 
     /** Said as a toast when a switch could not be turned on. */
@@ -146,10 +142,7 @@ interface Words {
     val clearIt: String
 
     // This trip, and the sets.
-    fun thisTrip(name: String): String
     val tapToToggle: String
-    val going: String
-    val notGoing: String
     /** What follows the count of areas, which is shown on its own beside it. */
     val areasAllGoing: String
     fun areasSomeOff(off: Int): String
@@ -316,10 +309,6 @@ object Zh : Words {
     override val seeOnMap = "看地图"
     override val restoreAll = "恢复全部"
     override val noGoBoxes = "不接单框"
-    override val noGoBoxesHint = "点一下暂时关掉，电脑推新规则就全部恢复"
-    override val noGoBoxesNone = "还没画过框。在电脑的「选区」页上画。"
-    override fun noGoBoxesOff(off: Int) = if (off == 0) "全在用" else "关了 $off 个"
-    override val thisTripOnly = "只管这一趟。换选区或电脑推新规则，就全恢复。"
     override fun areasCount(n: Int) = "$n 个区"
     override val noLocationPermission = "没有定位权限，回中心模式开不了"
     override val noMicrophonePermission = "没有麦克风权限，语音命令开不了"
@@ -375,10 +364,7 @@ object Zh : Words {
     override val drive = "导航"
     override val clearIt = "清掉"
 
-    override fun thisTrip(name: String) = "这一趟 · $name"
     override val tapToToggle = "点一下切换 · 长按只留它"
-    override val going = " 去"
-    override val notGoing = " 不去"
     override val areasAllGoing = "个区，全都去"
     override fun areasSomeOff(off: Int) = "个区，点掉了 $off 个"
     override val clearAll = "全不选"
@@ -535,10 +521,6 @@ object En : Words {
     override val seeOnMap = "See on map"
     override val restoreAll = "Restore all"
     override val noGoBoxes = "No-go boxes"
-    override val noGoBoxesHint = "Tap to switch one off for now; new rules from the laptop restore them all"
-    override val noGoBoxesNone = "No boxes drawn yet. Draw them on the laptop's Areas page."
-    override fun noGoBoxesOff(off: Int) = if (off == 0) "all in use" else "$off switched off"
-    override val thisTripOnly = "This trip only. Switching sets, or new rules from the laptop, brings them all back."
     override fun areasCount(n: Int) = if (n == 1) "1 area" else "$n areas"
     override val noLocationPermission = "Without location, homeward mode cannot be switched on"
     override val noMicrophonePermission = "Without the microphone, voice commands cannot be switched on"
@@ -594,10 +576,7 @@ object En : Words {
     override val drive = "Drive"
     override val clearIt = "Clear"
 
-    override fun thisTrip(name: String) = "This trip · $name"
     override val tapToToggle = "Tap to toggle · hold to keep only that one"
-    override val going = " going"
-    override val notGoing = " not going"
     override val areasAllGoing = "areas, all going"
     override fun areasSomeOff(off: Int) = "areas, $off turned off"
     override val clearAll = "None"
