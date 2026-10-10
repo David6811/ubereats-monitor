@@ -156,8 +156,12 @@ interface Words {
     /** What the box is for, and what may be typed into it. */
     /** Drawing a box: what the mark does, and what to do next. */
     val drawBox: String
-    val tapTwoCorners: String
-    val tapOtherCorner: String
+    val stopDrawing: String
+    val dragToDraw: String
+    val boxesHint: String
+    val boxTooSmall: String
+    fun boxCount(n: Int): String
+    fun boxDefaultName(n: Int): String
     val setCentreHere: String
     val searchPlace: String
     val searchingNet: String
@@ -377,9 +381,13 @@ object Zh : Words {
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
     override val editOnMap = "改区"
     override val myPosition = "我的位置"
-    override val drawBox = "画不去的框"
-    override val tapTwoCorners = "点两个角画框"
-    override val tapOtherCorner = "再点对角"
+    override val drawBox = "画框"
+    override val stopDrawing = "不画了"
+    override val dragToDraw = "按住拖一个框出来"
+    override val boxesHint = "框里的单一律不接"
+    override val boxTooSmall = "太小了，重新拖一个"
+    override fun boxCount(n: Int) = "$n 个"
+    override fun boxDefaultName(n: Int) = "框 $n"
     override val setCentreHere = "设中心"
     override val searchPlace = "区名、店名或地址"
     override val searchingNet = "在网上找地址…"
@@ -592,9 +600,13 @@ object En : Words {
     override val pushFromTheWeb = "Press Save once in the web editor."
     override val editOnMap = "Edit"
     override val myPosition = "Here"
-    override val drawBox = "Draw a no-go box"
-    override val tapTwoCorners = "Tap two opposite corners"
-    override val tapOtherCorner = "Now the opposite corner"
+    override val drawBox = "Draw"
+    override val stopDrawing = "Stop"
+    override val dragToDraw = "Press and drag out a box"
+    override val boxesHint = "Nothing inside a box is taken"
+    override val boxTooSmall = "Too small; drag out another"
+    override fun boxCount(n: Int) = if (n == 1) "1 box" else "$n boxes"
+    override fun boxDefaultName(n: Int) = "Box $n"
     override val setCentreHere = "Set the centre"
     override val searchPlace = "suburb, shop or address"
     override val searchingNet = "Looking the address up\u2026"

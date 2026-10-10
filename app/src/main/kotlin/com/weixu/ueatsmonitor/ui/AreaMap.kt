@@ -30,6 +30,18 @@ import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.Canvas
+import android.graphics.PointF
 
 /**
  * The live set on a real map: streets under it, the chosen suburbs in gold,
@@ -66,12 +78,18 @@ fun AreaMap(
     /** The suburb under a long press. Takes precedence over [onLongPress]. */
     onLongPressSuburb: ((String) -> Unit)? = null,
     /**
-     * Where a tap landed, instead of which suburb. Set while a box is being
-     * drawn: a corner is a point on the earth, not a suburb.
+     * Press, drag, release draws a rectangle instead of moving the map. The
+     * map's own gestures are off while this is true, the way the web page
+     * turns Leaflet's dragging off: one finger cannot both pan and draw.
      */
-    onTapPoint: ((GeoPoint) -> Unit)? = null,
-    /** The first corner of a box being drawn, drawn as a dot. */
-    corner: GeoPoint? = null,
+    drawingBox: Boolean = false,
+    /** The two corners of the rectangle just drawn, in no particular order. */
+    onBoxDrawn: ((GeoPoint, GeoPoint) -> Unit)? = null,
+    /**
+     * What to fit the camera to on the way in, when the chosen suburbs are not
+     * the answer. Empty falls back to them.
+     */
+    frameTo: List<GeoPoint> = emptyList(),
     /**
      * Somewhere to show. Each new value moves the camera once; a long press
      * passes nothing, because moving the map out from under the finger that
@@ -95,10 +113,6 @@ fun AreaMap(
                 map.uiSettings.isRotateGesturesEnabled = false
                 map.uiSettings.isTiltGesturesEnabled = false
                 map.addOnMapClickListener { at ->
-                    holder.onTapPoint?.let { put ->
-                        put(GeoPoint(at.latitude, at.longitude))
-                        return@addOnMapClickListener true
-                    }
                     val tap = holder.onTap ?: return@addOnMapClickListener false
                     val point = map.projection.toScreenLocation(at)
                     val name = map.queryRenderedFeatures(point, HIT).firstOrNull()
@@ -180,15 +194,6 @@ fun AreaMap(
                             PropertyFactory.lineDasharray(arrayOf(3f, 2f)),
                         ),
                     )
-                    style.addSource(GeoJsonSource(CORNER, centreJson(holder.corner)))
-                    style.addLayer(
-                        CircleLayer(CORNER_DOT, CORNER).withProperties(
-                            PropertyFactory.circleRadius(7f),
-                            PropertyFactory.circleColor(android.graphics.Color.parseColor(ORANGE)),
-                            PropertyFactory.circleStrokeColor(android.graphics.Color.parseColor(GROUND)),
-                            PropertyFactory.circleStrokeWidth(2f),
-                        ),
-                    )
                     style.addSource(GeoJsonSource(CENTRE, centreJson(holder.centre)))
                     style.addLayer(
                         CircleLayer(CENTRE_RING, CENTRE).withProperties(
@@ -200,7 +205,8 @@ fun AreaMap(
                     )
                     holder.map = map
                     holder.style = style
-                    frame(map, shapes, holder.chosen + holder.dropped)
+                    if (holder.frameTo.isNotEmpty()) frameOn(map, holder.frameTo)
+                    else frame(map, shapes, holder.chosen + holder.dropped)
                 }
             }
         }
@@ -227,18 +233,18 @@ fun AreaMap(
         }
     }
 
+    var from by remember { mutableStateOf<Offset?>(null) }
+    var to by remember { mutableStateOf<Offset?>(null) }
+    Box(modifier) {
     AndroidView(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         factory = { mapView },
         update = {
             holder.onTap = onTap
             holder.onLongPress = onLongPress
             holder.onLongPressSuburb = onLongPressSuburb
-            holder.onTapPoint = onTapPoint
-            if (holder.corner != corner) {
-                holder.corner = corner
-                holder.style?.getSourceAs<GeoJsonSource>(CORNER)?.setGeoJson(centreJson(corner))
-            }
+            holder.map?.uiSettings?.setAllGesturesEnabled(!drawingBox)
+            holder.frameTo = frameTo
             if (holder.centre != centre) {
                 holder.centre = centre
                 holder.style?.getSourceAs<GeoJsonSource>(CENTRE)?.setGeoJson(centreJson(centre))
@@ -273,7 +279,49 @@ fun AreaMap(
             }
         },
     )
+        if (drawingBox) {
+            // Over the map, not in it: the rectangle is drawn in screen points
+            // and turned into two corners of the earth only on release, which
+            // is the one moment the projection has to be right.
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { at -> from = at; to = at },
+                            onDrag = { change, _ -> change.consume(); to = change.position },
+                            onDragEnd = {
+                                val a = from
+                                val b = to
+                                from = null
+                                to = null
+                                val map = holder.map
+                                if (a != null && b != null && map != null) {
+                                    val one = map.projection.fromScreenLocation(PointF(a.x, a.y))
+                                    val two = map.projection.fromScreenLocation(PointF(b.x, b.y))
+                                    onBoxDrawn?.invoke(
+                                        GeoPoint(one.latitude, one.longitude),
+                                        GeoPoint(two.latitude, two.longitude),
+                                    )
+                                }
+                            },
+                            onDragCancel = { from = null; to = null },
+                        )
+                    },
+            ) {
+                val a = from ?: return@Canvas
+                val b = to ?: return@Canvas
+                val corner = Offset(minOf(a.x, b.x), minOf(a.y, b.y))
+                val span = androidx.compose.ui.geometry.Size(kotlin.math.abs(b.x - a.x), kotlin.math.abs(b.y - a.y))
+                drawRect(PREVIEW, topLeft = corner, size = span, alpha = 0.18f)
+                drawRect(PREVIEW, topLeft = corner, size = span, style = Stroke(width = 4f))
+            }
+        }
+    }
 }
+
+/** The rectangle being dragged out, before it is a box. */
+private val PREVIEW = Color(0xFFF0883E)
 
 /** Draws only the named suburbs. */
 private fun among(names: Set<String>): Expression =
@@ -292,19 +340,28 @@ private class MapHolder {
     var onTap: ((String) -> Unit)? = null
     var onLongPress: ((GeoPoint) -> Unit)? = null
     var onLongPressSuburb: ((String) -> Unit)? = null
-    var onTapPoint: ((GeoPoint) -> Unit)? = null
-    var corner: GeoPoint? = null
+
     var dropped: Set<String> = emptySet()
     var boxes: List<NoGoBox> = emptyList()
     var boxesOff: Set<String> = emptySet()
     var centre: GeoPoint? = null
     var lookAt: GeoPoint? = null
+    var frameTo: List<GeoPoint> = emptyList()
 }
 
 /** The centre as GeoJSON: one point, or nothing at all. */
 private fun centreJson(centre: GeoPoint?): String =
     if (centre == null) """{"type":"FeatureCollection","features":[]}"""
     else """{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[${centre.longitude},${centre.latitude}]}}"""
+
+/** Fits the camera to a handful of points, such as the corners of every box. */
+private fun frameOn(map: MapLibreMap, points: List<GeoPoint>) {
+    if (points.isEmpty()) return
+    val bounds = LatLngBounds.Builder()
+        .includes(points.map { LatLng(it.latitude, it.longitude) })
+        .build()
+    map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 140))
+}
 
 /** Fits the camera to the chosen suburbs, or to all of them when none is chosen. */
 private fun frame(map: MapLibreMap, shapes: List<SuburbShape>, chosen: Set<String>) {
@@ -331,8 +388,6 @@ private const val HIT = "suburbs-hit"
 private const val BOXES = "nogo"
 private const val BOX_FILL = "nogo-fill"
 private const val BOX_EDGE = "nogo-edge"
-private const val CORNER = "box-corner"
-private const val CORNER_DOT = "box-corner-dot"
 private const val CENTRE = "centre"
 private const val CENTRE_RING = "centre-ring"
 private const val GROUND = "#0A0A0B"
