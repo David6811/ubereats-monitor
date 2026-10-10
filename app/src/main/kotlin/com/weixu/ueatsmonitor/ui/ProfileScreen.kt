@@ -250,14 +250,23 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Two places can pick, so say plainly which one did.
                     SectionLabel(if (fromPhone) words.liveFromPhone else words.liveFromLaptop)
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(live.name, style = MaterialTheme.typography.headlineLarge, color = Dash.Gold)
+                    // The button sits beside the name it acts on, not under the
+                    // map: it is about this set, and the foot of the panel is
+                    // where the eye goes last.
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = words.areasCount(draft?.size ?: Exclusions.apply(live.suburbs.toSet(), excluded).size),
-                            modifier = Modifier.padding(bottom = 6.dp),
+                            text = live.name,
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = Dash.Gold,
+                        )
+                        Text(
+                            text = words.areasCount(Exclusions.apply(live.suburbs.toSet(), excluded).size),
+                            modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
                             color = Dash.Muted,
                         )
+                        SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
                     }
                 }
                 // Read only, and short. It answers "which patch am I running
@@ -272,14 +281,13 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                         .height(220.dp),
                     centre = liveCentre,
                 )
-                Column(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
-                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                        SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
-                    }
+                note?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Dash.Orange,
+                    )
                 }
             }
         }
