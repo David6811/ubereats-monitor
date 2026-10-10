@@ -42,6 +42,11 @@ import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.RuleEdits
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.weixu.ueatsmonitor.domain.PlaceSearch
+import com.weixu.ueatsmonitor.domain.Place
+import com.weixu.ueatsmonitor.action.CentreSearch
+import androidx.compose.runtime.LaunchedEffect
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -64,6 +69,12 @@ fun ProfileScreen() {
     // A centre marked while editing - by a long press or "my position" - and
     // not yet saved. Null keeps the set's own.
     var draftCentre by remember { mutableStateOf<RuleEdits.Centre?>(null) }
+    // What is being typed into the search box, what it found, and whether the
+    // network half is still out. Cleared the moment editing stops.
+    var typed by remember { mutableStateOf("") }
+    var found by remember { mutableStateOf<List<Place>>(emptyList()) }
+    var lookingUp by remember { mutableStateOf(false) }
+    var lookAt by remember { mutableStateOf<GeoPoint?>(null) }
     var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
@@ -71,7 +82,23 @@ fun ProfileScreen() {
     var naming by remember { mutableStateOf<Naming?>(null) }
     val scope = rememberCoroutineScope()
 
-    fun stopEditing() { draft = null; draftCentre = null }
+    fun stopEditing() { draft = null; draftCentre = null; typed = ""; found = emptyList() }
+
+    // The bundled suburbs and shops answer on every keystroke; the phone's
+    // geocoder is a network call, so it waits for the typing to stop, and its
+    // answers join the ones already on screen rather than replacing them.
+    LaunchedEffect(typed) {
+        if (typed.trim().length < 3) {
+            lookingUp = false
+            return@LaunchedEffect
+        }
+        delay(400)
+        lookingUp = true
+        val offline = PlaceSearch.matching(typed, CentreSearch.known(context))
+        val net = CentreSearch.addresses(context, typed)
+        found = offline + net.filterNot { address -> offline.any { it.name == address.name } }
+        lookingUp = false
+    }
 
     fun markCentre(at: GeoPoint) {
         scope.launch {
@@ -151,6 +178,30 @@ fun ProfileScreen() {
                         )
                     }
                 }
+                // Above the map, not under it. The panel sits near the foot of
+                // a scrolling page, and a list of suggestions below the box is
+                // a list behind the keyboard.
+                if (draft != null) {
+                    Box(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+                        PlaceSearchBox(
+                            typed = typed,
+                            found = found,
+                            lookingUp = lookingUp,
+                            onTyped = {
+                                typed = it
+                                found = PlaceSearch.matching(it, CentreSearch.known(context))
+                            },
+                        ) { place ->
+                            // The place names itself. No reverse lookup, which
+                            // is what a long press needs and this does not.
+                            draftCentre = RuleEdits.Centre(place.name, place.at.latitude, place.at.longitude)
+                            lookAt = place.at
+                            typed = ""
+                            found = emptyList()
+                            note = null
+                        }
+                    }
+                }
                 AreaMap(
                     setName = live.name,
                     chosen = draft ?: Exclusions.apply(live.suburbs.toSet(), excluded),
@@ -162,6 +213,7 @@ fun ProfileScreen() {
                     centre = draftCentre?.let { GeoPoint(it.latitude, it.longitude) } ?: liveCentre,
                     onTap = draft?.let { now -> { suburb: String -> draft = RuleEdits.toggled(now, suburb) } },
                     onLongPress = if (draft != null) { at -> markCentre(at) } else null,
+                    lookAt = lookAt,
                 )
                 Column(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
@@ -290,6 +342,62 @@ fun ProfileScreen() {
             Text(
                 text = words.turnThemOffOnTrip,
                 style = MaterialTheme.typography.bodyMedium,
+                color = Dash.Muted,
+            )
+        }
+    }
+}
+
+/**
+ * Where to put the centre, by typing its name.
+ *
+ * The centre used to be a long press on the map and nothing else, which means
+ * finding the spot by eye first. A driver who already knows he wants to work
+ * out of Aspendale should be able to say so.
+ */
+@Composable
+private fun PlaceSearchBox(
+    typed: String,
+    found: List<Place>,
+    lookingUp: Boolean,
+    onTyped: (String) -> Unit,
+    onPicked: (Place) -> Unit,
+) {
+    val words = words()
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        androidx.compose.material3.OutlinedTextField(
+            value = typed,
+            onValueChange = onTyped,
+            placeholder = { Text(words.searchPlace, color = Dash.Muted) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        found.forEach { place ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(Dash.ControlShape)
+                    .clickable { onPicked(place) }
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(place.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = when (place.kind) {
+                        Place.Kind.SUBURB -> words.kindSuburb
+                        Place.Kind.SHOP -> words.kindShop
+                        Place.Kind.ADDRESS -> words.kindAddress
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Dash.Muted,
+                )
+            }
+        }
+        if (typed.trim().length >= 3) {
+            Text(
+                text = if (lookingUp) words.searchingNet else if (found.isEmpty()) words.nothingFound else "",
+                style = MaterialTheme.typography.bodySmall,
                 color = Dash.Muted,
             )
         }

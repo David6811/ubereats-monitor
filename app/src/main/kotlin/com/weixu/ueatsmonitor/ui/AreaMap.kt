@@ -51,6 +51,12 @@ fun AreaMap(
     onTap: ((String) -> Unit)? = null,
     /** Where a long press landed. Null ignores long presses. */
     onLongPress: ((GeoPoint) -> Unit)? = null,
+    /**
+     * Somewhere to show. Each new value moves the camera once; a long press
+     * passes nothing, because moving the map out from under the finger that
+     * just pressed it loses the driver his place.
+     */
+    lookAt: GeoPoint? = null,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -160,6 +166,12 @@ fun AreaMap(
                     style.getLayerAs<LineLayer>(OTHERS)?.setFilter(outside(chosen))
                 }
             }
+            if (lookAt != null && holder.lookAt != lookAt) {
+                holder.lookAt = lookAt
+                holder.map?.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(LatLng(lookAt.latitude, lookAt.longitude), LOOK_ZOOM),
+                )
+            }
             // A suburb tapped in or out is the same set: jumping the camera
             // under the finger that just tapped would lose the driver's place.
             if (holder.setName != setName) {
@@ -186,6 +198,7 @@ private class MapHolder {
     var onTap: ((String) -> Unit)? = null
     var onLongPress: ((GeoPoint) -> Unit)? = null
     var centre: GeoPoint? = null
+    var lookAt: GeoPoint? = null
 }
 
 /** The centre as GeoJSON: one point, or nothing at all. */
@@ -203,6 +216,9 @@ private fun frame(map: MapLibreMap, shapes: List<SuburbShape>, chosen: Set<Strin
         .build()
     map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 48))
 }
+
+/** Close enough that a suburb fills the map, wide enough to see its neighbours. */
+private const val LOOK_ZOOM = 12.0
 
 private const val STYLE = "https://tiles.openfreemap.org/styles/dark"
 private const val SOURCE = "suburbs"
