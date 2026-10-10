@@ -160,6 +160,8 @@ interface Words {
     val editOnMap: String
     val myPosition: String
     val noPosition: String
+    /** What the box is for, and what may be typed into it. */
+    val setCentreHere: String
     val searchPlace: String
     val searchingNet: String
     val nothingFound: String
@@ -385,7 +387,8 @@ object Zh : Words {
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
     override val editOnMap = "改区"
     override val myPosition = "我的位置"
-    override val searchPlace = "搜区名、店名或地址"
+    override val setCentreHere = "设中心"
+    override val searchPlace = "区名、店名或地址"
     override val searchingNet = "在网上找地址…"
     override val nothingFound = "没找到"
     override val kindSuburb = "区"
@@ -603,7 +606,8 @@ object En : Words {
     override val pushFromTheWeb = "Press Save once in the web editor."
     override val editOnMap = "Edit"
     override val myPosition = "Here"
-    override val searchPlace = "Search a suburb, shop or address"
+    override val setCentreHere = "Set the centre"
+    override val searchPlace = "suburb, shop or address"
     override val searchingNet = "Looking the address up\u2026"
     override val nothingFound = "Nothing found"
     override val kindSuburb = "suburb"

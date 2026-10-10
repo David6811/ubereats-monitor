@@ -434,7 +434,11 @@ private fun PlaceSearchBox(
         androidx.compose.material3.OutlinedTextField(
             value = typed,
             onValueChange = onTyped,
-            placeholder = { Text(words.searchPlace, color = Dash.Gold.copy(alpha = 0.75f)) },
+            // The label says what the box does; the placeholder says what may
+            // be typed. With a magnifier and the suburb names alone, the box
+            // read as a way to find a suburb, not as the way to set a centre.
+            label = { Text(words.setCentreHere) },
+            placeholder = { Text(words.searchPlace, color = Dash.Muted) },
             leadingIcon = {
                 Icon(
                     painter = painterResource(R.drawable.ic_search),
@@ -450,6 +454,8 @@ private fun PlaceSearchBox(
                 focusedTextColor = Dash.Ink,
                 unfocusedTextColor = Dash.Ink,
                 cursorColor = Dash.Gold,
+                focusedLabelColor = Dash.Gold,
+                unfocusedLabelColor = Dash.Gold,
                 focusedContainerColor = Dash.GoldDeep.copy(alpha = 0.35f),
                 unfocusedContainerColor = Dash.GoldDeep.copy(alpha = 0.35f),
             ),
