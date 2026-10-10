@@ -165,6 +165,16 @@ interface Words {
     val savedOnPhoneOnly: String
     val cloudMovedOn: String
     val switchSet: String
+
+    /** Making and unmaking a set, which used to need the laptop. */
+    val newSet: String
+    val renameSet: String
+    val copySet: String
+    val deleteSet: String
+    val needAName: String
+    val nameTaken: String
+    val lastSetStays: String
+    fun reallyDelete(name: String): String
     val liveFromPhone: String
     val liveFromLaptop: String
     val fewerAreasThisTrip: String
@@ -379,6 +389,14 @@ object Zh : Words {
     override val savedOnPhoneOnly = "只存在了手机上，云端没传上去，下次同步会补上。"
     override val cloudMovedOn = "电脑上刚改过规则，这次没存。已拉到最新，再点一次「保存」就用你现在的选择。"
     override val switchSet = "换一套"
+    override val newSet = "新建"
+    override val renameSet = "改名"
+    override val copySet = "复制"
+    override val deleteSet = "删除"
+    override val needAName = "先起个名字"
+    override val nameTaken = "这个名字已经有了"
+    override val lastSetStays = "只剩这一套了，删不了"
+    override fun reallyDelete(name: String) = "删掉「$name」？"
     override val liveFromPhone = "现在用 · 手机上选的"
     override val liveFromLaptop = "现在用 · 电脑推过来的"
     override val fewerAreasThisTrip = "这一趟想少去几个区"
@@ -587,6 +605,14 @@ object En : Words {
     override val savedOnPhoneOnly = "Saved on the phone only; the cloud gets it on the next sync."
     override val cloudMovedOn = "The laptop changed the rules just now, so nothing was saved. Now up to date - press Save again to keep your choice."
     override val switchSet = "Switch set"
+    override val newSet = "New"
+    override val renameSet = "Rename"
+    override val copySet = "Copy"
+    override val deleteSet = "Delete"
+    override val needAName = "Give it a name first"
+    override val nameTaken = "That name is taken"
+    override val lastSetStays = "This is the only set left; it cannot go"
+    override fun reallyDelete(name: String) = "Delete \"$name\"?"
     override val liveFromPhone = "In use · picked on the phone"
     override val liveFromLaptop = "In use · sent from the web"
     override val fewerAreasThisTrip = "Fewer areas just for this trip"

@@ -67,6 +67,8 @@ fun ProfileScreen() {
     var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
+    // Which set is being named, and why. Null while no dialog is up.
+    var naming by remember { mutableStateOf<Naming?>(null) }
     val scope = rememberCoroutineScope()
 
     fun stopEditing() { draft = null; draftCentre = null }
@@ -74,6 +76,28 @@ fun ProfileScreen() {
     fun markCentre(at: GeoPoint) {
         scope.launch {
             draftCentre = RuleEdits.Centre(CentreLabel.of(context, at), at.latitude, at.longitude)
+        }
+    }
+
+    /**
+     * Making and unmaking sets: the same write path as the map, with the same
+     * three answers. A set that disappears under the driver takes the live one
+     * with it, so what is live is read again after every one of these.
+     */
+    fun change(what: (kotlinx.serialization.json.JsonObject) -> kotlinx.serialization.json.JsonObject) {
+        saving = true
+        scope.launch {
+            when (RulesEditor.edit(context, what)) {
+                RulesEditor.Saved.Pushed -> note = null
+                is RulesEditor.Saved.OnPhoneOnly -> note = words.savedOnPhoneOnly
+                RulesEditor.Saved.CloudMovedOn -> { RulesSync.pull(context); note = words.cloudMovedOn }
+            }
+            stopEditing()
+            profiles = Profiles.list(context)
+            fromPhone = Profiles.chosenHere(context)
+            liveCentre = Profiles.centre(context)
+            excluded = ExclusionStore.inForce(context)
+            saving = false
         }
     }
 
@@ -210,7 +234,7 @@ fun ProfileScreen() {
                                 text = profile.name,
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = if (profile.active) Dash.Ink else Dash.Muted,
+                                color = if (profile.active) Dash.Gold else Dash.Ink,
                             )
                             Text(
                                 text = words.areasCount(profile.suburbs.size),
@@ -218,7 +242,45 @@ fun ProfileScreen() {
                                 color = Dash.Muted,
                             )
                         }
+                        // Under the row, not in it: the row is a big target for
+                        // switching sets mid-shift, and these three are not
+                        // things to hit by accident at the wheel.
+                        Row(
+                            modifier = Modifier.padding(start = 36.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(22.dp),
+                        ) {
+                            QuietAction(words.renameSet, enabled = !saving) {
+                                naming = Naming.Rename(profile.name)
+                            }
+                            QuietAction(words.copySet, enabled = !saving) {
+                                naming = Naming.Copy(profile.name)
+                            }
+                            QuietAction(words.deleteSet, enabled = !saving) {
+                                if (profiles.size <= 1) note = words.lastSetStays
+                                else naming = Naming.Delete(profile.name)
+                            }
+                        }
                     }
+                    Hairline()
+                    Row(Modifier.padding(top = 10.dp)) {
+                        SmallButton(words.newSet, gold = true, enabled = !saving) { naming = Naming.New }
+                    }
+                }
+            }
+        }
+
+        naming?.let { what ->
+            NameDialog(
+                what = what,
+                taken = profiles.map { it.name },
+                onDismiss = { naming = null },
+            ) { typed ->
+                naming = null
+                when (what) {
+                    Naming.New -> change { RuleEdits.addSet(it, typed, null, emptyList()) }
+                    is Naming.Rename -> change { RuleEdits.renameSet(it, what.name, typed) }
+                    is Naming.Copy -> change { RuleEdits.copySet(it, what.name, typed) }
+                    is Naming.Delete -> change { RuleEdits.removeSet(it, what.name) }
                 }
             }
         }
@@ -232,6 +294,104 @@ fun ProfileScreen() {
             )
         }
     }
+}
+
+/** Data. Which set a dialog is about, and what it will do to it. */
+private sealed interface Naming {
+    data object New : Naming
+    data class Rename(val name: String) : Naming
+    data class Copy(val name: String) : Naming
+    data class Delete(val name: String) : Naming
+}
+
+/**
+ * One dialog for all four. Deleting asks for nothing but a yes; the other
+ * three want a name, and refuse one that is already taken rather than
+ * silently doing nothing, which is what the rules themselves do.
+ */
+@Composable
+private fun NameDialog(
+    what: Naming,
+    taken: List<String>,
+    onDismiss: () -> Unit,
+    onDone: (String) -> Unit,
+) {
+    val words = words()
+    var typed by remember {
+        mutableStateOf(
+            when (what) {
+                Naming.New -> ""
+                is Naming.Rename -> what.name
+                is Naming.Copy -> what.name + " copy"
+                is Naming.Delete -> ""
+            }
+        )
+    }
+    val deleting = what is Naming.Delete
+    val wanted = typed.trim()
+    val clash = !deleting && wanted.isNotEmpty() &&
+        taken.any { it.equals(wanted, ignoreCase = true) } &&
+        !(what is Naming.Rename && wanted.equals(what.name, ignoreCase = true))
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                when (what) {
+                    Naming.New -> words.newSet
+                    is Naming.Rename -> words.renameSet
+                    is Naming.Copy -> words.copySet
+                    is Naming.Delete -> words.reallyDelete(what.name)
+                }
+            )
+        },
+        text = {
+            if (!deleting) {
+                Column {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        singleLine = true,
+                        isError = clash,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (clash) {
+                        Text(words.nameTaken, color = Dash.Orange, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = deleting || (wanted.isNotEmpty() && !clash),
+                onClick = { onDone(wanted) },
+            ) { Text(if (deleting) words.deleteSet else words.save) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(words.cancel) }
+        },
+        containerColor = Dash.Panel,
+    )
+}
+
+/**
+ * An action with no box around it, for the three that sit under every set.
+ *
+ * Boxed, they shouted over the names they belong to - a list of eighteen
+ * buttons with a set name somewhere behind them. Small grey words read as what
+ * they are: something to do to the line above, once the line has been found.
+ */
+@Composable
+private fun QuietAction(text: String, enabled: Boolean, onClick: () -> Unit) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (enabled) Dash.Muted else Dash.Line,
+        modifier = Modifier
+            .clip(Dash.ControlShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 6.dp),
+    )
 }
 
 /** A button that fits beside a line of text: for a panel's own small actions. */
