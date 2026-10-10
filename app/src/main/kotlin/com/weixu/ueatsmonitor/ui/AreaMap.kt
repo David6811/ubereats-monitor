@@ -82,7 +82,9 @@ fun AreaMap(
                     true
                 }
                 map.setStyle(Style.Builder().fromUri(STYLE)) { style ->
-                    style.addSource(GeoJsonSource(SOURCE, SuburbGeoJson.featureCollection(shapes, holder.chosen)))
+                    // Handed over once: the outlines are the same whichever set
+                    // is being worked, and re-sending them is what made a tap lag.
+                    style.addSource(GeoJsonSource(SOURCE, SuburbGeoJson.featureCollection(shapes)))
                     // Every suburb, all but invisible: a tap inside an unchosen
                     // suburb has to land on something, and its outline alone is
                     // a hairline.
@@ -90,17 +92,17 @@ fun AreaMap(
                     style.addLayer(
                         LineLayer(OTHERS, SOURCE)
                             .withProperties(PropertyFactory.lineColor(LINE), PropertyFactory.lineWidth(0.6f))
-                            .withFilter(Expression.eq(Expression.get(SuburbGeoJson.CHOSEN), Expression.literal(false))),
+                            .withFilter(outside(holder.chosen)),
                     )
                     style.addLayer(
                         FillLayer(FILL, SOURCE)
                             .withProperties(PropertyFactory.fillColor(GOLD), PropertyFactory.fillOpacity(0.28f))
-                            .withFilter(Expression.eq(Expression.get(SuburbGeoJson.CHOSEN), Expression.literal(true))),
+                            .withFilter(inside(holder.chosen)),
                     )
                     style.addLayer(
                         LineLayer(EDGE, SOURCE)
                             .withProperties(PropertyFactory.lineColor(GOLD), PropertyFactory.lineWidth(1.6f))
-                            .withFilter(Expression.eq(Expression.get(SuburbGeoJson.CHOSEN), Expression.literal(true))),
+                            .withFilter(inside(holder.chosen)),
                     )
                     style.addSource(GeoJsonSource(CENTRE, centreJson(holder.centre)))
                     style.addLayer(
@@ -152,7 +154,11 @@ fun AreaMap(
             }
             if (holder.chosen != chosen) {
                 holder.chosen = chosen
-                holder.style?.getSourceAs<GeoJsonSource>(SOURCE)?.setGeoJson(SuburbGeoJson.featureCollection(shapes, chosen))
+                holder.style?.let { style ->
+                    style.getLayerAs<FillLayer>(FILL)?.setFilter(inside(chosen))
+                    style.getLayerAs<LineLayer>(EDGE)?.setFilter(inside(chosen))
+                    style.getLayerAs<LineLayer>(OTHERS)?.setFilter(outside(chosen))
+                }
             }
             // A suburb tapped in or out is the same set: jumping the camera
             // under the finger that just tapped would lose the driver's place.
@@ -163,6 +169,13 @@ fun AreaMap(
         },
     )
 }
+
+/** Draws only the suburbs in the set. */
+private fun inside(chosen: Set<String>): Expression =
+    Expression.`in`(Expression.get(SuburbGeoJson.NAME), Expression.literal(chosen.toTypedArray()))
+
+/** Draws only the ones outside it. */
+private fun outside(chosen: Set<String>): Expression = Expression.not(inside(chosen))
 
 /** What the map callbacks and the next recomposition share. */
 private class MapHolder {
