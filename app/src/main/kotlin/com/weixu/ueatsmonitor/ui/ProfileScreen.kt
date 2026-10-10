@@ -50,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.weixu.ueatsmonitor.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
+import androidx.activity.compose.BackHandler
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -57,7 +58,7 @@ import androidx.compose.material3.Icon
  * The sets are drawn on the laptop, on the map. Here they are a list you tap.
  */
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     val words = words()
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(Profiles.list(context)) }
@@ -147,6 +148,84 @@ fun ProfileScreen() {
         }
     }
 
+    val live = profiles.firstOrNull { it.active }
+    val editingNow = draft
+
+    // Drawing wants the whole glass; leaving the tab gives it back.
+    LaunchedEffect(editingNow != null) { onBare(editingNow != null) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { onBare(false) } }
+
+    // Drawing a set gets the whole screen. It used to be a 380dp window inside
+    // a page that scrolls, which is less than half the glass and puts the drag
+    // that pans the map in a fight with the drag that scrolls the page.
+    if (editingNow != null && live != null) {
+        BackHandler { stopEditing(); note = null }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Dash.Ground)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SectionLabel(words.editOnMap)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(live.name, style = MaterialTheme.typography.headlineSmall, color = Dash.Gold)
+                Text(
+                    text = words.areasCount(editingNow.size),
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    style = MaterialTheme.typography.bodyLarge.merge(Dash.Numbers),
+                    color = Dash.Muted,
+                )
+            }
+            PlaceSearchBox(
+                typed = typed,
+                found = found,
+                lookingUp = lookingUp,
+                onTyped = {
+                    typed = it
+                    found = PlaceSearch.matching(it, CentreSearch.known(context))
+                },
+            ) { place ->
+                // The place names itself. No reverse lookup, which is what a
+                // long press needs and this does not.
+                draftCentre = RuleEdits.Centre(place.name, place.at.latitude, place.at.longitude)
+                lookAt = place.at
+                typed = ""
+                found = emptyList()
+                note = null
+            }
+            AreaMap(
+                setName = live.name,
+                chosen = editingNow,
+                shapes = shapes,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(Dash.PanelShape),
+                centre = draftCentre?.let { GeoPoint(it.latitude, it.longitude) } ?: liveCentre,
+                onTap = { suburb -> draft = RuleEdits.toggled(editingNow, suburb) },
+                onLongPress = { at -> markCentre(at) },
+                lookAt = lookAt,
+            )
+            note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
+            draftCentre?.let { Text(words.centreNotSaved(it.label), style = MaterialTheme.typography.bodyMedium, color = Dash.Gold) }
+            Text(words.tapSuburbToToggle, style = MaterialTheme.typography.bodySmall, color = Dash.Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallButton(words.myPosition, gold = false, enabled = !saving) {
+                    val fix = CurrentPosition(context).lastKnown()
+                    if (fix == null) note = words.noPosition else markCentre(fix.at)
+                }
+                SmallButton(words.cancel, gold = false, enabled = !saving) { stopEditing(); note = null }
+                SmallButton(
+                    words.save,
+                    gold = true,
+                    enabled = !saving && (editingNow != live.suburbs.toSet() || draftCentre != null),
+                ) { save(live.name, editingNow) }
+            }
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -181,71 +260,25 @@ fun ProfileScreen() {
                         )
                     }
                 }
-                // Above the map, not under it. The panel sits near the foot of
-                // a scrolling page, and a list of suggestions below the box is
-                // a list behind the keyboard.
-                if (draft != null) {
-                    Box(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-                        PlaceSearchBox(
-                            typed = typed,
-                            found = found,
-                            lookingUp = lookingUp,
-                            onTyped = {
-                                typed = it
-                                found = PlaceSearch.matching(it, CentreSearch.known(context))
-                            },
-                        ) { place ->
-                            // The place names itself. No reverse lookup, which
-                            // is what a long press needs and this does not.
-                            draftCentre = RuleEdits.Centre(place.name, place.at.latitude, place.at.longitude)
-                            lookAt = place.at
-                            typed = ""
-                            found = emptyList()
-                            note = null
-                        }
-                    }
-                }
+                // Read only, and short. It answers "which patch am I running
+                // tonight"; drawing one happens on its own page.
                 AreaMap(
                     setName = live.name,
-                    chosen = draft ?: Exclusions.apply(live.suburbs.toSet(), excluded),
+                    chosen = Exclusions.apply(live.suburbs.toSet(), excluded),
                     shapes = shapes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
-                        .height(380.dp),
-                    centre = draftCentre?.let { GeoPoint(it.latitude, it.longitude) } ?: liveCentre,
-                    onTap = draft?.let { now -> { suburb: String -> draft = RuleEdits.toggled(now, suburb) } },
-                    onLongPress = if (draft != null) { at -> markCentre(at) } else null,
-                    lookAt = lookAt,
+                        .height(220.dp),
+                    centre = liveCentre,
                 )
                 Column(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
-                    draftCentre?.let { Text(words.centreNotSaved(it.label), style = MaterialTheme.typography.bodyMedium, color = Dash.Gold) }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = if (draft != null) words.tapSuburbToToggle else "",
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Dash.Muted,
-                        )
-                        val editingNow = draft
-                        if (editingNow == null) {
-                            SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
-                        } else {
-                            SmallButton(words.myPosition, gold = false, enabled = !saving) {
-                                val fix = CurrentPosition(context).lastKnown()
-                                if (fix == null) note = words.noPosition else markCentre(fix.at)
-                            }
-                            SmallButton(words.cancel, gold = false, enabled = !saving) { stopEditing(); note = null }
-                            SmallButton(
-                                words.save,
-                                gold = true,
-                                enabled = !saving && (editingNow != live.suburbs.toSet() || draftCentre != null),
-                            ) { save(live.name, editingNow) }
-                        }
+                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        SmallButton(words.editOnMap, gold = false) { draft = live.suburbs.toSet(); note = null }
                     }
                 }
             }

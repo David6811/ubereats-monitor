@@ -237,19 +237,23 @@ private fun HomeTabs() {
             reload++
         }
     }
+    // A page can ask for the whole glass. Drawing a set on the map is the one
+    // task where the strip and the bar are in the way rather than the way out.
+    var bare by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(place) { bare = false }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
-        StatusStrip(onRefresh = refresh)
+        if (!bare) StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
             androidx.compose.runtime.key(reload) {
                 when (place) {
                     Place.WORK -> WorkScreen()
                     Place.TRIP -> TripScreen()
-                    Place.AREAS -> ProfileScreen()
+                    Place.AREAS -> ProfileScreen { bare = it }
                     Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
                 }
             }
         }
-        BottomBar(place) { place = it }
+        if (!bare) BottomBar(place) { place = it }
     }
 }
 
