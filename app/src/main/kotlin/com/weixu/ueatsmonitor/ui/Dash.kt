@@ -219,7 +219,14 @@ fun Lamp(on: Boolean, color: Color, modifier: Modifier = Modifier) {
 
 /** One setting: its words on the left, the switch on the right, the whole row tappable. */
 @Composable
-fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+fun SwitchRow(
+    label: String,
+    hint: String?,
+    checked: Boolean,
+    /** Opens whatever explains this row. Draws a mark beside the label; null draws none. */
+    onAsk: (() -> Unit)? = null,
+    onChange: (Boolean) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -228,7 +235,23 @@ fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+                // Beside the label, not a line of its own underneath it: the
+                // question it answers is about this row and nothing else.
+                onAsk?.let { ask ->
+                    androidx.compose.material3.Icon(
+                        painter = androidx.compose.ui.res.painterResource(com.weixu.ueatsmonitor.R.drawable.ic_help),
+                        contentDescription = null,
+                        tint = Dash.Gold,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = ask)
+                            .padding(4.dp),
+                    )
+                }
+            }
             hint?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Dash.Muted) }
         }
         Switch(

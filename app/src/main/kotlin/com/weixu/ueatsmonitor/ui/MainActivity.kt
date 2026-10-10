@@ -611,8 +611,13 @@ private fun VoiceToggle(enabled: Boolean) {
     val words = words()
     val switchVoice = rememberVoiceSwitch()
     var explaining by remember { mutableStateOf(false) }
-    SwitchRow(words.voiceCommands, words.voiceCommandsHint, enabled, switchVoice)
-    TextButton(onClick = { explaining = true }) { Text(words.whatCanISay, color = Dash.Gold) }
+    SwitchRow(
+        label = words.voiceCommands,
+        hint = words.voiceCommandsHint,
+        checked = enabled,
+        onAsk = { explaining = true },
+        onChange = switchVoice,
+    )
 
     if (explaining) {
         AlertDialog(
@@ -892,13 +897,20 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
             style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
             color = Dash.Muted,
         )
-        DashField(words.fuelPerKm, fuel) { fuel = it }
-        DashField(words.timeFactor, factor) { factor = it }
-        GoldButton(words.save, Modifier.fillMaxWidth()) {
-            onSave(
-                fuel.toDoubleOrNull() ?: settings.fuelPerKm,
-                factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
-            )
+        // Side by side, and the button only as wide as its word. Two
+        // full-width fields and a full-width Save made three numbers look
+        // like the most important thing on the page.
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            DashField(words.fuelPerKm, fuel, Modifier.weight(1f)) { fuel = it }
+            DashField(words.timeFactor, factor, Modifier.weight(1f)) { factor = it }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            GoldButton(words.save) {
+                onSave(
+                    fuel.toDoubleOrNull() ?: settings.fuelPerKm,
+                    factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
+                )
+            }
         }
     }
 }

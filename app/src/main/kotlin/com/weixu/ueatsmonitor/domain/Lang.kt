@@ -427,7 +427,7 @@ object Zh : Words {
 
     override val settingsWatching = "监控"
     override val settingsFinishing = "收工"
-    override val settingsPerHour = "每小时收入"
+    override val settingsPerHour = "卡片上的 \$/小时"
     override val save = "保存"
     override val cancel = "取消"
     override val gotIt = "知道了"
@@ -462,7 +462,7 @@ object Zh : Words {
     override val goTurnOn = "去开启"
     override val nearKmLabel = "离中心小于 公里 照接"
     override val maxMinutesLabel = "超过 分钟 不接"
-    override val fuelPerKm = "每公里油钱 \$"
+    override val fuelPerKm = "油钱 \$/公里"
     override val timeFactor = "时间倍数"
     override val perHourFormula = "(钱 − 公里 × 2 × 油钱) ÷ (分钟 × 倍数 ÷ 60)"
     override val rulesUpdated = "拿到了新规则"
@@ -645,7 +645,7 @@ object En : Words {
 
     override val settingsWatching = "Watching"
     override val settingsFinishing = "Finishing up"
-    override val settingsPerHour = "Dollars an hour"
+    override val settingsPerHour = "The \$/h on the card"
     override val save = "Save"
     override val cancel = "Cancel"
     override val gotIt = "Got it"
