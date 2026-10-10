@@ -87,10 +87,9 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     // the box that sets it waits behind a target rather than standing on the
     // map's share of the screen.
     var settingCentre by remember { mutableStateOf(false) }
-    var drawnBoxes by remember { mutableStateOf(RulesStore.drawn(context)) }
-    // The boxes get a screen of their own: they belong to the rules, not to any
-    // one set, so changing them is not part of changing a set.
-    var atBoxes by remember { mutableStateOf(false) }
+    // Drawn on the editor's map, but changed in Settings: a box belongs to the
+    // rules, not to any one set.
+    val drawnBoxes = remember { RulesStore.drawn(context) }
     var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
@@ -152,7 +151,6 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
             fromPhone = Profiles.chosenHere(context)
             liveCentre = Profiles.centre(context)
             excluded = ExclusionStore.inForce(context)
-            drawnBoxes = RulesStore.drawn(context)
             saving = false
         }
     }
@@ -175,15 +173,6 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
 
     val live = profiles.firstOrNull { it.active }
     val editingNow = draft
-
-    if (atBoxes) {
-        BoxScreen(
-            shapes = shapes,
-            onLeave = { atBoxes = false; drawnBoxes = RulesStore.drawn(context) },
-            onBare = onBare,
-        )
-        return
-    }
 
     // Drawing wants the whole glass; leaving the tab gives it back.
     LaunchedEffect(editingNow != null) { onBare(editingNow != null) }
@@ -334,8 +323,7 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                         color = Dash.Muted,
                     )
                     // Both ways of getting a set, side by side: change this one
-                    // or start another. Making one was at the foot of a list
-                    // eight rows long.
+                    // or start another.
                     SmallButton(words.newSet, gold = false, enabled = !saving) { naming = Naming.New }
                     SmallButton(words.editOnMap, gold = true) { draft = live.suburbs.toSet(); note = null }
                 }
@@ -450,29 +438,6 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                             }
                         }
                     }
-                }
-            }
-        }
-
-        if (profiles.isNotEmpty()) {
-            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { atBoxes = true },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = words.noGoBoxes,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Dash.Ink,
-                    )
-                    Text(
-                        text = words.boxCount(drawnBoxes.size),
-                        style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
-                        color = Dash.Muted,
-                    )
-                    Text("\u203a", style = MaterialTheme.typography.titleLarge, color = Dash.Muted)
                 }
             }
         }

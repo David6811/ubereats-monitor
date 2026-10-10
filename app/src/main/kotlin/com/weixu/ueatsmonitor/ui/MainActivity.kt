@@ -99,6 +99,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.weixu.ueatsmonitor.action.RulesStore
 
 class MainActivity : ComponentActivity() {
 
@@ -240,16 +241,20 @@ private fun HomeTabs() {
     // A page can ask for the whole glass. Drawing a set on the map is the one
     // task where the strip and the bar are in the way rather than the way out.
     var bare by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(place) { bare = false }
+    // The no-go boxes take the whole screen, from Settings, over whichever tab
+    // is showing: they are not a tab of their own, and they are not a set.
+    var atBoxes by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
         if (!bare) StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
             androidx.compose.runtime.key(reload) {
-                when (place) {
-                    Place.WORK -> WorkScreen()
-                    Place.TRIP -> TripScreen()
-                    Place.AREAS -> ProfileScreen { bare = it }
-                    Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
+                when {
+                    atBoxes -> BoxScreen(onLeave = { atBoxes = false }) { bare = it }
+                    place == Place.WORK -> WorkScreen()
+                    place == Place.TRIP -> TripScreen()
+                    place == Place.AREAS -> ProfileScreen { bare = it }
+                    else -> MonitorScreen(App.instance.settingsStore) { atBoxes = true }
                 }
             }
         }
@@ -398,7 +403,7 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
 }
 
 @Composable
-private fun MonitorScreen(store: SettingsStore) {
+private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
     val words = words()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -450,6 +455,33 @@ private fun MonitorScreen(store: SettingsStore) {
                     VoiceToggle(current.voiceEnabled)
                     Hairline()
                     LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
+                }
+            }
+        }
+
+        item {
+            // Here rather than on the areas page: a box holds whichever set is
+            // being worked, so it belongs with the settings that are not about
+            // one set. At the foot of that page it was off the screen until you
+            // had scrolled past ten of them.
+            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onBoxes),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = words.noGoBoxes,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Dash.Ink,
+                    )
+                    Text(
+                        text = words.boxCount(RulesStore.drawn(context).size),
+                        style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                        color = Dash.Muted,
+                    )
+                    Text("\u203a", style = MaterialTheme.typography.titleLarge, color = Dash.Muted)
                 }
             }
         }

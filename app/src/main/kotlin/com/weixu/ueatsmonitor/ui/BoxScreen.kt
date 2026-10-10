@@ -44,14 +44,11 @@ import kotlinx.coroutines.launch
  * are a few hundred metres across.
  */
 @Composable
-fun BoxScreen(
-    shapes: List<com.weixu.ueatsmonitor.domain.SuburbShape>,
-    onLeave: () -> Unit,
-    onBare: (Boolean) -> Unit = {},
-) {
+fun BoxScreen(onLeave: () -> Unit, onBare: (Boolean) -> Unit = {}) {
     val words = words()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val shapes = remember { com.weixu.ueatsmonitor.action.SuburbShapes.all(context) }
     var boxes by remember { mutableStateOf(RulesStore.drawn(context)) }
     val working = remember { com.weixu.ueatsmonitor.action.Profiles.suburbsInForce(context).orEmpty() }
     var off by remember { mutableStateOf(NoGoOffStore.inForce(context)) }
