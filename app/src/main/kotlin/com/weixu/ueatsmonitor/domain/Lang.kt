@@ -160,6 +160,8 @@ interface Words {
     val dragToDraw: String
     val boxesHint: String
     val boxTooSmall: String
+    val adjustBox: String
+    val dragCorners: String
     fun boxCount(n: Int): String
     fun boxDefaultName(n: Int): String
     val setCentreHere: String
@@ -386,6 +388,8 @@ object Zh : Words {
     override val dragToDraw = "按住拖一个框出来"
     override val boxesHint = "框里的单一律不接"
     override val boxTooSmall = "太小了，重新拖一个"
+    override val adjustBox = "调大小"
+    override val dragCorners = "拖四个角改大小"
     override fun boxCount(n: Int) = "$n 个"
     override fun boxDefaultName(n: Int) = "框 $n"
     override val setCentreHere = "设中心"
@@ -605,6 +609,8 @@ object En : Words {
     override val dragToDraw = "Press and drag out a box"
     override val boxesHint = "Nothing inside a box is taken"
     override val boxTooSmall = "Too small; drag out another"
+    override val adjustBox = "Resize"
+    override val dragCorners = "Drag the corners"
     override fun boxCount(n: Int) = if (n == 1) "1 box" else "$n boxes"
     override fun boxDefaultName(n: Int) = "Box $n"
     override val setCentreHere = "Set the centre"

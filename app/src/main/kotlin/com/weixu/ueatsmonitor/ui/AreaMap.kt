@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.MapProjection
+import com.weixu.ueatsmonitor.domain.BoxCorners
 import com.weixu.ueatsmonitor.domain.NoGoBox
 import com.weixu.ueatsmonitor.domain.NoGoGeoJson
 import com.weixu.ueatsmonitor.domain.SuburbGeoJson
@@ -90,6 +91,13 @@ fun AreaMap(
      * the answer. Empty falls back to them.
      */
     frameTo: List<GeoPoint> = emptyList(),
+    /**
+     * A box whose corners can be dragged. The map holds still while one is:
+     * a corner is placed in screen points and read back off the projection,
+     * which only works while the projection is not moving.
+     */
+    adjusting: NoGoBox? = null,
+    onAdjusted: ((NoGoBox) -> Unit)? = null,
     /**
      * Somewhere to show. Each new value moves the camera once; a long press
      * passes nothing, because moving the map out from under the finger that
@@ -243,7 +251,7 @@ fun AreaMap(
             holder.onTap = onTap
             holder.onLongPress = onLongPress
             holder.onLongPressSuburb = onLongPressSuburb
-            holder.map?.uiSettings?.setAllGesturesEnabled(!drawingBox)
+            holder.map?.uiSettings?.setAllGesturesEnabled(!drawingBox && adjusting == null)
             holder.frameTo = frameTo
             if (holder.centre != centre) {
                 holder.centre = centre
@@ -279,6 +287,51 @@ fun AreaMap(
             }
         },
     )
+        if (adjusting != null && onAdjusted != null) {
+            // Four handles, one per corner, and a drag that starts near one
+            // moves it. Anywhere else does nothing: a stray finger on a map
+            // that is holding still should not resize what is under it.
+            var held by remember { mutableStateOf(-1) }
+            // Keyed on nothing, and the box read fresh on every event: keyed on
+            // the box, the detector restarted the moment a corner moved and the
+            // finger lost its grip after a few pixels.
+            val live = androidx.compose.runtime.rememberUpdatedState(adjusting)
+            val report = androidx.compose.runtime.rememberUpdatedState(onAdjusted)
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { at ->
+                                val map = holder.map
+                                val box = live.value
+                                held = if (map == null || box == null) -1 else cornersOf(box, map)
+                                    .withIndex()
+                                    .filter { (_, point) -> (point - at).getDistance() <= HANDLE_GRAB }
+                                    .minByOrNull { (_, point) -> (point - at).getDistance() }
+                                    ?.index ?: -1
+                            },
+                            onDrag = { change, _ ->
+                                change.consume()
+                                val map = holder.map ?: return@detectDragGestures
+                                val box = live.value ?: return@detectDragGestures
+                                if (held < 0) return@detectDragGestures
+                                val at = map.projection.fromScreenLocation(PointF(change.position.x, change.position.y))
+                                report.value?.invoke(BoxCorners.moved(box, held, at.latitude, at.longitude))
+                            },
+                            onDragEnd = { held = -1 },
+                            onDragCancel = { held = -1 },
+                        )
+                    },
+            ) {
+                val map = holder.map ?: return@Canvas
+                cornersOf(adjusting, map).forEach { point ->
+                    drawCircle(PREVIEW, radius = 22f, center = point)
+                    drawCircle(GROUND_INK, radius = 22f, center = point, style = Stroke(width = 5f))
+                }
+            }
+        }
+
         if (drawingBox) {
             // Over the map, not in it: the rectangle is drawn in screen points
             // and turned into two corners of the earth only on release, which
@@ -322,6 +375,22 @@ fun AreaMap(
 
 /** The rectangle being dragged out, before it is a box. */
 private val PREVIEW = Color(0xFFF0883E)
+private val GROUND_INK = Color(0xFF0A0A0B)
+
+/** How close a finger has to land to take hold of a corner, in screen points. */
+private const val HANDLE_GRAB = 90f
+
+/** Calculation. The box's four corners where they fall on the screen, SW first. */
+private fun cornersOf(box: NoGoBox, map: MapLibreMap): List<Offset> =
+    listOf(
+        box.south to box.west,
+        box.south to box.east,
+        box.north to box.east,
+        box.north to box.west,
+    ).map { (lat, lon) ->
+        val point = map.projection.toScreenLocation(LatLng(lat, lon))
+        Offset(point.x, point.y)
+    }
 
 /** Draws only the named suburbs. */
 private fun among(names: Set<String>): Expression =

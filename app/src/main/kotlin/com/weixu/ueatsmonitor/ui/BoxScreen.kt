@@ -60,12 +60,21 @@ fun BoxScreen(
     var chosen by remember { mutableStateOf<String?>(null) }
     var renaming by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<String?>(null) }
+    // The box being resized, held here while the corners move so the map has
+    // something to draw; nothing is written until it is let go.
+    var adjusting by remember { mutableStateOf<NoGoBox?>(null) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { onBare(true) }
     DisposableEffect(Unit) { onDispose { onBare(false) } }
-    BackHandler { if (drawing) drawing = false else onLeave() }
+    BackHandler {
+        when {
+            drawing -> drawing = false
+            adjusting != null -> adjusting = null
+            else -> onLeave()
+        }
+    }
 
     fun change(what: (kotlinx.serialization.json.JsonObject) -> kotlinx.serialization.json.JsonObject) {
         saving = true
@@ -104,7 +113,6 @@ fun BoxScreen(
             // on the whole city and the driver zooms to where he is working.
             setName = "no-go",
             chosen = emptySet(),
-            boxes = boxes,
             boxesOff = off,
             shapes = shapes,
             // Opens on the boxes, or on the set being worked when there are
@@ -118,7 +126,12 @@ fun BoxScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(Dash.PanelShape),
+            // What is being resized is drawn from the handles, not from the
+            // saved list, so the rectangle follows the finger.
+            boxes = adjusting?.let { held -> boxes.map { if (it.label == held.label) held else it } } ?: boxes,
             drawingBox = drawing,
+            adjusting = adjusting,
+            onAdjusted = { adjusting = it },
             onBoxDrawn = { a, b ->
                 drawing = false
                 // A press with no drag is a slip, not a box.
@@ -138,17 +151,30 @@ fun BoxScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = if (drawing) words.dragToDraw else words.boxesHint,
+                text = when {
+                    adjusting != null -> words.dragCorners
+                    drawing -> words.dragToDraw
+                    else -> words.boxesHint
+                },
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
-                color = if (drawing) Dash.Orange else Dash.Muted,
+                color = if (drawing || adjusting != null) Dash.Orange else Dash.Muted,
             )
-            SmallButton(words.cancel, gold = false, enabled = !saving) {
-                if (drawing) drawing = false else onLeave()
-            }
-            SmallButton(if (drawing) words.stopDrawing else words.drawBox, gold = true, enabled = !saving) {
-                drawing = !drawing
-                note = null
+            if (adjusting != null) {
+                SmallButton(words.cancel, gold = false, enabled = !saving) { adjusting = null }
+                SmallButton(words.save, gold = true, enabled = !saving) {
+                    val held = adjusting
+                    adjusting = null
+                    if (held != null) change { RuleEdits.addBox(RuleEdits.removeBox(it, held.label), held) }
+                }
+            } else {
+                SmallButton(words.cancel, gold = false, enabled = !saving) {
+                    if (drawing) drawing = false else onLeave()
+                }
+                SmallButton(if (drawing) words.stopDrawing else words.drawBox, gold = true, enabled = !saving) {
+                    drawing = !drawing
+                    note = null
+                }
             }
         }
 
@@ -173,10 +199,15 @@ fun BoxScreen(
                 }
             }
         }
-        chosen?.let { label ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallButton(words.renameSet, gold = false, enabled = !saving) { renaming = label }
-                SmallButton(words.deleteSet, gold = false, enabled = !saving) { deleting = label }
+        if (adjusting == null) {
+            chosen?.let { label ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SmallButton(words.adjustBox, gold = false, enabled = !saving) {
+                        adjusting = boxes.first { it.label == label }
+                    }
+                    SmallButton(words.renameSet, gold = false, enabled = !saving) { renaming = label }
+                    SmallButton(words.deleteSet, gold = false, enabled = !saving) { deleting = label }
+                }
             }
         }
     }
