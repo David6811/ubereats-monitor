@@ -66,6 +66,13 @@ fun AreaMap(
     /** The suburb under a long press. Takes precedence over [onLongPress]. */
     onLongPressSuburb: ((String) -> Unit)? = null,
     /**
+     * Where a tap landed, instead of which suburb. Set while a box is being
+     * drawn: a corner is a point on the earth, not a suburb.
+     */
+    onTapPoint: ((GeoPoint) -> Unit)? = null,
+    /** The first corner of a box being drawn, drawn as a dot. */
+    corner: GeoPoint? = null,
+    /**
      * Somewhere to show. Each new value moves the camera once; a long press
      * passes nothing, because moving the map out from under the finger that
      * just pressed it loses the driver his place.
@@ -88,6 +95,10 @@ fun AreaMap(
                 map.uiSettings.isRotateGesturesEnabled = false
                 map.uiSettings.isTiltGesturesEnabled = false
                 map.addOnMapClickListener { at ->
+                    holder.onTapPoint?.let { put ->
+                        put(GeoPoint(at.latitude, at.longitude))
+                        return@addOnMapClickListener true
+                    }
                     val tap = holder.onTap ?: return@addOnMapClickListener false
                     val point = map.projection.toScreenLocation(at)
                     val name = map.queryRenderedFeatures(point, HIT).firstOrNull()
@@ -169,6 +180,15 @@ fun AreaMap(
                             PropertyFactory.lineDasharray(arrayOf(3f, 2f)),
                         ),
                     )
+                    style.addSource(GeoJsonSource(CORNER, centreJson(holder.corner)))
+                    style.addLayer(
+                        CircleLayer(CORNER_DOT, CORNER).withProperties(
+                            PropertyFactory.circleRadius(7f),
+                            PropertyFactory.circleColor(android.graphics.Color.parseColor(ORANGE)),
+                            PropertyFactory.circleStrokeColor(android.graphics.Color.parseColor(GROUND)),
+                            PropertyFactory.circleStrokeWidth(2f),
+                        ),
+                    )
                     style.addSource(GeoJsonSource(CENTRE, centreJson(holder.centre)))
                     style.addLayer(
                         CircleLayer(CENTRE_RING, CENTRE).withProperties(
@@ -214,6 +234,11 @@ fun AreaMap(
             holder.onTap = onTap
             holder.onLongPress = onLongPress
             holder.onLongPressSuburb = onLongPressSuburb
+            holder.onTapPoint = onTapPoint
+            if (holder.corner != corner) {
+                holder.corner = corner
+                holder.style?.getSourceAs<GeoJsonSource>(CORNER)?.setGeoJson(centreJson(corner))
+            }
             if (holder.centre != centre) {
                 holder.centre = centre
                 holder.style?.getSourceAs<GeoJsonSource>(CENTRE)?.setGeoJson(centreJson(centre))
@@ -267,6 +292,8 @@ private class MapHolder {
     var onTap: ((String) -> Unit)? = null
     var onLongPress: ((GeoPoint) -> Unit)? = null
     var onLongPressSuburb: ((String) -> Unit)? = null
+    var onTapPoint: ((GeoPoint) -> Unit)? = null
+    var corner: GeoPoint? = null
     var dropped: Set<String> = emptySet()
     var boxes: List<NoGoBox> = emptyList()
     var boxesOff: Set<String> = emptySet()
@@ -304,6 +331,8 @@ private const val HIT = "suburbs-hit"
 private const val BOXES = "nogo"
 private const val BOX_FILL = "nogo-fill"
 private const val BOX_EDGE = "nogo-edge"
+private const val CORNER = "box-corner"
+private const val CORNER_DOT = "box-corner-dot"
 private const val CENTRE = "centre"
 private const val CENTRE_RING = "centre-ring"
 private const val GROUND = "#0A0A0B"

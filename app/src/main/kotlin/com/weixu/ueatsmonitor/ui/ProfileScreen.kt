@@ -52,6 +52,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.isImeVisible
+import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.domain.NoGoBox
 
 /**
  * Picking which set of suburbs is live - the one rule that changes mid-shift.
@@ -85,6 +87,10 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     // the box that sets it waits behind a target rather than standing on the
     // map's share of the screen.
     var settingCentre by remember { mutableStateOf(false) }
+    // Drawing a box: the mark is on, and the first corner is down or it is not.
+    var drawingBox by remember { mutableStateOf(false) }
+    var corner by remember { mutableStateOf<GeoPoint?>(null) }
+    var drawnBoxes by remember { mutableStateOf(RulesStore.drawn(context)) }
     var liveCentre by remember { mutableStateOf(Profiles.centre(context)) }
     var saving by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
@@ -94,7 +100,15 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
     var menuFor by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    fun stopEditing() { draft = null; draftCentre = null; typed = ""; found = emptyList(); settingCentre = false }
+    fun stopEditing() {
+        draft = null
+        draftCentre = null
+        typed = ""
+        found = emptyList()
+        settingCentre = false
+        drawingBox = false
+        corner = null
+    }
 
     // The bundled suburbs and shops answer on every keystroke; the phone's
     // geocoder is a network call, so it waits for the typing to stop, and its
@@ -123,7 +137,11 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
      * three answers. A set that disappears under the driver takes the live one
      * with it, so what is live is read again after every one of these.
      */
-    fun change(what: (kotlinx.serialization.json.JsonObject) -> kotlinx.serialization.json.JsonObject) {
+    fun change(
+        /** False for an edit that is not about the set being drafted, such as a box. */
+        thenStop: Boolean = true,
+        what: (kotlinx.serialization.json.JsonObject) -> kotlinx.serialization.json.JsonObject,
+    ) {
         saving = true
         scope.launch {
             when (RulesEditor.edit(context, what)) {
@@ -131,11 +149,12 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 is RulesEditor.Saved.OnPhoneOnly -> note = words.savedOnPhoneOnly
                 RulesEditor.Saved.CloudMovedOn -> { RulesSync.pull(context); note = words.cloudMovedOn }
             }
-            stopEditing()
+            if (thenStop) stopEditing()
             profiles = Profiles.list(context)
             fromPhone = Profiles.chosenHere(context)
             liveCentre = Profiles.centre(context)
             excluded = ExclusionStore.inForce(context)
+            drawnBoxes = RulesStore.drawn(context)
             saving = false
         }
     }
@@ -192,17 +211,34 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                     color = Dash.Muted,
                 )
                 Icon(
+                    painter = painterResource(R.drawable.ic_nogo),
+                    contentDescription = words.drawBox,
+                    tint = if (drawingBox) Dash.Orange else Dash.Muted,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            drawingBox = !drawingBox
+                            corner = null
+                            if (drawingBox) settingCentre = false
+                        }
+                        .padding(8.dp),
+                )
+                Icon(
                     painter = painterResource(R.drawable.ic_centre),
                     contentDescription = words.setCentreHere,
                     tint = if (settingCentre) Dash.Gold else Dash.Muted,
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .clickable { settingCentre = !settingCentre }
+                        .clickable {
+                            settingCentre = !settingCentre
+                            if (settingCentre) { drawingBox = false; corner = null }
+                        }
                         .padding(8.dp),
                 )
             }
-            if (settingCentre) PlaceSearchBox(
+            if (settingCentre && !drawingBox) PlaceSearchBox(
                 typed = typed,
                 found = found,
                 lookingUp = lookingUp,
@@ -223,6 +259,8 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
             AreaMap(
                 setName = live.name,
                 chosen = editingNow,
+                boxes = drawnBoxes,
+                corner = corner,
                 shapes = shapes,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -231,6 +269,11 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 centre = draftCentre?.let { GeoPoint(it.latitude, it.longitude) } ?: liveCentre,
                 onTap = { suburb -> draft = RuleEdits.toggled(editingNow, suburb) },
                 onLongPress = { at -> markCentre(at) },
+                // Two taps make a box: one corner, then the one across from it.
+                onTapPoint = if (!drawingBox) null else { at ->
+                    val first = corner
+                    if (first == null) corner = at else naming = Naming.Box(first, at)
+                },
                 lookAt = lookAt,
             )
             note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Dash.Orange) }
@@ -242,10 +285,14 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 // Beside the buttons, not on a line of its own. Half of what it
                 // used to say is now written on the box above the map.
                 Text(
-                    text = words.tapSuburbToToggle,
+                    text = when {
+                        drawingBox && corner != null -> words.tapOtherCorner
+                        drawingBox -> words.tapTwoCorners
+                        else -> words.tapSuburbToToggle
+                    },
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Dash.Muted,
+                    color = if (drawingBox) Dash.Orange else Dash.Muted,
                 )
                 SmallButton(words.myPosition, gold = false, enabled = !saving) {
                     val fix = CurrentPosition(context).lastKnown()
@@ -436,6 +483,24 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 naming = null
                 when (what) {
                     Naming.New -> change { RuleEdits.addSet(it, typed, null, emptyList()) }
+                    is Naming.Box -> {
+                        corner = null
+                        drawingBox = false
+                        // Not part of the set being drafted, so this one saves
+                        // on its own and leaves the draft where it was.
+                        change(thenStop = false) {
+                            RuleEdits.addBox(
+                                it,
+                                NoGoBox(
+                                    label = typed,
+                                    south = minOf(what.a.latitude, what.b.latitude),
+                                    west = minOf(what.a.longitude, what.b.longitude),
+                                    north = maxOf(what.a.latitude, what.b.latitude),
+                                    east = maxOf(what.a.longitude, what.b.longitude),
+                                ),
+                            )
+                        }
+                    }
                     is Naming.Rename -> change { RuleEdits.renameSet(it, what.name, typed) }
                     is Naming.Copy -> change { RuleEdits.copySet(it, what.name, typed) }
                     is Naming.Delete -> change { RuleEdits.removeSet(it, what.name) }
@@ -533,6 +598,9 @@ private sealed interface Naming {
     data class Rename(val name: String) : Naming
     data class Copy(val name: String) : Naming
     data class Delete(val name: String) : Naming
+
+    /** A box drawn on the map, waiting for a name. */
+    data class Box(val a: GeoPoint, val b: GeoPoint) : Naming
 }
 
 /**
@@ -555,6 +623,7 @@ private fun NameDialog(
                 is Naming.Rename -> what.name
                 is Naming.Copy -> what.name + " copy"
                 is Naming.Delete -> ""
+                is Naming.Box -> ""
             }
         )
     }
@@ -573,6 +642,7 @@ private fun NameDialog(
                     is Naming.Rename -> words.renameSet
                     is Naming.Copy -> words.copySet
                     is Naming.Delete -> words.reallyDelete(what.name)
+                    is Naming.Box -> words.drawBox
                 }
             )
         },

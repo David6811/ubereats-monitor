@@ -154,6 +154,10 @@ interface Words {
     val myPosition: String
     val noPosition: String
     /** What the box is for, and what may be typed into it. */
+    /** Drawing a box: what the mark does, and what to do next. */
+    val drawBox: String
+    val tapTwoCorners: String
+    val tapOtherCorner: String
     val setCentreHere: String
     val searchPlace: String
     val searchingNet: String
@@ -373,6 +377,9 @@ object Zh : Words {
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
     override val editOnMap = "改区"
     override val myPosition = "我的位置"
+    override val drawBox = "画不去的框"
+    override val tapTwoCorners = "点两个角画框"
+    override val tapOtherCorner = "再点对角"
     override val setCentreHere = "设中心"
     override val searchPlace = "区名、店名或地址"
     override val searchingNet = "在网上找地址…"
@@ -585,6 +592,9 @@ object En : Words {
     override val pushFromTheWeb = "Press Save once in the web editor."
     override val editOnMap = "Edit"
     override val myPosition = "Here"
+    override val drawBox = "Draw a no-go box"
+    override val tapTwoCorners = "Tap two opposite corners"
+    override val tapOtherCorner = "Now the opposite corner"
     override val setCentreHere = "Set the centre"
     override val searchPlace = "suburb, shop or address"
     override val searchingNet = "Looking the address up\u2026"
