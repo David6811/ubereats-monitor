@@ -7,7 +7,7 @@ package com.weixu.ueatsmonitor.domain
  * wants to know which of the two answers is a shop and which is a suburb.
  */
 data class Place(val name: String, val at: GeoPoint, val kind: Kind) {
-    enum class Kind { SUBURB, SHOP, ADDRESS }
+    enum class Kind { SAVED, SUBURB, SHOP, ADDRESS }
 }
 
 /**
@@ -19,6 +19,18 @@ data class Place(val name: String, val at: GeoPoint, val kind: Kind) {
  * any word in the name counts. Anything else containing it follows.
  */
 object PlaceSearch {
+
+    /**
+     * What a place box offers. Nothing typed yet: every saved place, so the
+     * usual ones are a tap away. Something typed: the saved places that match,
+     * then everything else that does, without a name twice.
+     */
+    fun offered(query: String, saved: List<Place>, known: List<Place>, limit: Int = 8): List<Place> {
+        if (query.isBlank()) return saved
+        val mine = matching(query, saved, limit)
+        return (mine + matching(query, known, limit).filterNot { other -> mine.any { it.name == other.name } })
+            .take(limit)
+    }
 
     fun matching(query: String, places: List<Place>, limit: Int = 8): List<Place> {
         val wanted = query.trim().lowercase()

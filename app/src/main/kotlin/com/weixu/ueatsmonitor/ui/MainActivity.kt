@@ -100,6 +100,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.action.CentreSearch
 import com.weixu.ueatsmonitor.domain.CentreMode
 import com.weixu.ueatsmonitor.domain.VoiceCommands
 
@@ -246,17 +247,19 @@ private fun HomeTabs() {
     // The no-go boxes take the whole screen, from Settings, over whichever tab
     // is showing: they are not a tab of their own, and they are not a set.
     var atBoxes by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false }
+    var atPlaces by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false; atPlaces = false }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
         if (!bare) StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
             androidx.compose.runtime.key(reload) {
                 when {
                     atBoxes -> BoxScreen(onLeave = { atBoxes = false }) { bare = it }
+                    atPlaces -> PlacesScreen(onLeave = { atPlaces = false })
                     place == Place.WORK -> WorkScreen()
                     place == Place.TRIP -> TripScreen()
                     place == Place.AREAS -> ProfileScreen { bare = it }
-                    else -> MonitorScreen(App.instance.settingsStore) { atBoxes = true }
+                    else -> MonitorScreen(App.instance.settingsStore, onPlaces = { atPlaces = true }) { atBoxes = true }
                 }
             }
         }
@@ -405,7 +408,7 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
 }
 
 @Composable
-private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
+private fun MonitorScreen(store: SettingsStore, onPlaces: () -> Unit = {}, onBoxes: () -> Unit = {}) {
     val words = words()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -497,6 +500,31 @@ private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
                     )
                     Text(
                         text = words.boxCount(RulesStore.drawn(context).size),
+                        style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                        color = Dash.Muted,
+                    )
+                    Text("\u203a", style = MaterialTheme.typography.titleLarge, color = Dash.Muted)
+                }
+            }
+        }
+
+        item {
+            // Beside the boxes, for the same reason: a saved place belongs to no
+            // set, and every place box in the app offers these first.
+            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onPlaces),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = words.savedPlaces,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Dash.Ink,
+                    )
+                    Text(
+                        text = words.boxCount(CentreSearch.saved(context).size),
                         style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
                         color = Dash.Muted,
                     )

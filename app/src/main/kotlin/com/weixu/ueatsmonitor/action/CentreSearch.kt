@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.Geocoder
 import com.weixu.ueatsmonitor.domain.GeoPoint
 import com.weixu.ueatsmonitor.domain.Place
+import com.weixu.ueatsmonitor.domain.RuleEdits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -21,6 +22,15 @@ object CentreSearch {
 
     @Volatile
     private var known: List<Place>? = null
+
+    /**
+     * The driver's saved places, read fresh each time: unlike the tables they
+     * change, from this phone or from the laptop.
+     */
+    fun saved(context: Context): List<Place> =
+        RuleEdits.places(RulesEditor.read(context)).map {
+            Place(it.label, GeoPoint(it.latitude, it.longitude), Place.Kind.SAVED)
+        }
 
     /** Suburbs and shops, off disk, once. */
     fun known(context: Context): List<Place> = known ?: synchronized(this) {

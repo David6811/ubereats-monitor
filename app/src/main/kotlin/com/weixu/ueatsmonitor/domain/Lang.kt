@@ -152,6 +152,11 @@ interface Words {
     val pushFromTheWeb: String
     val editOnMap: String
     val myPosition: String
+    val kindSaved: String
+    val savedPlaces: String
+    val addSavedPlace: String
+    val noSavedPlacesYet: String
+    val back: String
     val noPosition: String
     /** What the box is for, and what may be typed into it. */
     /** Drawing a box: what the mark does, and what to do next. */
@@ -390,6 +395,11 @@ object Zh : Words {
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
     override val editOnMap = "改区"
     override val myPosition = "我的位置"
+    override val kindSaved = "常用"
+    override val savedPlaces = "常用地址"
+    override val addSavedPlace = "加一个常用地址"
+    override val noSavedPlacesYet = "还没有常用地址。搜一个地址，或者点「我的位置」加进来。电脑上存的也会出现在这里。"
+    override val back = "返回"
     override val drawBox = "画框"
     override val stopDrawing = "不画了"
     override val dragToDraw = "按住拖一个框出来"
@@ -617,6 +627,11 @@ object En : Words {
     override val pushFromTheWeb = "Press Save once in the web editor."
     override val editOnMap = "Edit"
     override val myPosition = "Here"
+    override val kindSaved = "saved"
+    override val savedPlaces = "Saved places"
+    override val addSavedPlace = "Add a saved place"
+    override val noSavedPlacesYet = "No saved places yet. Search an address or tap Here. Places saved on the laptop show here too."
+    override val back = "Back"
     override val drawBox = "Draw"
     override val stopDrawing = "Stop"
     override val dragToDraw = "Press and drag out a box"
