@@ -508,7 +508,7 @@ class UberScreenService : AccessibilityService() {
      * for the driver to read while the timer runs.
      */
     private fun fromCentre(spot: Spot?): String? {
-        val centre = Profiles.centre(this) ?: return null
+        val centre = TempCentreStore.centreInForce(this) ?: return null
         return ChipText.fromCentre(spot ?: return null, centre, driverLang())
     }
 

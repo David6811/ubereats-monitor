@@ -80,7 +80,7 @@ fun TripScreen() {
     }
 
     val all = live.suburbs.toSet()
-    val centre = remember(live.name) { Profiles.centre(context) }
+    val centre = remember(live.name) { com.weixu.ueatsmonitor.action.TempCentreStore.centreInForce(context) }
     // The suburb the set's centre stands in - where he wants to end up when the
     // shift is nearly over.
     val middle = remember(live.name) {

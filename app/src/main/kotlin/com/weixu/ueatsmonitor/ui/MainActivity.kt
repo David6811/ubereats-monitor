@@ -100,6 +100,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.action.TempCentreStore
 import com.weixu.ueatsmonitor.action.CentreSearch
 import com.weixu.ueatsmonitor.domain.CentreMode
 import com.weixu.ueatsmonitor.domain.VoiceCommands
@@ -248,7 +249,8 @@ private fun HomeTabs() {
     // is showing: they are not a tab of their own, and they are not a set.
     var atBoxes by remember { mutableStateOf(false) }
     var atPlaces by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false; atPlaces = false }
+    var atTempCentre by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false; atPlaces = false; atTempCentre = false }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
         if (!bare) StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
@@ -256,10 +258,15 @@ private fun HomeTabs() {
                 when {
                     atBoxes -> BoxScreen(onLeave = { atBoxes = false }) { bare = it }
                     atPlaces -> PlacesScreen(onLeave = { atPlaces = false })
+                    atTempCentre -> TempCentreScreen(onLeave = { atTempCentre = false })
                     place == Place.WORK -> WorkScreen()
                     place == Place.TRIP -> TripScreen()
                     place == Place.AREAS -> ProfileScreen { bare = it }
-                    else -> MonitorScreen(App.instance.settingsStore, onPlaces = { atPlaces = true }) { atBoxes = true }
+                    else -> MonitorScreen(
+                        App.instance.settingsStore,
+                        onPlaces = { atPlaces = true },
+                        onTempCentre = { atTempCentre = true },
+                    ) { atBoxes = true }
                 }
             }
         }
@@ -408,8 +415,24 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
 }
 
 @Composable
-private fun MonitorScreen(store: SettingsStore, onPlaces: () -> Unit = {}, onBoxes: () -> Unit = {}) {
+private fun MonitorScreen(
+    store: SettingsStore,
+    onPlaces: () -> Unit = {},
+    onTempCentre: () -> Unit = {},
+    onBoxes: () -> Unit = {},
+) {
     val words = words()
+    // The rules file's modified time, looked at every two seconds while this
+    // page is up. The counts below read the file, and a sync that lands while
+    // the page is showing changed it under them: "3 saved places" over a list
+    // of four.
+    val rulesStamp by androidx.compose.runtime.produceState(0L) {
+        val file = java.io.File(App.instance.getExternalFilesDir(null), "rules.json")
+        while (true) {
+            value = if (file.exists()) file.lastModified() else 0L
+            kotlinx.coroutines.delay(2_000)
+        }
+    }
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val settings by store.settings.collectAsStateWithLifecycle(initialValue = null)
@@ -449,6 +472,7 @@ private fun MonitorScreen(store: SettingsStore, onPlaces: () -> Unit = {}, onBox
                 SectionLabel(words.settingsWatching)
                 Column {
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
+                    TempCentreRow(onChange = onTempCentre)
                     if (current.homewardEnabled) {
                         // Set back and boxed in, so four controls belonging to
                         // the switch above do not read as four more rows of the
@@ -499,7 +523,7 @@ private fun MonitorScreen(store: SettingsStore, onPlaces: () -> Unit = {}, onBox
                         color = Dash.Ink,
                     )
                     Text(
-                        text = words.boxCount(RulesStore.drawn(context).size),
+                        text = words.boxCount(rulesStamp.let { RulesStore.drawn(context).size }),
                         style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
                         color = Dash.Muted,
                     )
@@ -524,7 +548,7 @@ private fun MonitorScreen(store: SettingsStore, onPlaces: () -> Unit = {}, onBox
                         color = Dash.Ink,
                     )
                     Text(
-                        text = words.boxCount(CentreSearch.saved(context).size),
+                        text = words.boxCount(rulesStamp.let { CentreSearch.saved(context).size }),
                         style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
                         color = Dash.Muted,
                     )
@@ -650,7 +674,7 @@ private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
 private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
     val words = words()
     val context = LocalContext.current
-    val centre = remember { Profiles.centre(context) }
+    val centre = remember { TempCentreStore.centreInForce(context) }
     val fix = remember { CurrentPosition(context).lastKnown() }
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val now = if (granted) CurrentPosition(context).lastKnown() else null

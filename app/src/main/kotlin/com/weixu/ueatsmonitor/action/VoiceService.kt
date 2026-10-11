@@ -310,7 +310,7 @@ class VoiceService : Service() {
                 if (bringForward(command.target)) toast(driverWords().switchedTo(command.target.spoken))
             }
             is VoiceCommand.DriveToCentre -> {
-                val centre = Profiles.centre(this)
+                val centre = TempCentreStore.centreInForce(this)
                 if (centre == null) {
                     toast(driverWords().noCentreForVoice)
                     return

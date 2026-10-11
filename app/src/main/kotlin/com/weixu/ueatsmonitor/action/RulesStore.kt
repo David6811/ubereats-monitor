@@ -70,7 +70,7 @@ object RulesStore {
         // The set's own centre, but only while the switch is on: off, the rule
         // simply is not there.
         val homewardNow = LiveSettings.current?.takeIf { it.homewardEnabled }?.let { settings ->
-            Profiles.centre(context)?.let { centre ->
+            TempCentreStore.centreInForce(context)?.let { centre ->
                 CentreLimits(
                     centre = centre,
                     nearKm = settings.homewardNearKm,

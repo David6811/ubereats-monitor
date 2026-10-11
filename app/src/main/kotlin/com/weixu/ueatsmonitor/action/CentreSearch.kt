@@ -32,6 +32,12 @@ object CentreSearch {
             Place(it.label, GeoPoint(it.latitude, it.longitude), Place.Kind.SAVED)
         }
 
+    /** Every set's own centre, by the set's name - where the driver usually works from. */
+    fun setCentres(context: Context): List<Place> =
+        RuleEdits.sets(RulesEditor.read(context)).mapNotNull { set ->
+            set.centre?.let { Place(set.name, GeoPoint(it.latitude, it.longitude), Place.Kind.CENTRE) }
+        }
+
     /** Suburbs and shops, off disk, once. */
     fun known(context: Context): List<Place> = known ?: synchronized(this) {
         known ?: build(context).also { known = it }

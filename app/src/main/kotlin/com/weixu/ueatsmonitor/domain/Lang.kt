@@ -153,6 +153,13 @@ interface Words {
     val editOnMap: String
     val myPosition: String
     val kindSaved: String
+    val kindCentre: String
+    val tempCentre: String
+    fun tempCentreToday(label: String): String
+    val tempCentreNone: String
+    val changeTempCentre: String
+    val useSetCentre: String
+    val pickTempCentre: String
     val savedPlaces: String
     val addSavedPlace: String
     val noSavedPlacesYet: String
@@ -396,6 +403,13 @@ object Zh : Words {
     override val editOnMap = "改区"
     override val myPosition = "我的位置"
     override val kindSaved = "常用"
+    override val kindCentre = "选区中心"
+    override val tempCentre = "临时点"
+    override fun tempCentreToday(label: String) = "围着「$label」跑，今天有效"
+    override val tempCentreNone = "没设，用选区的中心"
+    override val changeTempCentre = "换"
+    override val useSetCentre = "恢复用中心"
+    override val pickTempCentre = "输入地址，或从下面选"
     override val savedPlaces = "常用地址"
     override val addSavedPlace = "加一个常用地址"
     override val noSavedPlacesYet = "还没有常用地址。搜一个地址，或者点「我的位置」加进来。电脑上存的也会出现在这里。"
@@ -628,6 +642,13 @@ object En : Words {
     override val editOnMap = "Edit"
     override val myPosition = "Here"
     override val kindSaved = "saved"
+    override val kindCentre = "set centre"
+    override val tempCentre = "Temporary centre"
+    override fun tempCentreToday(label: String) = "Around \"$label\", for today"
+    override val tempCentreNone = "None - the set's centre is used"
+    override val changeTempCentre = "Change"
+    override val useSetCentre = "Use the set's"
+    override val pickTempCentre = "Type an address, or pick one below"
     override val savedPlaces = "Saved places"
     override val addSavedPlace = "Add a saved place"
     override val noSavedPlacesYet = "No saved places yet. Search an address or tap Here. Places saved on the laptop show here too."

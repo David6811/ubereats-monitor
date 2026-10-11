@@ -529,6 +529,7 @@ internal fun PlaceSearchBox(
                 Text(
                     text = when (place.kind) {
                         Place.Kind.SAVED -> words.kindSaved
+                        Place.Kind.CENTRE -> words.kindCentre
                         Place.Kind.SUBURB -> words.kindSuburb
                         Place.Kind.SHOP -> words.kindShop
                         Place.Kind.ADDRESS -> words.kindAddress

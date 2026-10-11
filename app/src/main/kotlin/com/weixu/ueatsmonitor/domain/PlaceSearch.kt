@@ -7,7 +7,7 @@ package com.weixu.ueatsmonitor.domain
  * wants to know which of the two answers is a shop and which is a suburb.
  */
 data class Place(val name: String, val at: GeoPoint, val kind: Kind) {
-    enum class Kind { SAVED, SUBURB, SHOP, ADDRESS }
+    enum class Kind { SAVED, CENTRE, SUBURB, SHOP, ADDRESS }
 }
 
 /**
