@@ -167,6 +167,15 @@ object RuleEdits {
         return replace(edited, "suburbs", replace(allow, "allow", strings(suburbs.distinct().sorted())))
     }
 
+    /**
+     * One set as the phone's editor saves it: its suburbs, and its centre when
+     * one was marked. A null centre leaves whatever centre the set already has.
+     */
+    fun saveSet(rules: JsonObject, set: String, suburbs: List<String>, centre: Centre?): JsonObject {
+        val withSuburbs = replaceSuburbs(rules, set, suburbs)
+        return if (centre == null) withSuburbs else setCentre(withSuburbs, set, centre)
+    }
+
     // -- the no-go boxes -----------------------------------------------------
 
     fun boxes(rules: JsonObject): List<NoGoBox> =

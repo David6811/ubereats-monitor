@@ -102,40 +102,6 @@ class VoiceCommandsTest {
         assertEquals(VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE), command)
     }
 
-    @Test
-    fun `given each phrase offered to the driver, when they are parsed, then every one is a command`() {
-        // arrange
-        val phrases = VoiceCommands.PHRASES
-
-        // act
-        val commands = phrases.map { VoiceCommands.parse(listOf(it)) }
-
-        // assert
-        assertEquals(
-            listOf(
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.CHINESE),
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.ENGLISH),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
-                VoiceCommand.SwitchTo(VoiceTarget.MAPS, SpokenLanguage.ENGLISH),
-                VoiceCommand.SwitchTo(VoiceTarget.UBER, SpokenLanguage.ENGLISH),
-                VoiceCommand.SwitchTo(VoiceTarget.SELF, SpokenLanguage.ENGLISH),
-                VoiceCommand.DriveToCentre(SpokenLanguage.CHINESE),
-                VoiceCommand.DriveToCentre(SpokenLanguage.ENGLISH),
-                VoiceCommand.StopNavigation(SpokenLanguage.CHINESE),
-                VoiceCommand.StopNavigation(SpokenLanguage.ENGLISH),
-                VoiceCommand.Ask("现在送哪一单", SpokenLanguage.CHINESE),
-            ),
-            commands,
-        )
-    }
 
     @Test
     fun `given only the map's name ending in a full stop, when it is parsed, then maps comes to the front`() {

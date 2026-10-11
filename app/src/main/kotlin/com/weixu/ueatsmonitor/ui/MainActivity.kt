@@ -99,6 +99,9 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.weixu.ueatsmonitor.action.RulesStore
+import com.weixu.ueatsmonitor.domain.CentreMode
+import com.weixu.ueatsmonitor.domain.VoiceCommands
 
 class MainActivity : ComponentActivity() {
 
@@ -237,19 +240,27 @@ private fun HomeTabs() {
             reload++
         }
     }
+    // A page can ask for the whole glass. Drawing a set on the map is the one
+    // task where the strip and the bar are in the way rather than the way out.
+    var bare by remember { mutableStateOf(false) }
+    // The no-go boxes take the whole screen, from Settings, over whichever tab
+    // is showing: they are not a tab of their own, and they are not a set.
+    var atBoxes by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(place) { bare = false; atBoxes = false }
     Column(Modifier.fillMaxSize().background(Dash.Ground)) {
-        StatusStrip(onRefresh = refresh)
+        if (!bare) StatusStrip(onRefresh = refresh)
         Box(Modifier.weight(1f)) {
             androidx.compose.runtime.key(reload) {
-                when (place) {
-                    Place.WORK -> WorkScreen()
-                    Place.TRIP -> TripScreen()
-                    Place.AREAS -> ProfileScreen()
-                    Place.SETTINGS -> MonitorScreen(App.instance.settingsStore)
+                when {
+                    atBoxes -> BoxScreen(onLeave = { atBoxes = false }) { bare = it }
+                    place == Place.WORK -> WorkScreen()
+                    place == Place.TRIP -> TripScreen()
+                    place == Place.AREAS -> ProfileScreen { bare = it }
+                    else -> MonitorScreen(App.instance.settingsStore) { atBoxes = true }
                 }
             }
         }
-        BottomBar(place) { place = it }
+        if (!bare) BottomBar(place) { place = it }
     }
 }
 
@@ -394,7 +405,7 @@ private fun BottomBar(current: Place, onChoose: (Place) -> Unit) {
 }
 
 @Composable
-private fun MonitorScreen(store: SettingsStore) {
+private fun MonitorScreen(store: SettingsStore, onBoxes: () -> Unit = {}) {
     val words = words()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -436,7 +447,24 @@ private fun MonitorScreen(store: SettingsStore) {
                 Column {
                     HomewardToggle(current.homewardEnabled) { scope.launch { store.setHomewardEnabled(it) } }
                     if (current.homewardEnabled) {
-                        HomewardLimitsRow(current) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
+                        // Set back and boxed in, so four controls belonging to
+                        // the switch above do not read as four more rows of the
+                        // panel they sit in.
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 10.dp, bottom = 12.dp)
+                                .clip(Dash.ControlShape)
+                                .background(Dash.Raised)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            CentreModeRow(current.centreMode) { scope.launch { store.setCentreMode(it) } }
+                            HomewardLimitsRow(
+                                settings = current,
+                                onCapped = { scope.launch { store.setHomewardTimeCapped(it) } },
+                            ) { near, max -> scope.launch { store.saveHomewardLimits(near, max) } }
+                        }
                     }
                     Hairline()
                     SwitchRow(words.areaSound, null, current.areaSoundEnabled) {
@@ -446,6 +474,33 @@ private fun MonitorScreen(store: SettingsStore) {
                     VoiceToggle(current.voiceEnabled)
                     Hairline()
                     LanguageRow(current.lang) { scope.launch { store.setLang(it) } }
+                }
+            }
+        }
+
+        item {
+            // Here rather than on the areas page: a box holds whichever set is
+            // being worked, so it belongs with the settings that are not about
+            // one set. At the foot of that page it was off the screen until you
+            // had scrolled past ten of them.
+            Panel(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onBoxes),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = words.noGoBoxes,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Dash.Ink,
+                    )
+                    Text(
+                        text = words.boxCount(RulesStore.drawn(context).size),
+                        style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
+                        color = Dash.Muted,
+                    )
+                    Text("\u203a", style = MaterialTheme.typography.titleLarge, color = Dash.Muted)
                 }
             }
         }
@@ -461,56 +516,81 @@ private fun MonitorScreen(store: SettingsStore) {
 }
 
 /**
- * The two numbers the homeward rule bends on: a drop this near the centre is
- * taken even if it leads away, and a job longer than this is left however near.
+ * Which of the two readings of the radius is in force, and one line saying what
+ * that reading is: the same number is a let-off in one and a ceiling in the
+ * other, which is not something a driver should have to work out.
  */
 @Composable
-private fun HomewardLimitsRow(settings: SettingsStore.Settings, onSave: (Double, Int) -> Unit) {
+private fun CentreModeRow(mode: CentreMode, onChoose: (CentreMode) -> Unit) {
     val words = words()
-    LimitsRow(
-        kmLabel = words.nearKmLabel,
-        minutesLabel = words.maxMinutesLabel,
-        km = settings.homewardNearKm,
-        minutes = settings.homewardMaxMinutes,
-        onSave = onSave,
-    )
+    Column(Modifier.padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(CentreMode.HEAD_BACK to words.headBack, CentreMode.STAY_NEAR to words.stayNear)
+                .forEach { (which, name) ->
+                    val on = which == mode
+                    Text(
+                        text = name,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(Dash.ControlShape)
+                            .background(if (on) Dash.Gold else Dash.Raised)
+                            .clickable { onChoose(which) }
+                            .padding(vertical = 10.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (on) Dash.Ground else Dash.Ink,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+        }
+        Text(
+            text = if (mode == CentreMode.HEAD_BACK) words.headBackHint else words.stayNearHint,
+            style = MaterialTheme.typography.bodySmall,
+            color = Dash.Muted,
+        )
+    }
 }
 
-/** A kilometres field and a minutes field with one save button, for the rules that bend on two numbers. */
+/**
+ * The two numbers the centre rule bends on. The first one changes its meaning
+ * with the mode - a let-off heading back, a ceiling staying near - so it
+ * changes its label too.
+ */
 @Composable
-private fun LimitsRow(kmLabel: String, minutesLabel: String, km: Double, minutes: Int, onSave: (Double, Int) -> Unit) {
+private fun HomewardLimitsRow(
+    settings: SettingsStore.Settings,
+    onCapped: (Boolean) -> Unit,
+    onSave: (Double, Int) -> Unit,
+) {
     val words = words()
     var kmText by remember { mutableStateOf("") }
     var minutesText by remember { mutableStateOf("") }
 
-    LaunchedEffect(km, minutes) {
-        kmText = km.toString()
-        minutesText = minutes.toString()
+    LaunchedEffect(settings.homewardNearKm, settings.homewardMaxMinutes) {
+        kmText = settings.homewardNearKm.toString()
+        minutesText = settings.homewardMaxMinutes.toString()
     }
 
-    Column(
-        modifier = Modifier.padding(bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        ButtonRow {
-            DashField(kmLabel, kmText, Modifier.weight(1f)) { kmText = it }
-            DashField(minutesLabel, minutesText, Modifier.weight(1f)) { minutesText = it }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        DashField(
+            label = if (settings.centreMode == CentreMode.STAY_NEAR) words.farthestKmLabel else words.nearKmLabel,
+            value = kmText,
+        ) { kmText = it }
+        // The length is a rule of its own, and not everybody wants one: early in
+        // a shift a long job is a long job, not a reason to refuse.
+        SwitchRow(words.capTheLength, null, settings.homewardTimeCapped, onChange = onCapped)
+        if (settings.homewardTimeCapped) {
+            DashField(words.maxMinutesLabel, minutesText) { minutesText = it }
         }
         GoldButton(words.save, Modifier.fillMaxWidth()) {
             onSave(
-                kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: km,
-                minutesText.toIntOrNull()?.takeIf { it > 0 } ?: minutes,
+                kmText.toDoubleOrNull()?.takeIf { it >= 0 } ?: settings.homewardNearKm,
+                minutesText.toIntOrNull()?.takeIf { it > 0 } ?: settings.homewardMaxMinutes,
             )
         }
     }
 }
 
-/**
- * The near-centre switch. It needs only a centre drawn for the live set - not
- * the car's position, since it judges the drop alone - so that is the one
- * thing it can be missing.
- */
-/** Chinese or English, for every word the app says. Both names are written in their own language. */
 @Composable
 private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
     Row(
@@ -538,14 +618,6 @@ private fun LanguageRow(lang: Lang, onChoose: (Lang) -> Unit) {
     }
 }
 
-/**
- * The homeward switch, which will not go on while it could do nothing.
- *
- * It needs three things: the phone's own position, a centre drawn for the live
- * set, and the permission to read that position. Missing any of them, the rule
- * would judge nothing at all - so the switch says what is missing instead of
- * turning on and staying silent.
- */
 @Composable
 private fun HomewardToggle(enabled: Boolean, save: (Boolean) -> Unit) {
     val words = words()
@@ -607,8 +679,13 @@ private fun VoiceToggle(enabled: Boolean) {
     val words = words()
     val switchVoice = rememberVoiceSwitch()
     var explaining by remember { mutableStateOf(false) }
-    SwitchRow(words.voiceCommands, words.voiceCommandsHint, enabled, switchVoice)
-    TextButton(onClick = { explaining = true }) { Text(words.whatCanISay, color = Dash.Gold) }
+    SwitchRow(
+        label = words.voiceCommands,
+        hint = words.voiceCommandsHint,
+        checked = enabled,
+        onAsk = { explaining = true },
+        onChange = switchVoice,
+    )
 
     if (explaining) {
         AlertDialog(
@@ -693,15 +770,19 @@ private fun VoiceChip(enabled: Boolean) {
 @Composable
 private fun voiceHelp(): List<Pair<String, String>> {
     val words = words()
-    return listOf(
-        "「打开地图」" to words.sayMap,
-        "「送餐」" to words.sayUber,
-        "「应用」" to words.sayApp,
-        "「回中心」" to words.sayCentre,
-        "「关导航」" to words.sayStopNavigation,
-        "「你好，…」" to words.sayAsk,
-        "「关语音」" to words.sayVoiceOff,
+    // The phrases come from the domain, where the recogniser's own list is.
+    // Written out again here they drifted: the page offered words nothing was
+    // listening for.
+    val said = listOf(
+        words.sayMap,
+        words.sayUber,
+        words.sayApp,
+        words.sayCentre,
+        words.sayStopNavigation,
+        words.sayAsk,
+        words.sayVoiceOff,
     )
+    return VoiceCommands.HELP.mapIndexed { index, phrase -> "\u300c$phrase\u300d" to said[index] }
 }
 
 /**
@@ -888,13 +969,20 @@ private fun TripCostCard(settings: SettingsStore.Settings, onSave: (Double, Doub
             style = MaterialTheme.typography.bodyMedium.merge(Dash.Numbers),
             color = Dash.Muted,
         )
-        DashField(words.fuelPerKm, fuel) { fuel = it }
-        DashField(words.timeFactor, factor) { factor = it }
-        GoldButton(words.save, Modifier.fillMaxWidth()) {
-            onSave(
-                fuel.toDoubleOrNull() ?: settings.fuelPerKm,
-                factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
-            )
+        // Side by side, and the button only as wide as its word. Two
+        // full-width fields and a full-width Save made three numbers look
+        // like the most important thing on the page.
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            DashField(words.fuelPerKm, fuel, Modifier.weight(1f)) { fuel = it }
+            DashField(words.timeFactor, factor, Modifier.weight(1f)) { factor = it }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            GoldButton(words.save) {
+                onSave(
+                    fuel.toDoubleOrNull() ?: settings.fuelPerKm,
+                    factor.toDoubleOrNull()?.takeIf { it > 0 } ?: settings.timeFactor,
+                )
+            }
         }
     }
 }

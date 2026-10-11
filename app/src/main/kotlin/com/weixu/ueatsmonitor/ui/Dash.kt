@@ -38,6 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 
 /**
  * The look of the app: a car's instrument cluster. Near-black, one gold accent,
@@ -219,7 +223,14 @@ fun Lamp(on: Boolean, color: Color, modifier: Modifier = Modifier) {
 
 /** One setting: its words on the left, the switch on the right, the whole row tappable. */
 @Composable
-fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+fun SwitchRow(
+    label: String,
+    hint: String?,
+    checked: Boolean,
+    /** Opens whatever explains this row. Draws a mark beside the label; null draws none. */
+    onAsk: (() -> Unit)? = null,
+    onChange: (Boolean) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -228,7 +239,23 @@ fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = Dash.Ink)
+                // Beside the label, not a line of its own underneath it: the
+                // question it answers is about this row and nothing else.
+                onAsk?.let { ask ->
+                    androidx.compose.material3.Icon(
+                        painter = androidx.compose.ui.res.painterResource(com.weixu.ueatsmonitor.R.drawable.ic_help),
+                        contentDescription = null,
+                        tint = Dash.Gold,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = ask)
+                            .padding(4.dp),
+                    )
+                }
+            }
             hint?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Dash.Muted) }
         }
         Switch(
@@ -244,6 +271,69 @@ fun SwitchRow(label: String, hint: String?, checked: Boolean, onChange: (Boolean
             ),
         )
     }
+}
+
+/**
+ * Asks for a name, and refuses one that is already taken rather than silently
+ * doing nothing, which is what the rules themselves do with a clash.
+ */
+@Composable
+fun TypedName(
+    title: String,
+    start: String,
+    taken: List<String>,
+    onDismiss: () -> Unit,
+    onDone: (String) -> Unit,
+) {
+    val words = words()
+    var typed by remember { mutableStateOf(start) }
+    val wanted = typed.trim()
+    val clash = wanted.isNotEmpty() && taken.any { it.equals(wanted, ignoreCase = true) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = typed,
+                    onValueChange = { typed = it },
+                    singleLine = true,
+                    isError = clash,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (clash) {
+                    Text(words.nameTaken, color = Dash.Orange, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = wanted.isNotEmpty() && !clash,
+                onClick = { onDone(wanted) },
+            ) { Text(words.save) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(words.cancel) }
+        },
+        containerColor = Dash.Panel,
+    )
+}
+
+/** One question, one way to say yes. */
+@Composable
+fun Confirm(question: String, yes: String, onDismiss: () -> Unit, onYes: () -> Unit) {
+    val words = words()
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(question) },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onYes) { Text(yes, color = Dash.Orange) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(words.cancel) }
+        },
+        containerColor = Dash.Panel,
+    )
 }
 
 /** A hairline between rows inside a panel. */

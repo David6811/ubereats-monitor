@@ -49,6 +49,11 @@ object RulesEditor {
      */
     suspend fun edit(context: Context, change: (JsonObject) -> JsonObject): Saved {
         val file = File(context.getExternalFilesDir(null), FILE_NAME)
+        // Which set is being worked, read before the file is touched. Writing
+        // rules.json makes it newer than the phone's own choice, and the set in
+        // force is whichever of the two was written last - so an edit made here
+        // handed the shift back to whatever the laptop last marked active.
+        val inForce = Profiles.chosen(context)
         val before = read(file)
         val after = change(before)
         if (after == before) return Saved.Pushed
@@ -58,6 +63,7 @@ object RulesEditor {
         // is a set of suburbs somebody drew.
         val userId = Cloud.userId() ?: run {
             write(file, after)
+            keep(context, inForce)
             return Saved.OnPhoneOnly("not signed in")
         }
         val cloud = runCatching {
@@ -69,6 +75,7 @@ object RulesEditor {
         }
 
         write(file, after)
+        keep(context, inForce)
         return runCatching {
             Cloud.client.from(TABLE).upsert(Row(userId, after))
             Log.i(TAG, "rules edit: saved and pushed")
@@ -77,6 +84,15 @@ object RulesEditor {
             Log.w(TAG, "rules edit: saved on the phone, push failed", it)
             Saved.OnPhoneOnly(it.message ?: it::class.simpleName.orEmpty())
         }
+    }
+
+    /**
+     * Keeps the set that was being worked. Recording it again marks it as
+     * chosen now, which is newer than the rules just written, so an edit never
+     * moves the driver to another set mid-shift.
+     */
+    private fun keep(context: Context, inForce: String?) {
+        if (inForce != null) Profiles.choose(context, inForce)
     }
 
     /** The rules as they stand, or an empty object when there are none yet. */

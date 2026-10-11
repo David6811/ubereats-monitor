@@ -14,23 +14,45 @@ sealed interface Homeward {
 }
 
 /**
- * Data. The homeward rule as the driver set it: where the middle is, how near
- * to it a drop may land and still be taken even if it leads away, and how
- * long a job may be when there is little of the shift left.
+ * Data. The two ways of working around a centre. Both of them read the same
+ * distance - how far the drop lands from the middle - and differ only in what
+ * they do with it.
  */
-data class HomewardLimits(
-    val centre: GeoPoint,
-    /** A drop this close to the centre is taken whether or not it leads away. */
-    val nearKm: Double,
-    /** A job the card says takes longer than this is left, however near. */
-    val maxMinutes: Int,
-)
+enum class CentreMode {
+    /**
+     * Refuse a drop that leaves him further from the middle than he is now,
+     * unless it lands within the radius anyway. Needs the car's position, and
+     * says nothing without it.
+     */
+    HEAD_BACK,
+
+    /**
+     * Refuse a drop outside the radius, wherever the car happens to be. Works
+     * with no position at all, which is when the other one gives up.
+     */
+    STAY_NEAR,
+}
 
 /**
- * Data. The near-centre rule as the driver set it: stay within [maxKm] of the
- * middle, on jobs of at most [maxMinutes]. Unlike [HomewardLimits] it does not
- * care where the car is now - only where the drop lands.
+ * Data. The centre rule as the driver set it: where the middle is, how many
+ * kilometres count as near it, how long a job may be, and which of the two
+ * readings of that radius is in force.
  */
+data class CentreLimits(
+    val centre: GeoPoint,
+    /**
+     * Heading back, a drop this close is taken whether or not it leads away.
+     * Staying near, it is the furthest a drop may land.
+     */
+    val nearKm: Double,
+    /**
+     * A job the card says takes longer than this is left, however near. Null
+     * leaves the length alone: a driver with the whole night ahead of him does
+     * not care how long one job takes, only where it ends.
+     */
+    val maxMinutes: Int?,
+    val mode: CentreMode,
+)
 /**
  * Calculation. Whether taking this job would leave the driver nearer the centre
  * of his set than he is now.

@@ -93,11 +93,11 @@ object VoiceCommands {
      */
     val GRAMMAR: List<String> = listOf(
         "你好",
-        // Only "打开地图" reaches Maps. "地图" on its own, and the shorter
-        // ways of asking for it, fired while the driver was talking about a
-        // map rather than asking for one - and the recogniser acts on a part
-        // of a sentence, so "地图不准" was enough.
-        "打开地图",
+        // Bare "地图" is not here. It fired while the driver was talking about
+        // a map rather than asking for one, and the recogniser acts on part of
+        // a sentence, so "地图不准" was enough. With a verb in front there is
+        // nothing to mistake, and the help offers these.
+        "打开地图", "切地图",
         "切送餐", "切应用", "切助手",
         "打开送餐", "打开应用", "回到应用",
         "送餐", "助手", "应用",
@@ -106,15 +106,31 @@ object VoiceCommands {
         "关语音", "关闭语音", "停止语音",
     )
 
-    /** The short sentences to say, and to steer the recognizer towards. */
-    val PHRASES: List<String> = listOf(
-        "切地图", "切送餐", "切应用", "切助手",
-        "地图", "送餐", "助手", "应用",
-        "map", "uber eats", "application",
-        "switch to map", "switch to uber eats", "switch to application",
-        "回中心", "centre",
-        "关导航", "stop navigation",
-        "你好，现在送哪一单",
+    /**
+     * What the help on the settings page offers, one shortest way to say each
+     * thing the app can do. It is this list and not a second one written out in
+     * the UI: the two drifted apart once, and a help page that names a phrase
+     * the recogniser is not listening for is worse than no help at all. A test
+     * holds every line of it to [GRAMMAR] and to the parser.
+     */
+    /**
+     * The other ways the help says a switch can be asked for: a verb in front
+     * of the app's name. Tested along with [HELP], because the sentence that
+     * promises them named one the recogniser was not listening for.
+     */
+    val HELP_ALSO: List<String> = listOf(
+        "切地图", "切送餐", "切应用",
+        "打开地图", "打开送餐", "打开应用",
+    )
+
+    val HELP: List<String> = listOf(
+        "打开地图",
+        "送餐",
+        "应用",
+        "回中心",
+        "关导航",
+        "你好",
+        "关语音",
     )
 
     /**
