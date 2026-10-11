@@ -281,4 +281,64 @@ class RuleEditsTest {
             RuleEdits.sets(after).first { it.name == "ParkMore" }.centre,
         )
     }
+
+    @Test
+    fun `given the rules, when the places are read, then the laptop's saved address comes back`() {
+        // arrange
+        val saved = rules
+
+        // act
+        val places = RuleEdits.places(saved)
+
+        // assert
+        assertEquals(listOf(RuleEdits.Centre("Wells Rd, Aspendale Gardens", -38.02506, 145.12873)), places)
+    }
+
+    @Test
+    fun `given a new place, when it is added, then it joins the end of the list`() {
+        // arrange
+        val home = RuleEdits.Centre("Home", -38.0, 145.1)
+
+        // act
+        val after = RuleEdits.addPlace(rules, home)
+
+        // assert
+        assertEquals(listOf("Wells Rd, Aspendale Gardens", "Home"), RuleEdits.places(after).map { it.label })
+    }
+
+    @Test
+    fun `given a name already saved in another case, when it is added, then nothing changes`() {
+        // arrange
+        val again = RuleEdits.Centre("wells rd, aspendale gardens", -38.0, 145.1)
+
+        // act
+        val after = RuleEdits.addPlace(rules, again)
+
+        // assert
+        assertEquals(rules, after)
+    }
+
+    @Test
+    fun `given a saved place, when it is renamed, then only its name changes`() {
+        // arrange
+        val from = "Wells Rd, Aspendale Gardens"
+
+        // act
+        val after = RuleEdits.renamePlace(rules, from, "Home")
+
+        // assert
+        assertEquals(listOf(RuleEdits.Centre("Home", -38.02506, 145.12873)), RuleEdits.places(after))
+    }
+
+    @Test
+    fun `given a saved place, when it is removed, then it is gone`() {
+        // arrange
+        val label = "Wells Rd, Aspendale Gardens"
+
+        // act
+        val after = RuleEdits.removePlace(rules, label)
+
+        // assert
+        assertEquals(emptyList<RuleEdits.Centre>(), RuleEdits.places(after))
+    }
 }

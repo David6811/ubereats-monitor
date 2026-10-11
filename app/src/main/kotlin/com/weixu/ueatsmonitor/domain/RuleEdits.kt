@@ -176,6 +176,48 @@ object RuleEdits {
         return if (centre == null) withSuburbs else setCentre(withSuburbs, set, centre)
     }
 
+    // -- the saved places ----------------------------------------------------
+
+    /**
+     * The driver's saved places, under "places": the laptop's list of
+     * addresses for its centre picker, now kept from the phone too. A place is
+     * a name and a point - the same shape as a centre, so it is one.
+     */
+    fun places(rules: JsonObject): List<Centre> =
+        rules["places"]?.jsonArray?.mapNotNull { entry ->
+            val one = entry.jsonObject
+            val label = one["label"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val lat = one["lat"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return@mapNotNull null
+            val lon = one["lon"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return@mapNotNull null
+            Centre(label, lat, lon)
+        }.orEmpty()
+
+    /** A new place at the end. A name already saved, in any case, is left as it is. */
+    fun addPlace(rules: JsonObject, place: Centre): JsonObject {
+        val name = place.label.trim()
+        if (name.isEmpty() || places(rules).any { it.label.equals(name, ignoreCase = true) }) return rules
+        val kept = rules["places"]?.jsonArray.orEmpty()
+        return replace(rules, "places", JsonArray(kept + centreJson(place.copy(label = name))))
+    }
+
+    fun renamePlace(rules: JsonObject, from: String, to: String): JsonObject {
+        val name = to.trim()
+        if (name.isEmpty() || name == from) return rules
+        if (places(rules).any { it.label.equals(name, ignoreCase = true) }) return rules
+        val kept = rules["places"]?.jsonArray?.map { entry ->
+            val one = entry.jsonObject
+            if (one["label"]?.jsonPrimitive?.content != from) entry else replace(one, "label", JsonPrimitive(name))
+        }.orEmpty()
+        return replace(rules, "places", JsonArray(kept))
+    }
+
+    fun removePlace(rules: JsonObject, label: String): JsonObject {
+        val kept = rules["places"]?.jsonArray?.filterNot {
+            it.jsonObject["label"]?.jsonPrimitive?.content == label
+        }.orEmpty()
+        return replace(rules, "places", JsonArray(kept))
+    }
+
     // -- the no-go boxes -----------------------------------------------------
 
     fun boxes(rules: JsonObject): List<NoGoBox> =

@@ -117,7 +117,7 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
         }
         delay(400)
         lookingUp = true
-        val offline = PlaceSearch.matching(typed, CentreSearch.known(context))
+        val offline = PlaceSearch.offered(typed, CentreSearch.saved(context), CentreSearch.known(context))
         val net = CentreSearch.addresses(context, typed)
         found = offline + net.filterNot { address -> offline.any { it.name == address.name } }
         lookingUp = false
@@ -213,7 +213,11 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .clickable { settingCentre = !settingCentre }
+                        .clickable {
+                            settingCentre = !settingCentre
+                            // Opened with nothing typed: the saved places, a tap away.
+                            if (settingCentre && typed.isBlank()) found = CentreSearch.saved(context)
+                        }
                         .padding(8.dp),
                 )
             }
@@ -223,7 +227,7 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
                 lookingUp = lookingUp,
                 onTyped = {
                     typed = it
-                    found = PlaceSearch.matching(it, CentreSearch.known(context))
+                    found = PlaceSearch.offered(it, CentreSearch.saved(context), CentreSearch.known(context))
                 },
             ) { place ->
                 // The place names itself. No reverse lookup, which is what a
@@ -469,11 +473,12 @@ fun ProfileScreen(onBare: (Boolean) -> Unit = {}) {
  * out of Aspendale should be able to say so.
  */
 @Composable
-private fun PlaceSearchBox(
+internal fun PlaceSearchBox(
     typed: String,
     found: List<Place>,
     lookingUp: Boolean,
     onTyped: (String) -> Unit,
+    label: String? = null,
     onPicked: (Place) -> Unit,
 ) {
     val words = words()
@@ -486,7 +491,7 @@ private fun PlaceSearchBox(
             // The label says what the box does; the placeholder says what may
             // be typed. With a magnifier and the suburb names alone, the box
             // read as a way to find a suburb, not as the way to set a centre.
-            label = { Text(words.setCentreHere) },
+            label = { Text(label ?: words.setCentreHere) },
             placeholder = { Text(words.searchPlace, color = Dash.Muted) },
             leadingIcon = {
                 Icon(
@@ -523,6 +528,7 @@ private fun PlaceSearchBox(
                 Text(place.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Text(
                     text = when (place.kind) {
+                        Place.Kind.SAVED -> words.kindSaved
                         Place.Kind.SUBURB -> words.kindSuburb
                         Place.Kind.SHOP -> words.kindShop
                         Place.Kind.ADDRESS -> words.kindAddress
