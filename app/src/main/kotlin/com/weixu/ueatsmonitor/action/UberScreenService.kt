@@ -515,7 +515,12 @@ class UberScreenService : AccessibilityService() {
     /** Where the card's shop and dropoff are on the map, as far as the tables know. */
     private fun place(card: OfferCard, gazetteer: List<Suburb>): Stops {
         val began = System.currentTimeMillis()
-        val spot = SuburbIndex.findAll(card.dropoff, gazetteer).firstOrNull()?.let { suburb ->
+        // The same suburb the judge reads, not the longest name anywhere on the
+        // line. They disagreed: "Blackwood Street & Chestnut Street, Carnegie"
+        // was judged as Carnegie and placed in Blackwood, 88km away, so the road
+        // lookup found nothing near and gave up. Ten drops on the board were
+        // placed by this one word.
+        val spot = SuburbIndex.ofDropoff(card.dropoff, gazetteer)?.let { suburb ->
             RoadIndex.find(
                 dropoff = card.dropoff,
                 suburb = suburb,

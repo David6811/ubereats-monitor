@@ -196,6 +196,36 @@ class RuleJudgeTest {
     }
 
     @Test
+    fun `given Uber writing Melbourne for a local drop, when judged, then it is not refused for being there`() {
+        // arrange  today's $7.45: "320 Lower Dandenong Road, Melbourne", a 2.86 mile trip
+        val rules = RULES
+        val card = card(pickup = "McDonald's", dropoff = "Lower Dandenong Road, Melbourne")
+        val stops = Stops(pickup = null, dropoff = null, carAt = KEYSBOROUGH)
+        val gazetteer = GAZETTEER + Suburb("Melbourne", GeoPoint(-37.8136, 144.9631))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, gazetteer, stops)
+
+        // assert
+        assertEquals(Ruling.Unknown, ruling)
+    }
+
+    @Test
+    fun `given a real run into the city, when judged, then the suburb still refuses it`() {
+        // arrange  the same words, but the card says the trip is as long as the city is far
+        val rules = RULES
+        val card = card(pickup = "McDonald's", dropoff = "Collins Street, Melbourne").copy(distance = Miles(16.0))
+        val stops = Stops(pickup = null, dropoff = null, carAt = KEYSBOROUGH)
+        val gazetteer = GAZETTEER + Suburb("Melbourne", GeoPoint(-37.8136, 144.9631))
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, gazetteer, stops)
+
+        // assert
+        assertEquals(Ruling.Leave(Ruling.Reason.SuburbNotAllowed("Melbourne")), ruling)
+    }
+
+    @Test
     fun `given no cap on the length and a long job that lands near, when judged, then it is taken`() {
         // arrange  45 minutes, well over the 20 the cap would have been
         val rules = RULES.copy(homeward = HOMEWARD.copy(maxMinutes = null))

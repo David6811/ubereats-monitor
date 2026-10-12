@@ -66,6 +66,10 @@ object RuleJudge {
         // The one suburb the food is going to, not every suburb named on the
         // line. A street named after another suburb used to refuse the job.
         val there = SuburbIndex.ofDropoff(card.dropoff, gazetteer) ?: return Ruling.Unknown
+        // The name has to be able to be true. Uber writes a locality rather than
+        // a suburb often enough that "Melbourne" came through for a drop three
+        // kilometres away, and refusing it named a place the food was not going.
+        if (SuburbDoubt.tooFarToBe(there, stops.carAt, card.distance)) return Ruling.Unknown
         if (allowed.none { it.equals(there.name, ignoreCase = true) }) {
             return Ruling.Leave(Ruling.Reason.SuburbNotAllowed(there.name))
         }
