@@ -523,7 +523,7 @@ class UberScreenService : AccessibilityService() {
                 roads = RoadTable.roads(this),
             )
         }
-        val shop = StoreKinds.find(card.pickup, StoreTable.all(this))
+        val shop = StoreKinds.find(card.pickup, StoreTable.all(this), gazetteer)
         // This sits in front of the verdict, so what it costs is what the driver
         // waits. Logged every time rather than measured once: the cost depends on
         // the card, and a card that names two long roads is the slow one.

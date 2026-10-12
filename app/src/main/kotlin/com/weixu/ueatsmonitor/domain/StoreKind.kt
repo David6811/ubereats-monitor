@@ -37,13 +37,51 @@ object StoreKinds {
         }
         .toList()
 
-    fun find(pickup: String, stores: List<Store>): Store? {
+    /**
+     * The shop a pickup line names.
+     *
+     * [suburbs] decides between branches of a chain. Uber writes the branch in
+     * brackets - "McDonald's (Keysborough)" - and the table holds a dozen
+     * McDonald's, all with the same name; without the brackets the same one won
+     * every time, whichever branch the card named. On 504 jobs that picked the
+     * wrong branch for 68 of the 135 shops the table could place at all, and
+     * eleven of those wrong branches sat inside a no-go box, so the job was
+     * refused for standing somewhere it was not.
+     */
+    fun find(pickup: String, stores: List<Store>, suburbs: List<Suburb> = emptyList()): Store? {
         val line = fold(pickup)
         if (line.isEmpty()) return null
-        val exact = stores
-            .filter { it.name.length >= MIN_NAME && line.contains(fold(it.name)) }
-            .maxByOrNull { it.name.length }
-        return exact ?: nearest(line, stores)
+        val named = stores.filter { it.name.length >= MIN_NAME && line.contains(fold(it.name)) }
+        val longest = named.maxOfOrNull { it.name.length }
+        val exact = named.filter { it.name.length == longest }
+        return when {
+            exact.isEmpty() -> nearest(line, stores)
+            exact.size == 1 -> exact.first()
+            // Several shops of that name and no way to tell them apart. The
+            // position is what a no-go box is tested against, so a guess here
+            // refuses a job for standing somewhere it is not.
+            suburbs.isEmpty() -> exact.first()
+            else -> branch(pickup, exact, suburbs)
+        }
+    }
+
+    /**
+     * Which of several same-named shops the line means, by the suburb it names,
+     * or none when the line does not say.
+     *
+     * The brackets first: a shop's own name carries suburbs too, and "Dingley
+     * Fish & Chips" is not in Dingley every time it is mentioned. The branch has
+     * to be [NEAR_ENOUGH_KM] of what the line said to be believed - a chain with
+     * no branch in that suburb otherwise snaps to its nearest one, which on this
+     * board was up to 22km away and twice landed inside a no-go box.
+     */
+    private fun branch(pickup: String, candidates: List<Store>, suburbs: List<Suburb>): Store? {
+        val inBrackets = Regex("""\(([^)]*)\)""").findAll(pickup).lastOrNull()?.groupValues?.get(1)
+        val said = inBrackets?.let { SuburbIndex.findAll(it, suburbs).firstOrNull() }
+            ?: SuburbIndex.findAll(pickup, suburbs).firstOrNull()
+            ?: return null
+        val nearest = candidates.minByOrNull { Geo.straightLine(it.at, said.at).value } ?: return null
+        return nearest.takeIf { Geo.straightLine(it.at, said.at).value * KM_PER_MILE <= NEAR_ENOUGH_KM }
     }
 
     fun of(pickup: String, stores: List<Store>): String? = find(pickup, stores)?.kind
@@ -110,6 +148,17 @@ object StoreKinds {
     /** Letters and digits only, lowercased: apostrophes and ® are OCR's to lose. */
     private fun fold(text: String): String =
         text.lowercase().filter { it.isLetterOrDigit() }
+
+    /**
+     * How far a branch may be from the suburb the line named and still be taken
+     * for that branch. The board's shops sit in two groups: 62 within 2km of
+     * the suburb named, and 61 beyond 5km - those are the chains with no branch
+     * in the service area at all. Three is the gap between them, and moving it
+     * to four lets two false no-go hits back in.
+     */
+    private const val NEAR_ENOUGH_KM = 3.0
+
+    private const val KM_PER_MILE = 1.609344
 
     /** A name this short matches half the table by accident. */
     private const val MIN_NAME = 4
