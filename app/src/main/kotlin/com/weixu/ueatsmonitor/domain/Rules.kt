@@ -95,7 +95,11 @@ object RuleJudge {
         val cap = limits.maxMinutes
         val minutes = card.duration?.value
         if (cap != null && minutes != null && minutes > cap) return Ruling.Reason.TooLong(minutes, cap)
-        val dropAt = stops.dropoff?.at
+        // A drop the tables could not place sits at the middle of its suburb,
+        // which that placement itself calls kilometres out. Measuring whether a
+        // job leads away from a point like that is measuring the suburb, not the
+        // job. The no-go boxes have always skipped it; so does this.
+        val dropAt = stops.dropoff?.takeIf { it !is Spot.InSuburb }?.at
         return when (limits.mode) {
             CentreMode.HEAD_BACK -> {
                 val homeward = HomewardRule.judge(stops.carAt, dropAt, limits.centre)

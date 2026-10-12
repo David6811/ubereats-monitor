@@ -254,6 +254,34 @@ class RuleJudgeTest {
     }
 
     @Test
+    fun `given a drop the tables could not place, when judged, then leading away refuses nothing`() {
+        // arrange  Spot.InSuburb is the middle of a suburb, kilometres from the address
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = HOMEWARD)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.InSuburb(ROWVILLE, "Rowville"), carAt = KEYSBOROUGH)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals(Ruling.Take("Rowville"), ruling)
+    }
+
+    @Test
+    fun `given a drop the tables could not place and stay-near on, when judged, then it refuses nothing`() {
+        // arrange
+        val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = STAY_NEAR)
+        val card = card(pickup = "Some Shop", dropoff = "Barbican Court, Rowville")
+        val stops = Stops(pickup = null, dropoff = Spot.InSuburb(ROWVILLE, "Rowville"), carAt = KEYSBOROUGH)
+
+        // act
+        val ruling = RuleJudge.judge(card, rules, GAZETTEER + Suburb("Rowville", ROWVILLE), stops)
+
+        // assert
+        assertEquals(Ruling.Take("Rowville"), ruling)
+    }
+
+    @Test
     fun `given stay-near on and a drop outside the radius, when judged, then it is left`() {
         // arrange  Rowville is 14 km from the centre, the radius is 4
         val rules = RULES.copy(allowedSuburbs = RULES.allowedSuburbs + "Rowville", homeward = STAY_NEAR)
