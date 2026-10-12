@@ -116,7 +116,7 @@ object Assistant {
             lang = lang(),
             nowMillis = System.currentTimeMillis(),
             jobs = JobStore.list(context),
-            where = Briefing.Whereabouts(carAt = carAt, centre = Profiles.centre(context), nearestSuburb = nearest),
+            where = Briefing.Whereabouts(carAt = carAt, centre = TempCentreStore.centreInForce(context), nearestSuburb = nearest),
             profileName = Profiles.list(context).firstOrNull { it.active }?.name,
         )
     }

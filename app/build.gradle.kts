@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.vosk.android)
+    implementation(libs.maplibre.android)
     implementation("net.java.dev.jna:jna:5.18.1@aar")
     debugImplementation(libs.androidx.compose.ui.tooling)
 

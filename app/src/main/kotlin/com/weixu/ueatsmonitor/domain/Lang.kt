@@ -72,10 +72,6 @@ interface Words {
 
     /** The no-go boxes, listed on the trip page so one can be switched off at the wheel. */
     val noGoBoxes: String
-    val noGoBoxesHint: String
-    val noGoBoxesNone: String
-    fun noGoBoxesOff(off: Int): String
-    val thisTripOnly: String
     fun areasCount(n: Int): String
 
     /** Said as a toast when a switch could not be turned on. */
@@ -146,10 +142,7 @@ interface Words {
     val clearIt: String
 
     // This trip, and the sets.
-    fun thisTrip(name: String): String
     val tapToToggle: String
-    val going: String
-    val notGoing: String
     /** What follows the count of areas, which is shown on its own beside it. */
     val areasAllGoing: String
     fun areasSomeOff(off: Int): String
@@ -157,11 +150,54 @@ interface Words {
     val keepCentreOnly: String
     val noAreasYet: String
     val pushFromTheWeb: String
+    val editOnMap: String
+    val myPosition: String
+    val kindSaved: String
+    val kindCentre: String
+    val tempCentre: String
+    fun tempCentreToday(label: String): String
+    val tempCentreNone: String
+    val changeTempCentre: String
+    val useSetCentre: String
+    val pickTempCentre: String
+    val savedPlaces: String
+    val addSavedPlace: String
+    val noSavedPlacesYet: String
+    val back: String
+    val noPosition: String
+    /** What the box is for, and what may be typed into it. */
+    /** Drawing a box: what the mark does, and what to do next. */
+    val drawBox: String
+    val stopDrawing: String
+    val dragToDraw: String
+    val boxesHint: String
+    val boxTooSmall: String
+    val adjustBox: String
+    val dragCorners: String
+    fun boxCount(n: Int): String
+    fun boxDefaultName(n: Int): String
+    val setCentreHere: String
+    val searchPlace: String
+    val searchingNet: String
+    val nothingFound: String
+    val kindSuburb: String
+    val kindShop: String
+    val kindAddress: String
+    fun centreNotSaved(label: String): String
+    val tapSuburbToToggle: String
+    val savedOnPhoneOnly: String
+    val cloudMovedOn: String
     val switchSet: String
-    val liveFromPhone: String
-    val liveFromLaptop: String
-    val fewerAreasThisTrip: String
-    val turnThemOffOnTrip: String
+
+    /** Making and unmaking a set, which used to need the laptop. */
+    val newSet: String
+    val renameSet: String
+    val copySet: String
+    val deleteSet: String
+    val needAName: String
+    val nameTaken: String
+    val lastSetStays: String
+    fun reallyDelete(name: String): String
     fun areaCount(n: Int): String
 
     // Signing in.
@@ -197,6 +233,13 @@ interface Words {
     val voiceHelpTail: String
     val homewardMode: String
     val homewardHint: String
+    /** The two ways of working around the centre, and what the radius means in each. */
+    val headBack: String
+    val stayNear: String
+    val headBackHint: String
+    val stayNearHint: String
+    val farthestKmLabel: String
+    val capTheLength: String
     val noCentreSet: String
     val noCentreSetLong: String
     val needAlwaysLocation: String
@@ -295,10 +338,6 @@ object Zh : Words {
     override val seeOnMap = "看地图"
     override val restoreAll = "恢复全部"
     override val noGoBoxes = "不接单框"
-    override val noGoBoxesHint = "点一下暂时关掉，电脑推新规则就全部恢复"
-    override val noGoBoxesNone = "还没画过框。在电脑的「选区」页上画。"
-    override fun noGoBoxesOff(off: Int) = if (off == 0) "全在用" else "关了 $off 个"
-    override val thisTripOnly = "只管这一趟。换选区或电脑推新规则，就全恢复。"
     override fun areasCount(n: Int) = "$n 个区"
     override val noLocationPermission = "没有定位权限，回中心模式开不了"
     override val noMicrophonePermission = "没有麦克风权限，语音命令开不了"
@@ -354,21 +393,57 @@ object Zh : Words {
     override val drive = "导航"
     override val clearIt = "清掉"
 
-    override fun thisTrip(name: String) = "这一趟 · $name"
     override val tapToToggle = "点一下切换 · 长按只留它"
-    override val going = " 去"
-    override val notGoing = " 不去"
     override val areasAllGoing = "个区，全都去"
     override fun areasSomeOff(off: Int) = "个区，点掉了 $off 个"
     override val clearAll = "全不选"
     override val keepCentreOnly = "只留中心"
     override val noAreasYet = "还没有选区"
     override val pushFromTheWeb = "在电脑的编辑器里点一次「保存」。"
+    override val editOnMap = "改区"
+    override val myPosition = "我的位置"
+    override val kindSaved = "常用"
+    override val kindCentre = "选区中心"
+    override val tempCentre = "临时点"
+    override fun tempCentreToday(label: String) = "围着「$label」跑，今天有效"
+    override val tempCentreNone = "没设，用选区的中心"
+    override val changeTempCentre = "换"
+    override val useSetCentre = "恢复用中心"
+    override val pickTempCentre = "输入地址，或从下面选"
+    override val savedPlaces = "常用地址"
+    override val addSavedPlace = "加一个常用地址"
+    override val noSavedPlacesYet = "还没有常用地址。搜一个地址，或者点「我的位置」加进来。电脑上存的也会出现在这里。"
+    override val back = "返回"
+    override val drawBox = "画框"
+    override val stopDrawing = "不画了"
+    override val dragToDraw = "按住拖一个框出来"
+    override val boxesHint = "框里的单一律不接"
+    override val boxTooSmall = "太小了，重新拖一个"
+    override val adjustBox = "调大小"
+    override val dragCorners = "拖四个角改大小"
+    override fun boxCount(n: Int) = "$n 个"
+    override fun boxDefaultName(n: Int) = "框 $n"
+    override val setCentreHere = "设中心"
+    override val searchPlace = "区名、店名或地址"
+    override val searchingNet = "在网上找地址…"
+    override val nothingFound = "没找到"
+    override val kindSuburb = "区"
+    override val kindShop = "店"
+    override val kindAddress = "地址"
+    override val noPosition = "拿不到手机的位置，打开定位再试，或者长按地图选一个点。"
+    override fun centreNotSaved(label: String) = "中心：$label（还没保存）"
+    override val tapSuburbToToggle = "点区加减 · 右上角设中心"
+    override val savedOnPhoneOnly = "只存在了手机上，云端没传上去，下次同步会补上。"
+    override val cloudMovedOn = "电脑上刚改过规则，这次没存。已拉到最新，再点一次「保存」就用你现在的选择。"
     override val switchSet = "换一套"
-    override val liveFromPhone = "现在用 · 手机上选的"
-    override val liveFromLaptop = "现在用 · 电脑推过来的"
-    override val fewerAreasThisTrip = "这一趟想少去几个区"
-    override val turnThemOffOnTrip = "去「这趟」那一页点掉，只管这一趟，不会改这里的选区。"
+    override val newSet = "新建"
+    override val renameSet = "改名"
+    override val copySet = "复制"
+    override val deleteSet = "删除"
+    override val needAName = "先起个名字"
+    override val nameTaken = "这个名字已经有了"
+    override val lastSetStays = "只剩这一套了，删不了"
+    override fun reallyDelete(name: String) = "删掉「$name」？"
     override fun areaCount(n: Int) = "$n 个区"
 
     override val signIn = "登录"
@@ -391,7 +466,7 @@ object Zh : Words {
 
     override val settingsWatching = "监控"
     override val settingsFinishing = "收工"
-    override val settingsPerHour = "每小时收入"
+    override val settingsPerHour = "卡片上的 \$/小时"
     override val save = "保存"
     override val cancel = "取消"
     override val gotIt = "知道了"
@@ -400,8 +475,14 @@ object Zh : Words {
     override val voiceCommandsHint = "一直在听：说「打开地图」「送餐」「应用」「回中心」"
     override val whatCanISay = "能说什么？"
     override val voiceHelpTail = "前面加「切」「打开」也行，比如「切地图」。"
-    override val homewardMode = "回中心模式"
-    override val homewardHint = "只接离中心更近的单，远区也一样"
+    override val homewardMode = "围着中心跑"
+    override val homewardHint = "拿中心当准绳，定位要开"
+    override val headBack = "越送越近"
+    override val stayNear = "只在附近"
+    override val headBackHint = "送完要比现在离中心更近。不知道车在哪就不管"
+    override val stayNearHint = "送到的地方不能超出这个圈。不用知道车在哪"
+    override val farthestKmLabel = "离中心最远 公里"
+    override val capTheLength = "还要限制单子时长"
     override val noCentreSet = "这套选区没设中心，先在电脑上设一个"
     override val noCentreSetLong = "这套选区没设中心，在电脑上点「改中心」再保存"
     override val needAlwaysLocation = "定位要设成「始终允许」才有用，点这里去改"
@@ -426,7 +507,7 @@ object Zh : Words {
     override val goTurnOn = "去开启"
     override val nearKmLabel = "离中心小于 公里 照接"
     override val maxMinutesLabel = "超过 分钟 不接"
-    override val fuelPerKm = "每公里油钱 \$"
+    override val fuelPerKm = "油钱 \$/公里"
     override val timeFactor = "时间倍数"
     override val perHourFormula = "(钱 − 公里 × 2 × 油钱) ÷ (分钟 × 倍数 ÷ 60)"
     override val rulesUpdated = "拿到了新规则"
@@ -496,10 +577,6 @@ object En : Words {
     override val seeOnMap = "See on map"
     override val restoreAll = "Restore all"
     override val noGoBoxes = "No-go boxes"
-    override val noGoBoxesHint = "Tap to switch one off for now; new rules from the laptop restore them all"
-    override val noGoBoxesNone = "No boxes drawn yet. Draw them on the laptop's Areas page."
-    override fun noGoBoxesOff(off: Int) = if (off == 0) "all in use" else "$off switched off"
-    override val thisTripOnly = "This trip only. Switching sets, or new rules from the laptop, brings them all back."
     override fun areasCount(n: Int) = if (n == 1) "1 area" else "$n areas"
     override val noLocationPermission = "Without location, homeward mode cannot be switched on"
     override val noMicrophonePermission = "Without the microphone, voice commands cannot be switched on"
@@ -555,21 +632,57 @@ object En : Words {
     override val drive = "Drive"
     override val clearIt = "Clear"
 
-    override fun thisTrip(name: String) = "This trip · $name"
     override val tapToToggle = "Tap to toggle · hold to keep only that one"
-    override val going = " going"
-    override val notGoing = " not going"
     override val areasAllGoing = "areas, all going"
     override fun areasSomeOff(off: Int) = "areas, $off turned off"
     override val clearAll = "None"
     override val keepCentreOnly = "Centre only"
     override val noAreasYet = "No areas yet"
     override val pushFromTheWeb = "Press Save once in the web editor."
+    override val editOnMap = "Edit"
+    override val myPosition = "Here"
+    override val kindSaved = "saved"
+    override val kindCentre = "set centre"
+    override val tempCentre = "Temporary centre"
+    override fun tempCentreToday(label: String) = "Around \"$label\", for today"
+    override val tempCentreNone = "None - the set's centre is used"
+    override val changeTempCentre = "Change"
+    override val useSetCentre = "Use the set's"
+    override val pickTempCentre = "Type an address, or pick one below"
+    override val savedPlaces = "Saved places"
+    override val addSavedPlace = "Add a saved place"
+    override val noSavedPlacesYet = "No saved places yet. Search an address or tap Here. Places saved on the laptop show here too."
+    override val back = "Back"
+    override val drawBox = "Draw"
+    override val stopDrawing = "Stop"
+    override val dragToDraw = "Press and drag out a box"
+    override val boxesHint = "Nothing inside a box is taken"
+    override val boxTooSmall = "Too small; drag out another"
+    override val adjustBox = "Resize"
+    override val dragCorners = "Drag the corners"
+    override fun boxCount(n: Int) = if (n == 1) "1 box" else "$n boxes"
+    override fun boxDefaultName(n: Int) = "Box $n"
+    override val setCentreHere = "Set the centre"
+    override val searchPlace = "suburb, shop or address"
+    override val searchingNet = "Looking the address up\u2026"
+    override val nothingFound = "Nothing found"
+    override val kindSuburb = "suburb"
+    override val kindShop = "shop"
+    override val kindAddress = "address"
+    override val noPosition = "No position from the phone. Turn location on, or long-press the map instead."
+    override fun centreNotSaved(label: String) = "Centre: $label (not saved yet)"
+    override val tapSuburbToToggle = "Tap suburbs in or out \u00b7 the target sets the centre"
+    override val savedOnPhoneOnly = "Saved on the phone only; the cloud gets it on the next sync."
+    override val cloudMovedOn = "The laptop changed the rules just now, so nothing was saved. Now up to date - press Save again to keep your choice."
     override val switchSet = "Switch set"
-    override val liveFromPhone = "In use · picked on the phone"
-    override val liveFromLaptop = "In use · sent from the web"
-    override val fewerAreasThisTrip = "Fewer areas just for this trip"
-    override val turnThemOffOnTrip = "Turn them off on the Trip page; it lasts this trip only and leaves the set alone."
+    override val newSet = "New"
+    override val renameSet = "Rename"
+    override val copySet = "Copy"
+    override val deleteSet = "Delete"
+    override val needAName = "Give it a name first"
+    override val nameTaken = "That name is taken"
+    override val lastSetStays = "This is the only set left; it cannot go"
+    override fun reallyDelete(name: String) = "Delete \"$name\"?"
     override fun areaCount(n: Int) = if (n == 1) "1 area" else "$n areas"
 
     override val signIn = "Sign in"
@@ -592,7 +705,7 @@ object En : Words {
 
     override val settingsWatching = "Watching"
     override val settingsFinishing = "Finishing up"
-    override val settingsPerHour = "Dollars an hour"
+    override val settingsPerHour = "The \$/h on the card"
     override val save = "Save"
     override val cancel = "Cancel"
     override val gotIt = "Got it"
@@ -601,8 +714,14 @@ object En : Words {
     override val voiceCommandsHint = "Always listening: say 打开地图, 送餐, 应用, 回中心"
     override val whatCanISay = "What can I say?"
     override val voiceHelpTail = "A verb in front is fine too, like 切地图. Commands are Mandarin for now."
-    override val homewardMode = "Homeward mode"
-    override val homewardHint = "Only jobs that leave you nearer the centre, far areas too"
+    override val homewardMode = "Work around the centre"
+    override val homewardHint = "The middle of the set is the yardstick; needs your position"
+    override val headBack = "Head back"
+    override val stayNear = "Stay near"
+    override val headBackHint = "The drop has to leave you nearer the middle than you are now; silent without a fix"
+    override val stayNearHint = "The drop has to land inside the circle; no fix needed"
+    override val farthestKmLabel = "Farthest from centre km"
+    override val capTheLength = "Cap how long a job may be"
     override val noCentreSet = "This set has no centre; set one on the web first"
     override val noCentreSetLong = "This set has no centre; press 改中心 on the web and save"
     override val needAlwaysLocation = "Location must be \"Allow all the time\"; tap here to change it"

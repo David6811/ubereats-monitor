@@ -18,7 +18,7 @@ object ChipText {
     fun route(card: OfferCard, suburbs: List<Suburb>, stores: List<Store>, lang: Lang): Route {
         val from = suburbOf(card.pickup, suburbs) ?: shorten(card.pickup)
         val to = suburbOf(card.dropoff, suburbs) ?: shorten(card.dropoff)
-        val shop = StoreKinds.find(card.pickup, stores)
+        val shop = StoreKinds.find(card.pickup, stores, suburbs)
         // English brackets need the space in front that full-width ones carry.
         val english = lang == Lang.ENGLISH
         val kind = shop?.let { found ->

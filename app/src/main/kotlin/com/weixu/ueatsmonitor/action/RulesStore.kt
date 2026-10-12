@@ -2,7 +2,7 @@ package com.weixu.ueatsmonitor.action
 
 import android.content.Context
 import android.util.Log
-import com.weixu.ueatsmonitor.domain.HomewardLimits
+import com.weixu.ueatsmonitor.domain.CentreLimits
 import com.weixu.ueatsmonitor.domain.Cents
 import com.weixu.ueatsmonitor.domain.Exclusions
 import com.weixu.ueatsmonitor.domain.NoGoBox
@@ -47,7 +47,7 @@ object RulesStore {
     private var readWithCost: TripCost? = null
 
     @Volatile
-    private var readWithHomeward: HomewardLimits? = null
+    private var readWithHomeward: CentreLimits? = null
 
     /**
      * Every box the laptop drew, switched off or not. [current] hands out the
@@ -70,8 +70,13 @@ object RulesStore {
         // The set's own centre, but only while the switch is on: off, the rule
         // simply is not there.
         val homewardNow = LiveSettings.current?.takeIf { it.homewardEnabled }?.let { settings ->
-            Profiles.centre(context)?.let { centre ->
-                HomewardLimits(centre, settings.homewardNearKm, settings.homewardMaxMinutes)
+            TempCentreStore.centreInForce(context)?.let { centre ->
+                CentreLimits(
+                    centre = centre,
+                    nearKm = settings.homewardNearKm,
+                    maxMinutes = settings.homewardMaxMinutes.takeIf { settings.homewardTimeCapped },
+                    mode = settings.centreMode,
+                )
             }
         }
         if (known != null && stamp == readAtMillis && profile == readForProfile &&
